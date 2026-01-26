@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
+import { FormEvent, useState, useEffect } from "react";
 import "@/app/styles/forms-fill.css";
 import { AppSidebar } from "@/components/app-sidebar";
 import {
@@ -23,10 +23,101 @@ import {
 } from "@/components/ui/sidebar";
 
 const FORM_NAME = "building-structure-form-fill-page-5";
+const PAGE_DESCRIPTION = "Final notes and summary of the property assessment.";
+
+// Function to convert number to words
+function numberToWords(num: number): string {
+  if (num === 0) return "Zero";
+
+  const ones = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine"];
+  const teens = ["Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"];
+  const tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
+  const thousands = ["", "Thousand", "Million", "Billion"];
+
+  function convertHundreds(n: number): string {
+    let result = "";
+    
+    if (n >= 100) {
+      result += ones[Math.floor(n / 100)] + " Hundred ";
+      n %= 100;
+    }
+    
+    if (n >= 10 && n < 20) {
+      result += teens[n - 10] + " ";
+    } else {
+      if (n >= 20) {
+        result += tens[Math.floor(n / 10)] + " ";
+        n %= 10;
+      }
+      if (n > 0) {
+        result += ones[n] + " ";
+      }
+    }
+    
+    return result.trim();
+  }
+
+  let word = "";
+  let scale = 0;
+
+  while (num > 0) {
+    const chunk = num % 1000;
+    if (chunk !== 0) {
+      const chunkWord = convertHundreds(chunk);
+      word = chunkWord + (thousands[scale] ? " " + thousands[scale] : "") + (word ? " " + word : "");
+    }
+    num = Math.floor(num / 1000);
+    scale++;
+  }
+
+  return word.trim();
+}
 
 export default function BuildingStructureFormFillPage5() {
   const router = useRouter();
   const [notes, setNotes] = useState("");
+  const [actualUse, setActualUse] = useState("");
+  const [estimatedValue, setEstimatedValue] = useState<number>(0);
+  const [estimatedValueDisplay, setEstimatedValueDisplay] = useState("");
+  const [amountInWords, setAmountInWords] = useState("");
+
+  // Format number with commas
+  const formatNumberWithCommas = (num: number): string => {
+    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  };
+
+  // Remove commas from string
+  const removeCommas = (str: string): string => {
+    return str.replace(/,/g, "");
+  };
+
+  // Load the type of building from localStorage
+  useEffect(() => {
+    try {
+      const typeOfBuilding = localStorage.getItem("type_of_building_p2") || "";
+      // Capitalize first letter for display
+      const formattedType = typeOfBuilding.charAt(0).toUpperCase() + typeOfBuilding.slice(1);
+      setActualUse(formattedType || "Residential");
+
+      // Load estimated value and convert to words
+      const savedEstimatedValue = localStorage.getItem("estimated_value_p5") || "0";
+      const value = parseFloat(savedEstimatedValue) || 0;
+      setEstimatedValue(value);
+      setEstimatedValueDisplay(value > 0 ? formatNumberWithCommas(value) : "");
+      
+      if (value > 0) {
+        setAmountInWords(numberToWords(value));
+      } else {
+        setAmountInWords("");
+      }
+    } catch (error) {
+      console.error("Failed to load data from localStorage", error);
+      setActualUse("Residential");
+      setEstimatedValue(0);
+      setEstimatedValueDisplay("");
+      setAmountInWords("");
+    }
+  }, []);
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -46,11 +137,11 @@ export default function BuildingStructureFormFillPage5() {
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem className="hidden md:block">
-                <BreadcrumbLink href="#">Building Your Application</BreadcrumbLink>
+                <BreadcrumbLink href="/building-other-structure">Building & Other Structures</BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator className="hidden md:block" />
               <BreadcrumbItem>
-                <BreadcrumbPage>Final Notes</BreadcrumbPage>
+                <BreadcrumbPage>{PAGE_DESCRIPTION}</BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
@@ -62,7 +153,7 @@ export default function BuildingStructureFormFillPage5() {
               <div>
                 <h1 className="rpfaas-fill-title">Fill-up Form: Property Assessment</h1>
                 <p className="text-sm text-muted-foreground">
-                  Final notes and summary of the property assessment.
+                  {PAGE_DESCRIPTION}
                 </p>
               </div>
             </header>
@@ -75,11 +166,11 @@ export default function BuildingStructureFormFillPage5() {
                     <Input
                     id="actual_use_p5"
                     name="actual_use_p5"
-                    value="Residential"
+                    value={actualUse}
                     readOnly
                     disabled
                     aria-disabled="true"
-                    className="rpfaas-fill-input"
+                    className="rpfaas-fill-input bg-white"
                   />
                 </div>
                 <div className="rpfaas-fill-field space-y-1">
@@ -91,7 +182,7 @@ export default function BuildingStructureFormFillPage5() {
                     readOnly
                     disabled
                     aria-disabled="true"
-                    className="rpfaas-fill-input"
+                    className="rpfaas-fill-input bg-white"
                   />
                 </div>
                 <div className="rpfaas-fill-field space-y-1">
@@ -103,7 +194,7 @@ export default function BuildingStructureFormFillPage5() {
                     readOnly
                     disabled
                     aria-disabled="true"
-                    className="rpfaas-fill-input"
+                    className="rpfaas-fill-input bg-white"
                   />
                 </div>
                 <div className="rpfaas-fill-field space-y-1">
@@ -111,11 +202,28 @@ export default function BuildingStructureFormFillPage5() {
                     <Input
                     id="estimated_value_p5"
                     name="estimated_value_p5"
-                    value="number"
-                    readOnly
-                    disabled
-                    aria-disabled="true"
-                    className="rpfaas-fill-input"
+                    type="text"
+                    value={estimatedValueDisplay}
+                    onChange={(e) => {
+                      const inputValue = e.target.value;
+                      const numericValue = removeCommas(inputValue);
+                      
+                      // Only allow numbers
+                      if (/^\d*$/.test(numericValue)) {
+                        const value = parseFloat(numericValue) || 0;
+                        setEstimatedValue(value);
+                        setEstimatedValueDisplay(numericValue ? formatNumberWithCommas(value) : "");
+                        
+                        if (value > 0) {
+                          setAmountInWords(numberToWords(value));
+                        } else {
+                          setAmountInWords("");
+                        }
+                        localStorage.setItem("estimated_value_p5", value.toString());
+                      }
+                    }}
+                    className="rpfaas-fill-input bg-white"
+                    placeholder="0"
                   />
                 </div>
                 <div className="rpfaas-fill-field space-y-1">
@@ -123,11 +231,11 @@ export default function BuildingStructureFormFillPage5() {
                     <Input
                     id="amount_in_words_p5"
                     name="amount_in_words_p5"
-                    value="text"
+                    value={amountInWords}
                     readOnly
                     disabled
                     aria-disabled="true"
-                    className="rpfaas-fill-input"
+                    className="rpfaas-fill-input bg-white"
                   />
                 </div>
               </section>

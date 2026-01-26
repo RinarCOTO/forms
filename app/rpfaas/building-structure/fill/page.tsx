@@ -25,6 +25,8 @@ import {
 // --- DUMMY DATA ---
 // We add "parent" codes (provinceCode/municipalityCode) to create the relationships
 
+const PAGE_DESCRIPTION = "Step 1: Enter Owner and Property Location Details.";
+
 const DUMMY_PROVINCES = [
   { code: "P-01", name: "Metro Manila" },
   { code: "P-02", name: "Cebu" },
@@ -184,11 +186,15 @@ export default function BuildingOtherStructureFillPage() {
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem className="hidden md:block">
-                <BreadcrumbLink href="#">Building Your Application</BreadcrumbLink>
+                <BreadcrumbLink href="/rpfaas">RPFAAS Forms</BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator className="hidden md:block" />
+              <BreadcrumbItem className="hidden md:block">
+                <BreadcrumbLink href="/rpfaas/building-structure">Building & Other Structures</BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator className="hidden md:block" />
               <BreadcrumbItem>
-                <BreadcrumbPage>Data Fetching</BreadcrumbPage>
+                <BreadcrumbPage>{PAGE_DESCRIPTION}</BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>

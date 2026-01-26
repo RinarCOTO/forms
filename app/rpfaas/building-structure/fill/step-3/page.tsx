@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/sidebar";
 
 const FORM_NAME = "building-structure-form-fill-page-3";
+const PAGE_DESCRIPTION = "Step 3: Structural Materials (Checklists).";
 
 const BuildingStructureFormFillPage3 = () => {
   const router = useRouter();
@@ -170,11 +171,15 @@ const BuildingStructureFormFillPage3 = () => {
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem className="hidden md:block">
-                <BreadcrumbLink href="#">Building Your Application</BreadcrumbLink>
+                <BreadcrumbLink href="/rpfaas">RPFAAS Forms</BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator className="hidden md:block" />
+              <BreadcrumbItem className="hidden md:block">
+                <BreadcrumbLink href="/rpfaas/building-structure">Building & Other Structures</BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator className="hidden md:block" />
               <BreadcrumbItem>
-                <BreadcrumbPage>Additional Structure Details</BreadcrumbPage>
+                <BreadcrumbPage>{PAGE_DESCRIPTION}</BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>

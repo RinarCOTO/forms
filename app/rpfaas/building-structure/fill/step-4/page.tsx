@@ -32,6 +32,7 @@ import {
 import MultiSelect from "@/components/ui/multi-select";
 
 const FORM_NAME = "building-structure-form-fill-page-4";
+const PAGE_DESCRIPTION = "Step 4: Additional Items and Deductions.";
 
 const BuildingStructureFormFillPage4 = () => {
   const router = useRouter();
@@ -159,11 +160,15 @@ const BuildingStructureFormFillPage4 = () => {
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem className="hidden md:block">
-                <BreadcrumbLink href="#">Building Your Application</BreadcrumbLink>
+                <BreadcrumbLink href="/rpfaas">RPFAAS Forms</BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator className="hidden md:block" />
+              <BreadcrumbItem className="hidden md:block">
+                <BreadcrumbLink href="/rpfaas/building-structure">Building & Other Structures</BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator className="hidden md:block" />
               <BreadcrumbItem>
-                <BreadcrumbPage>Additional Structure Details</BreadcrumbPage>
+                <BreadcrumbPage>{PAGE_DESCRIPTION}</BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
