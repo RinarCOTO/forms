@@ -25,21 +25,40 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Available Forms</SidebarGroupLabel>
+          <SidebarGroupLabel>RPFAAS Forms</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
-                  <a href="/building-other-structure/fill">RPFAAS - Building &amp; Other Structures</a>
+                  <a href="/rpfaas">All RPFAAS Forms</a>
                 </SidebarMenuButton>
               </SidebarMenuItem>
 
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
-                  <a href="/land-other-improvements">Land &amp; Other Improvements</a>
+                  <a href="/rpfaas/building-structure/fill">Building &amp; Structures</a>
                 </SidebarMenuButton>
               </SidebarMenuItem>
 
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <a href="/rpfaas/land-improvements/view">Land &amp; Improvements</a>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <a href="/rpfaas/machinery">Machinery</a>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Other</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
                   <a href="/notes">Notes</a>

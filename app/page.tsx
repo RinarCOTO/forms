@@ -10,6 +10,27 @@ export default function Home() {
         </p>
       </header>
 
+      {/* Quick Access to RPFAAS Dashboard */}
+      <section className="max-w-5xl">
+        <Link
+          href="/rpfaas"
+          className="block border-2 border-blue-500 rounded-lg p-6 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 hover:shadow-lg transition-shadow"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-bold text-blue-900 dark:text-blue-100">
+                📋 RPFAAS Forms Dashboard
+              </h2>
+              <p className="text-sm text-blue-700 dark:text-blue-300 mt-2">
+                Access all Real Property Field Appraisal & Assessment Sheets in one place.
+                Choose from Building/Structure, Land/Improvements, or Machinery forms.
+              </p>
+            </div>
+            <div className="text-blue-600 dark:text-blue-400 text-3xl">→</div>
+          </div>
+        </Link>
+      </section>
+
       <section className="grid gap-4 md:grid-cols-3 max-w-5xl">
         {/* Building & Other Structures */}
         <div className="border rounded-lg p-4 flex flex-col justify-between gap-3 bg-white dark:bg-zinc-900">
@@ -21,13 +42,13 @@ export default function Home() {
           </div>
           <div className="flex gap-3 mt-2">
             <Link
-              href="/building-other-structure/fill"
+              href="/rpfaas/building-structure/fill"
               className="text-sm px-3 py-1.5 rounded bg-blue-600 text-white text-center flex-1"
             >
               Fill up form
             </Link>
             <Link
-              href="/building-other-structure"
+              href="/rpfaas/building-structure/view"
               className="text-sm px-3 py-1.5 rounded border border-gray-300 text-center flex-1"
             >
               Print preview
@@ -45,10 +66,10 @@ export default function Home() {
           </div>
           <div className="flex gap-3 mt-2">
             <Link
-              href="/land-other-improvements/fill"
+              href="/rpfaas/land-improvements/view"
               className="text-sm px-3 py-1.5 rounded border border-gray-300 text-center flex-1"
             >
-              Open print preview
+              View form
             </Link>
           </div>
         </div>
