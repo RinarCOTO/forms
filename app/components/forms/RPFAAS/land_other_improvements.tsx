@@ -1,4 +1,5 @@
 import "@/app/components/forms/RPFAAS/faas_table_forms.css";
+import type { ReactNode } from "react";
 
 const STRUCTURAL_MATERIAL_ROWS = [
   { roof: "Reinforced Concrete", flooring: "Concrete", walls: "Concrete" },
@@ -21,7 +22,9 @@ const ADDITIONAL_ITEMS_ROWS = [
   ["value", "value", "value", "value", "value", "value", "value", "value", "value"],
 ];
 
-const SectionHeader = ({ children, colSpan = 4, className = "" }) => (
+type SectionHeaderProps = { children: ReactNode; colSpan?: number; className?: string };
+
+const SectionHeader = ({ children, colSpan = 4, className = "" }: SectionHeaderProps) => (
   <tr>
     <td colSpan={colSpan} className={`font-bold ${className}`}>
       {children}
@@ -29,30 +32,36 @@ const SectionHeader = ({ children, colSpan = 4, className = "" }) => (
   </tr>
 );
 
-const FloorAreaRow = ({ floor, label, value = "value" }) => (
+type FloorAreaRowProps = { floor?: string; label: string; value?: string };
+
+const FloorAreaRow = ({ floor, label, value = "value" }: FloorAreaRowProps) => (
   <tr>
     <td>{label}</td>
     <td>value</td>
     <td className="text-right">
-      {floor}<sup>{getOrdinalSuffix(floor)}</sup> Floor Area:
+      {floor}<sup>{floor ? getOrdinalSuffix(parseInt(floor)) : ''}</sup> Floor Area:
     </td>
     <td>{value}</td>
   </tr>
 );
 
-const getOrdinalSuffix = (num) => {
-  const suffixes = { 1: "st", 2: "nd", 3: "rd" };
+const getOrdinalSuffix = (num: number): string => {
+  const suffixes: { [key: number]: string } = { 1: "st", 2: "nd", 3: "rd" };
   return suffixes[num] || "th";
 };
 
-const Checkbox = ({ label, checked = false }) => (
+type CheckboxProps = { label?: ReactNode; checked?: boolean };
+
+const Checkbox = ({ label, checked = false }: CheckboxProps) => (
   <label className="flex items-center gap-2">
     <input type="checkbox" defaultChecked={checked} />
     {label}
   </label>
 );
 
-const CheckboxIcon = ({ checked = false }) => (
+type CheckboxIconProps = { checked?: boolean };
+
+const CheckboxIcon = ({ checked = false }: CheckboxIconProps) => (
   <span className="w-4 h-4 border-2 border-black flex items-center justify-center">
     {checked && <span className="text-xs font-bold">x</span>}
   </span>

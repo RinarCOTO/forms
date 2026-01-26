@@ -15,9 +15,10 @@ type MultiSelectProps = {
   value: string[];
   onChange: (v: string[]) => void;
   placeholder?: string;
+  className?: string;
 };
 
-export default function MultiSelect({ options, value, onChange, placeholder = "please select" }: MultiSelectProps) {
+export default function MultiSelect({ options, value, onChange, placeholder = "please select", className }: MultiSelectProps) {
   const toggle = (opt: string, checked: boolean) => {
     if (checked) {
       if (!value.includes(opt)) onChange([...value, opt]);
@@ -29,12 +30,12 @@ export default function MultiSelect({ options, value, onChange, placeholder = "p
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" className="rpfaas-fill-input w-full text-left">
+        <Button variant="outline" className={`rpfaas-fill-input text-left ${className || 'w-full'}`}>
           {value.length > 0 ? value.join(", ") : placeholder}
         </Button>
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent className="w-56">
+      <DropdownMenuContent className={className || "w-56"}>
         <DropdownMenuGroup>
           {options.map((opt) => (
             <DropdownMenuCheckboxItem
