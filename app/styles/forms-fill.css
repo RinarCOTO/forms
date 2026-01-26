@@ -1,0 +1,206 @@
+/* forms-fill.css - Styles for RPFAAS fill pages */
+:root {
+  --bg: #f3f4f6; /* slightly darker page background for contrast */
+  --surface: #ffffff; /* white surfaces */
+  --text: #0f172a; /* high contrast text */
+  --muted: #475569; /* darker muted text */
+  --border: #cbd5e1; /* clearer border */
+  --primary: #1d4ed8; /* accessible blue */
+  --primary-700: #153e75; /* darker primary for hover */
+  --danger: #dc2626;
+  --radius: 8px;
+  --max-width: 960px;
+}
+
+/* Page container ------------------------------------------------------- */
+.rpfaas-fill {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  color: var(--text);
+}
+
+.rpfaas-fill.max-w-3xl {
+  max-width: var(--max-width);
+}
+
+/* Header --------------------------------------------------------------- */
+.rpfaas-fill-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.rpfaas-fill-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.rpfaas-fill-link {
+  font-size: 0.9rem;
+  color: var(--primary);
+  text-decoration: underline;
+}
+
+/* Form layout ---------------------------------------------------------- */
+.rpfaas-fill-form {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+  width: 100%;
+}
+
+/* keep single-column when this modifier is present */
+.rpfaas-fill-form.rpfaas-fill-form-single {
+  grid-template-columns: 1fr;
+}
+
+/* two-column layout only when NOT single modifier */
+@media (min-width: 768px) {
+  .rpfaas-fill-form:not(.rpfaas-fill-form-single) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.rpfaas-fill-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  background: var(--surface);
+  padding: 1rem 1.25rem;
+  border-radius: calc(var(--radius) - 2px);
+  border: 1px solid var(--border);
+}
+
+.rpfaas-fill-section-title {
+  font-weight: 600;
+  margin: 0;
+}
+
+/* Fields ---------------------------------------------------------------- */
+.rpfaas-fill-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.rpfaas-fill-label {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.rpfaas-fill-labe-sub {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text);
+}
+
+.rpfaas-fill-input,
+.rpfaas-fill-field select,
+.rpfaas-fill-field textarea {
+  appearance: none;
+  width: 100%;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  transition: box-shadow 120ms ease, border-color 120ms ease;
+  color: var(--text);
+}
+
+.rpfaas-fill-input::placeholder,
+.rpfaas-fill-field textarea::placeholder {
+  color: #94a3b8; /* visible placeholder */
+}
+
+.rpfaas-fill-input:focus,
+.rpfaas-fill-field select:focus,
+.rpfaas-fill-field textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px rgba(29,78,216,0.12);
+}
+
+/* Grid helper for address/location 3-column */
+.rpfaas-fill-field .grid {
+  width: 100%;
+}
+
+/* Footer ---------------------------------------------------------------- */
+.rpfaas-fill-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+  gap: 1rem;
+}
+
+.rpfaas-fill-hint {
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.rpfaas-fill-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.rpfaas-fill-button {
+  padding: 0.5rem 0.9rem;
+  font-size: 0.95rem;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: transform 100ms ease, box-shadow 120ms ease;
+}
+
+.rpfaas-fill-button:hover { transform: translateY(-1px); }
+
+.rpfaas-fill-button-secondary {
+  border-color: var(--border);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.rpfaas-fill-button-primary {
+  background: var(--primary);
+  color: white;
+  box-shadow: 0 6px 18px rgba(29,78,216,0.14);
+}
+
+.rpfaas-fill-button-primary:hover {
+  background: var(--primary-700);
+}
+
+/* Small responsive tweaks ----------------------------------------------- */
+@media (max-width: 767px) {
+  .rpfaas-fill-section {
+    padding: 0.75rem;
+  }
+
+  .rpfaas-fill-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .rpfaas-fill-actions {
+    justify-content: stretch;
+  }
+
+  .rpfaas-fill-button { width: 100%; }
+}
+
+/* Utility helpers -------------------------------------------------------- */
+.text-muted-foreground { color: var(--muted); }
+.border-border { border-color: var(--border); }
+
+/* Accessibility: focus-visible outlines for keyboard users */
+:focus:not(:focus-visible) { box-shadow: none; }
+
+/* End of file ----------------------------------------------------------- */

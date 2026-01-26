@@ -1,0 +1,277 @@
+table {
+  width: 100%;
+  table-layout: auto;
+  border-collapse: collapse;
+  border: 2px solid black;
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+table th,
+table td {
+  border: 1px solid black;
+  padding:0 0.5rem 0 0.5rem;
+}
+
+table.no-border {
+  border: none;
+}
+
+table.no-border th,
+table.no-border td {
+  border: none;
+}
+.sectionHeader {
+  background-color: #e6e6e6; /* neutral light gray */
+}
+
+/* =========================
+   PRINT SETTINGS (A4)
+========================= */
+
+@page {
+  size: A4;
+  margin: 15mm;
+}
+
+@media print {
+  body {
+    margin: 0;
+    padding: 0;
+    background: white;
+  }
+
+  .rpfaas-print {
+    width: 210mm;
+    min-height: 297mm;
+    font-size: 12px;
+    line-height: 1.2;
+    color: #000;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .rpfaas-print-small{
+    font-size: 9px !important;
+    line-height: 1 !important;
+    margin-top: auto;
+    padding-top: 0.25rem !important; /* print:py-3 equivalent */
+    padding-bottom: 0.25rem !important; /* print:py-3 equivalent */
+
+  }
+  h1 {
+    font-size: 14px;
+    margin-bottom: 6mm;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    page-break-inside: avoid;
+    margin-bottom: 4mm;
+  }
+
+  td, th {
+    border: 1px solid #000;
+    padding: 2px 3px;
+    vertical-align: top;
+  }
+
+  /* Allow applying no-border to any element (table, tr, td, th) */
+  .no-border,
+  .no-border td,
+  .no-border th,
+  tr.no-border td,
+  tr.no-border th {
+    border: none;
+  }
+
+  @media print {
+    .no-border,
+    .no-border td,
+    .no-border th,
+    tr.no-border td,
+    tr.no-border th {
+      border: none !important;
+    }
+  }
+
+  .bordered-table td {
+    border: 1px solid #000;
+  }
+
+  /* Prevent ugly page breaks */
+  tr {
+    page-break-inside: avoid;
+  }
+
+  /* Section spacing */
+  .font-bold {
+    font-weight: bold;
+  }
+
+  /* Hide interactive UI junk */
+  input,
+  button,
+  select {
+    appearance: none;
+    -webkit-appearance: none;
+    border: 1px solid #000;
+    width: 10px;
+    height: 10px;
+  }
+
+  /* Checkboxes must print */
+  input[type="checkbox"] {
+    display: inline-block;
+  }
+
+  /* Force page breaks if needed */
+  .page-break {
+    page-break-before: always;
+  }
+
+  .underline-amount {
+    border-bottom: 2px solid #000 !important;
+  }
+
+  .spaced-row td {
+    padding-top: 12px !important;
+  }
+
+  .sectionHeader {
+    background-color: #e6e6e6 !important; 
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+
+.underline-amount {
+  border-bottom: 2px solid #000;
+  padding: 6px 4px;
+  vertical-align: middle;
+}
+
+.underline-amount .inline-block {
+  display: inline-block;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.spaced-row td {
+  padding-top: 12px;
+}
+
+.section-divider {
+  border-bottom: 2px solid #000;
+}
+
+@media print {
+  .section-divider {
+    border-bottom: 2px solid #000 !important;
+  }
+  .boxed {
+    border: 1px solid #000 !important;
+    padding: 4px 6px !important;
+  }
+}
+
+.rpfaas-fill {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1.5rem;
+}
+
+.rpfaas-fill-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.rpfaas-fill-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.rpfaas-fill-link {
+  font-size: 0.875rem;
+  color: #2563eb;
+  text-decoration: underline;
+}
+
+.rpfaas-fill-form {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+  max-width: 64rem;
+}
+
+@media (min-width: 768px) {
+  .rpfaas-fill-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.rpfaas-fill-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.rpfaas-fill-section-title {
+  font-weight: 600;
+}
+
+.rpfaas-fill-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.rpfaas-fill-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.rpfaas-fill-input {
+  border: 1px solid #d4d4d8;
+  border-radius: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+}
+
+.rpfaas-fill-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.rpfaas-fill-hint {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.rpfaas-fill-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.rpfaas-fill-button {
+  padding: 0.25rem 0.75rem;
+  font-size: 0.875rem;
+  border-radius: 0.25rem;
+  border: 1px solid transparent;
+}
+
+.rpfaas-fill-button-secondary {
+  border-color: #d4d4d8;
+  background-color: white;
+}
+
+.rpfaas-fill-button-primary {
+  background-color: #2563eb;
+  color: white;
+}
