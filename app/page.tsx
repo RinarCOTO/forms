@@ -1,6 +1,9 @@
+"use client";
+
 import Link from 'next/link';
 
 export default function Home() {
+
   return (
     <main className="min-h-screen flex flex-col gap-8 p-8 bg-zinc-50 font-sans dark:bg-black">
       <header className="flex flex-col gap-2 max-w-5xl">
@@ -14,7 +17,7 @@ export default function Home() {
       <section className="max-w-5xl">
         <Link
           href="/rpfaas"
-          className="block border-2 border-blue-500 rounded-lg p-6 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 hover:shadow-lg transition-shadow"
+          className="block border-2 border-blue-500 rounded-lg p-6 bg-linear-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 hover:shadow-lg transition-shadow"
         >
           <div className="flex items-center justify-between">
             <div>

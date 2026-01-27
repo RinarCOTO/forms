@@ -1,0 +1,165 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model BuildingStructure {
+  id                Int       @id @default(autoincrement())
+  
+  // Step 1: Property Information
+  arpNo            String?   @map("arp_no") @db.VarChar(50)
+  pin              String?   @db.VarChar(50)
+  ownerName        String?   @map("owner_name") @db.VarChar(255)
+  ownerAddress     String?   @map("owner_address") @db.Text
+  
+  // Step 2: Building Details
+  typeOfBuilding   String?   @map("type_of_building") @db.VarChar(100)
+  numberOfStoreys  Int?      @map("number_of_storeys")
+  dateConstructed  DateTime? @map("date_constructed") @db.Date
+  dateCompleted    DateTime? @map("date_completed") @db.Date
+  dateOccupied     DateTime? @map("date_occupied") @db.Date
+  buildingPermitNo String?   @map("building_permit_no") @db.VarChar(100)
+  
+  // Step 3: Construction Details
+  totalFloorArea   Decimal?  @map("total_floor_area") @db.Decimal(10, 2)
+  constructionType String?   @map("construction_type") @db.VarChar(100)
+  structureType    String?   @map("structure_type") @db.VarChar(100)
+  foundationType   String?   @map("foundation_type") @db.VarChar(100)
+  
+  // Step 4: Additional Details
+  electricalSystem String?   @map("electrical_system") @db.VarChar(100)
+  plumbingSystem   String?   @map("plumbing_system") @db.VarChar(100)
+  roofingMaterial  String?   @map("roofing_material") @db.VarChar(100)
+  wallMaterial     String?   @map("wall_material") @db.VarChar(100)
+  flooringMaterial String?   @map("flooring_material") @db.VarChar(100)
+  ceilingMaterial  String?   @map("ceiling_material") @db.VarChar(100)
+  
+  // Step 5: Assessment
+  actualUse        String?   @map("actual_use") @db.VarChar(100)
+  marketValue      Decimal?  @map("market_value") @db.Decimal(15, 2)
+  assessmentLevel  Decimal?  @map("assessment_level") @db.Decimal(5, 2)
+  estimatedValue   Decimal?  @map("estimated_value") @db.Decimal(15, 2)
+  amountInWords    String?   @map("amount_in_words") @db.Text
+  
+  // Metadata
+  status           String    @default("draft") @db.VarChar(50)
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  createdBy        String?   @map("created_by") @db.VarChar(255)
+  updatedBy        String?   @map("updated_by") @db.VarChar(255)
+  
+  @@map("building_structures")
+  @@index([arpNo])
+  @@index([pin])
+  @@index([ownerName])
+  @@index([status])
+  @@index([createdAt(sort: Desc)])
+}
+
+model LandImprovement {
+  id               Int       @id @default(autoincrement())
+  
+  // Property Information
+  arpNo            String?   @map("arp_no") @db.VarChar(50)
+  pin              String?   @db.VarChar(50)
+  ownerName        String?   @map("owner_name") @db.VarChar(255)
+  ownerAddress     String?   @map("owner_address") @db.Text
+  
+  // Improvement Details
+  improvementType  String?   @map("improvement_type") @db.VarChar(100)
+  description      String?   @db.Text
+  area             Decimal?  @db.Decimal(10, 2)
+  unitOfMeasure    String?   @map("unit_of_measure") @db.VarChar(20)
+  
+  // Assessment
+  marketValue      Decimal?  @map("market_value") @db.Decimal(15, 2)
+  assessmentLevel  Decimal?  @map("assessment_level") @db.Decimal(5, 2)
+  assessedValue    Decimal?  @map("assessed_value") @db.Decimal(15, 2)
+  
+  // Metadata
+  status           String    @default("draft") @db.VarChar(50)
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  createdBy        String?   @map("created_by") @db.VarChar(255)
+  updatedBy        String?   @map("updated_by") @db.VarChar(255)
+  
+  @@map("land_improvements")
+  @@index([arpNo])
+  @@index([pin])
+  @@index([ownerName])
+}
+
+model Machinery {
+  id               Int       @id @default(autoincrement())
+  
+  // Property Information
+  arpNo            String?   @map("arp_no") @db.VarChar(50)
+  pin              String?   @db.VarChar(50)
+  ownerName        String?   @map("owner_name") @db.VarChar(255)
+  ownerAddress     String?   @map("owner_address") @db.Text
+  
+  // Machinery Details
+  machineryType    String?   @map("machinery_type") @db.VarChar(100)
+  brand            String?   @db.VarChar(100)
+  model            String?   @db.VarChar(100)
+  serialNumber     String?   @map("serial_number") @db.VarChar(100)
+  yearManufactured Int?      @map("year_manufactured")
+  capacity         String?   @db.VarChar(100)
+  condition        String?   @db.VarChar(50)
+  
+  // Assessment
+  marketValue      Decimal?  @map("market_value") @db.Decimal(15, 2)
+  assessmentLevel  Decimal?  @map("assessment_level") @db.Decimal(5, 2)
+  assessedValue    Decimal?  @map("assessed_value") @db.Decimal(15, 2)
+  
+  // Metadata
+  status           String    @default("draft") @db.VarChar(50)
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  createdBy        String?   @map("created_by") @db.VarChar(255)
+  updatedBy        String?   @map("updated_by") @db.VarChar(255)
+  
+  @@map("machinery")
+  @@index([arpNo])
+  @@index([pin])
+  @@index([ownerName])
+}
+
+model User {
+  id           Int       @id @default(autoincrement())
+  username     String    @unique @db.VarChar(100)
+  email        String    @unique @db.VarChar(255)
+  passwordHash String?   @map("password_hash") @db.VarChar(255)
+  fullName     String?   @map("full_name") @db.VarChar(255)
+  role         String    @default("user") @db.VarChar(50)
+  isActive     Boolean   @default(true) @map("is_active")
+  lastLogin    DateTime? @map("last_login")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  
+  @@map("users")
+  @@index([email])
+  @@index([username])
+}
+
+model AuditLog {
+  id         Int      @id @default(autoincrement())
+  tableName  String   @map("table_name") @db.VarChar(100)
+  recordId   Int      @map("record_id")
+  action     String   @db.VarChar(50)
+  userId     Int?     @map("user_id")
+  username   String?  @db.VarChar(100)
+  oldData    Json?    @map("old_data")
+  newData    Json?    @map("new_data")
+  createdAt  DateTime @default(now()) @map("created_at")
+  
+  @@map("audit_logs")
+  @@index([tableName, recordId])
+  @@index([createdAt(sort: Desc)])
+}

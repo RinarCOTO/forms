@@ -1,8 +1,10 @@
 import * as React from "react"
+import { UserProfile } from "@/components/user-profile"
 
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
@@ -68,6 +70,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+
+      <SidebarFooter>
+        <UserProfile />
+      </SidebarFooter>
 
       <SidebarRail />
     </Sidebar>
