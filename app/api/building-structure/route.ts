@@ -38,6 +38,11 @@ export async function POST(request: NextRequest) {
   try {
     const body: BuildingStructureInput = await request.json();
     
+    // Check if Prisma client is available
+    if (!prisma) {
+      throw new Error('Database connection not available');
+    }
+    
     const buildingStructure = await prisma.buildingStructure.create({
       data: {
         arpNo: body.arp_no || null,
@@ -77,13 +82,31 @@ export async function POST(request: NextRequest) {
     
   } catch (error) {
     console.error('Error creating building structure:', error);
+    
+    // Provide more helpful error messages
+    let errorMessage = 'Failed to create building structure';
+    let statusCode = 500;
+    
+    if (error instanceof Error) {
+      if (error.message.includes('Database connection')) {
+        errorMessage = 'Database is not connected. Please check your DATABASE_URL environment variable.';
+        statusCode = 503; // Service Unavailable
+      } else if (error.message.includes("Can't reach database")) {
+        errorMessage = 'Cannot reach database server. Please ensure PostgreSQL is running.';
+        statusCode = 503;
+      } else {
+        errorMessage = error.message;
+      }
+    }
+    
     return NextResponse.json(
       {
         success: false,
-        error: 'Failed to create building structure',
+        error: errorMessage,
         message: error instanceof Error ? error.message : 'Unknown error',
+        hint: 'Check DATABASE_URL in .env file and ensure database is running'
       },
-      { status: 500 }
+      { status: statusCode }
     );
   }
 }

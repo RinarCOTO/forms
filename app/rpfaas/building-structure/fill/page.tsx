@@ -21,6 +21,8 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import { useSaveForm } from "@/hooks/useSaveForm";
+import { SaveButton, SaveStatus } from "@/components/SaveButton";
 
 // --- DUMMY DATA ---
 // We add "parent" codes (provinceCode/municipalityCode) to create the relationships
@@ -138,10 +140,78 @@ export default function BuildingOtherStructureFillPage() {
   const adminLoc = useLocationSelect("rpfaas_admin");
   const propLoc  = useLocationSelect("rpfaas_location");
 
-  // Simple string persistence
+  // --- Save Form Hook ---
+  const {
+    isSaving,
+    lastSaved,
+    saveDraft,
+    saveToDatabaseAsDraft,
+    loadDraft,
+    saveError,
+  } = useSaveForm({
+    formType: 'building-structure',
+    step: 1,
+  });
+
+  // Load draft data on mount
+  useEffect(() => {
+    const draft = loadDraft();
+    if (draft) {
+      if (draft.ownerName) setOwnerName(draft.ownerName);
+      if (draft.adminCareOf) setAdminCareOf(draft.adminCareOf);
+      if (draft.propertyStreet) setPropertyStreet(draft.propertyStreet);
+      
+      // Load location data
+      if (draft.ownerProvinceCode) ownerLoc.setProvinceCode(draft.ownerProvinceCode);
+      if (draft.ownerMunicipalityCode) ownerLoc.setMunicipalityCode(draft.ownerMunicipalityCode);
+      if (draft.ownerBarangayCode) ownerLoc.setBarangayCode(draft.ownerBarangayCode);
+      
+      if (draft.adminProvinceCode) adminLoc.setProvinceCode(draft.adminProvinceCode);
+      if (draft.adminMunicipalityCode) adminLoc.setMunicipalityCode(draft.adminMunicipalityCode);
+      if (draft.adminBarangayCode) adminLoc.setBarangayCode(draft.adminBarangayCode);
+      
+      if (draft.propProvinceCode) propLoc.setProvinceCode(draft.propProvinceCode);
+      if (draft.propMunicipalityCode) propLoc.setMunicipalityCode(draft.propMunicipalityCode);
+      if (draft.propBarangayCode) propLoc.setBarangayCode(draft.propBarangayCode);
+      
+      console.log('✅ Draft loaded');
+    }
+  }, []); // Only run on mount
+
+  // Simple string persistence (keep backward compatibility)
   useEffect(() => safeSetLS("rpfaas_owner_name", ownerName), [ownerName]);
   useEffect(() => safeSetLS("rpfaas_admin_careof", adminCareOf), [adminCareOf]);
   useEffect(() => safeSetLS("rpfaas_location_street", propertyStreet), [propertyStreet]);
+
+  // Function to collect all form data
+  const collectFormData = () => {
+    return {
+      ownerName,
+      adminCareOf,
+      propertyStreet,
+      ownerProvinceCode: ownerLoc.provinceCode,
+      ownerMunicipalityCode: ownerLoc.municipalityCode,
+      ownerBarangayCode: ownerLoc.barangayCode,
+      adminProvinceCode: adminLoc.provinceCode,
+      adminMunicipalityCode: adminLoc.municipalityCode,
+      adminBarangayCode: adminLoc.barangayCode,
+      propProvinceCode: propLoc.provinceCode,
+      propMunicipalityCode: propLoc.municipalityCode,
+      propBarangayCode: propLoc.barangayCode,
+    };
+  };
+
+  // Save draft to localStorage
+  const handleSaveDraftLocal = () => {
+    const formData = collectFormData();
+    saveDraft(formData);
+  };
+
+  // Save draft to database
+  const handleSaveDraftDatabase = async () => {
+    const formData = collectFormData();
+    await saveToDatabaseAsDraft(formData);
+  };
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -207,6 +277,7 @@ export default function BuildingOtherStructureFillPage() {
                 <h1 className="rpfaas-fill-title">Fill-up Form: RPFAAS - Building &amp; Other Structures</h1>
                 <p className="text-sm text-muted-foreground">Enter the details below. You can generate the printable version afterwards.</p>
               </div>
+              <SaveStatus lastSaved={lastSaved} isSaving={isSaving} error={saveError} />
             </header>
 
             <form id={`form_${FORM_NAME}_main`} onSubmit={handleSubmit} className="rpfaas-fill-form rpfaas-fill-form-single space-y-6">
@@ -318,7 +389,25 @@ export default function BuildingOtherStructureFillPage() {
               </section>
 
               <div className="rpfaas-fill-footer border-t border-border pt-4 mt-4">
-                <div className="rpfaas-fill-actions flex gap-2 justify-end">
+                <div className="rpfaas-fill-actions flex gap-2 justify-between items-center">
+                  <div className="flex gap-2">
+                    <SaveButton
+                      onSave={handleSaveDraftLocal}
+                      isSaving={isSaving}
+                      lastSaved={lastSaved}
+                      showLastSaved={false}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleSaveDraftDatabase}
+                      disabled={isSaving}
+                      className="rpfaas-fill-button rpfaas-fill-button-secondary"
+                    >
+                      💾 Save to Cloud
+                    </Button>
+                  </div>
+                  
                   <Button type="button" onClick={() => router.push("/rpfaas/building-structure/fill/step-2")} className="rpfaas-fill-button rpfaas-fill-button-primary">
                     Next
                   </Button>

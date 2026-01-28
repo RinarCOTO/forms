@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 
 interface RouteParams {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 // GET - Fetch specific user (Admin only)
@@ -14,7 +14,7 @@ export async function GET(
 ) {
   try {
     const supabase = await createClient();
-    const userId = params.id;
+    const { id: userId } = await params;
 
     // Get current user
     const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
@@ -74,7 +74,7 @@ export async function PATCH(
 ) {
   try {
     const supabase = await createClient();
-    const userId = params.id;
+    const { id: userId } = await params;
 
     // Get current user
     const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
@@ -146,7 +146,7 @@ export async function DELETE(
 ) {
   try {
     const supabase = await createClient();
-    const userId = params.id;
+    const { id: userId } = await params;
 
     // Get current user
     const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
