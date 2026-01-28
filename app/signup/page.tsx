@@ -13,7 +13,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { createClient } from "@/lib/supabase/client";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -23,7 +22,6 @@ export default function SignupPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const supabase = createClient();
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -31,7 +29,7 @@ export default function SignupPage() {
     setIsLoading(true);
 
     try {
-      // Validation
+      // Client-side validation
       if (!fullName || !email || !password || !confirmPassword) {
         setError("All fields are required");
         setIsLoading(false);
@@ -50,22 +48,23 @@ export default function SignupPage() {
         return;
       }
 
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: fullName,
-          },
+      // Call server-side API route
+      const response = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
+        body: JSON.stringify({ email, password, fullName }),
       });
 
-      if (error) {
-        setError(error.message);
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error || "Signup failed");
         return;
       }
 
-      if (data.user) {
+      if (data.success) {
         // Redirect to dashboard
         router.push("/dashboard");
         router.refresh();
