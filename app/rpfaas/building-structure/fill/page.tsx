@@ -157,11 +157,14 @@ export default function BuildingOtherStructureFillPage() {
   useEffect(() => {
     const draft = loadDraft();
     if (draft) {
+      // Load from new database format
       if (draft.ownerName) setOwnerName(draft.ownerName);
+      
+      // Also support old localStorage format for backward compatibility
       if (draft.adminCareOf) setAdminCareOf(draft.adminCareOf);
       if (draft.propertyStreet) setPropertyStreet(draft.propertyStreet);
       
-      // Load location data
+      // Load location data (old format)
       if (draft.ownerProvinceCode) ownerLoc.setProvinceCode(draft.ownerProvinceCode);
       if (draft.ownerMunicipalityCode) ownerLoc.setMunicipalityCode(draft.ownerMunicipalityCode);
       if (draft.ownerBarangayCode) ownerLoc.setBarangayCode(draft.ownerBarangayCode);
@@ -174,7 +177,7 @@ export default function BuildingOtherStructureFillPage() {
       if (draft.propMunicipalityCode) propLoc.setMunicipalityCode(draft.propMunicipalityCode);
       if (draft.propBarangayCode) propLoc.setBarangayCode(draft.propBarangayCode);
       
-      console.log('✅ Draft loaded');
+      console.log('✅ Draft loaded:', draft);
     }
   }, []); // Only run on mount
 
@@ -185,20 +188,37 @@ export default function BuildingOtherStructureFillPage() {
 
   // Function to collect all form data
   const collectFormData = () => {
-    return {
-      ownerName,
-      adminCareOf,
-      propertyStreet,
-      ownerProvinceCode: ownerLoc.provinceCode,
-      ownerMunicipalityCode: ownerLoc.municipalityCode,
-      ownerBarangayCode: ownerLoc.barangayCode,
-      adminProvinceCode: adminLoc.provinceCode,
-      adminMunicipalityCode: adminLoc.municipalityCode,
-      adminBarangayCode: adminLoc.barangayCode,
-      propProvinceCode: propLoc.provinceCode,
-      propMunicipalityCode: propLoc.municipalityCode,
-      propBarangayCode: propLoc.barangayCode,
+    // Build the owner address from location codes
+    const ownerProvince = DUMMY_PROVINCES.find(p => p.code === ownerLoc.provinceCode)?.name || '';
+    const ownerMunicipality = ownerLoc.municipalities.find(m => m.code === ownerLoc.municipalityCode)?.name || '';
+    const ownerBarangay = ownerLoc.barangays.find(b => b.code === ownerLoc.barangayCode)?.name || '';
+    const ownerAddress = [ownerBarangay, ownerMunicipality, ownerProvince].filter(Boolean).join(', ');
+
+    // Build the admin address from location codes
+    const adminProvince = DUMMY_PROVINCES.find(p => p.code === adminLoc.provinceCode)?.name || '';
+    const adminMunicipality = adminLoc.municipalities.find(m => m.code === adminLoc.municipalityCode)?.name || '';
+    const adminBarangay = adminLoc.barangays.find(b => b.code === adminLoc.barangayCode)?.name || '';
+    const adminAddress = [adminBarangay, adminMunicipality, adminProvince].filter(Boolean).join(', ');
+
+    // Build the property address from location codes
+    const propProvince = DUMMY_PROVINCES.find(p => p.code === propLoc.provinceCode)?.name || '';
+    const propMunicipality = propLoc.municipalities.find(m => m.code === propLoc.municipalityCode)?.name || '';
+    const propBarangay = propLoc.barangays.find(b => b.code === propLoc.barangayCode)?.name || '';
+    const propertyAddress = [propertyStreet, propBarangay, propMunicipality, propProvince].filter(Boolean).join(', ');
+
+    // Use snake_case to match API expectations
+    const data = {
+      owner_name: ownerName || null,
+      owner_address: ownerAddress || null,
+      admin_care_of: adminCareOf || null,
+      admin_address: adminAddress || null,
+      property_address: propertyAddress || null,
+      status: 'draft',
     };
+    
+    console.log('📦 Collecting form data:', data);
+    
+    return data;
   };
 
   // Save draft to localStorage

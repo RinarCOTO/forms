@@ -1,7 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useEffect, useState, FormEvent } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState, FormEvent, Suspense } from "react";
 import "@/app/styles/forms-fill.css";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -21,6 +21,42 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import { Loader2 } from "lucide-react";
+
+// Helper function to collect form data from ONLY this step (step 1)
+function collectFormData(
+  ownerName: string,
+  adminCareOf: string,
+  propertyStreet: string,
+  ownerLoc: any,
+  adminLoc: any,
+  propLoc: any
+) {
+  const data: any = {
+    owner_name: ownerName,
+    admin_care_of: adminCareOf,
+    property_address: propertyStreet,
+  };
+  
+  // Build owner address from location selections
+  const ownerProvince = DUMMY_PROVINCES.find(p => p.code === ownerLoc.provinceCode)?.name || '';
+  const ownerMunicipality = ownerLoc.municipalities.find((m: any) => m.code === ownerLoc.municipalityCode)?.name || '';
+  const ownerBarangay = ownerLoc.barangays.find((b: any) => b.code === ownerLoc.barangayCode)?.name || '';
+  if (ownerProvince || ownerMunicipality || ownerBarangay) {
+    data.owner_address = [ownerBarangay, ownerMunicipality, ownerProvince].filter(Boolean).join(', ');
+  }
+  
+  // Build admin address from location selections
+  const adminProvince = DUMMY_PROVINCES.find(p => p.code === adminLoc.provinceCode)?.name || '';
+  const adminMunicipality = adminLoc.municipalities.find((m: any) => m.code === adminLoc.municipalityCode)?.name || '';
+  const adminBarangay = adminLoc.barangays.find((b: any) => b.code === adminLoc.barangayCode)?.name || '';
+  if (adminProvince || adminMunicipality || adminBarangay) {
+    data.admin_address = [adminBarangay, adminMunicipality, adminProvince].filter(Boolean).join(', ');
+  }
+  
+  // Only include fields from this step - don't collect from other steps
+  return data;
+}
 
 // --- DUMMY DATA ---
 // We add "parent" codes (provinceCode/municipalityCode) to create the relationships
@@ -123,8 +159,13 @@ function useLocationSelect(storagePrefix: string) {
 
 const FORM_NAME = "building_other_structure_fill";
 
-export default function BuildingOtherStructureFillPage() {
+function BuildingOtherStructureFillPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const draftId = searchParams.get('id');
+  
+  const [isLoadingDraft, setIsLoadingDraft] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Basic Fields
   const [ownerName, setOwnerName] = useState("");
@@ -135,6 +176,79 @@ export default function BuildingOtherStructureFillPage() {
   const ownerLoc = useLocationSelect("rpfaas_owner_address");
   const adminLoc = useLocationSelect("rpfaas_admin");
   const propLoc  = useLocationSelect("rpfaas_location");
+  
+  // Load draft data if editing
+  useEffect(() => {
+    if (!draftId) return;
+
+    const loadDraft = async () => {
+      setIsLoadingDraft(true);
+      try {
+        const response = await fetch(`/api/building-structure/${draftId}`);
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success && result.data) {
+            const data = result.data;
+            
+            console.log('Loading draft data:', data);
+            
+            // Populate form fields
+            if (data.owner_name) setOwnerName(data.owner_name);
+            if (data.admin_care_of) setAdminCareOf(data.admin_care_of);
+            if (data.property_address) setPropertyStreet(data.property_address);
+            
+            // Store draft ID for later use
+            localStorage.setItem('draft_id', draftId);
+            
+            // Store all data in localStorage for other steps
+            Object.entries(data).forEach(([key, value]) => {
+              if (value !== null && value !== undefined) {
+                const pageMapping: Record<string, string> = {
+                  'arp_no': '_p1',
+                  'pin': '_p1',
+                  'owner_name': '_p1',
+                  'owner_address': '_p1',
+                  'admin_care_of': '_p1',
+                  'admin_address': '_p1',
+                  'property_address': '_p1',
+                  'type_of_building': '_p2',
+                  'number_of_storeys': '_p2',
+                  'date_constructed': '_p2',
+                  'total_floor_area': '_p2',
+                  'roofing_material': '_p3',
+                  'wall_material': '_p3',
+                  'flooring_material': '_p3',
+                  'ceiling_material': '_p3',
+                  'construction_type': '_p4',
+                  'structure_type': '_p4',
+                  'foundation_type': '_p4',
+                  'electrical_system': '_p4',
+                  'plumbing_system': '_p4',
+                  'building_permit_no': '_p4',
+                  'actual_use': '_p5',
+                  'market_value': '_p5',
+                  'assessment_level': '_p5',
+                  'estimated_value': '_p5',
+                  'amount_in_words': '_p5',
+                };
+                
+                const pageSuffix = pageMapping[key] || '_p1';
+                localStorage.setItem(`${key}${pageSuffix}`, String(value));
+              }
+            });
+            
+            console.log('Draft loaded successfully');
+          }
+        }
+      } catch (err) {
+        console.error('Error loading draft:', err);
+      } finally {
+        setIsLoadingDraft(false);
+      }
+    };
+
+    loadDraft();
+  }, [draftId]);
 
   // Simple string persistence
   useEffect(() => safeSetLS("rpfaas_owner_name", ownerName), [ownerName]);
@@ -144,6 +258,60 @@ export default function BuildingOtherStructureFillPage() {
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     router.push("/building-other-structure");
+  };
+
+  const handleNext = async () => {
+    setIsSaving(true);
+    try {
+      const formData = collectFormData(ownerName, adminCareOf, propertyStreet, ownerLoc, adminLoc, propLoc);
+      formData.status = 'draft';
+      
+      console.log('Saving form data to Supabase:', formData);
+      
+      let response;
+      const currentDraftId = draftId || localStorage.getItem('draft_id');
+      
+      if (currentDraftId) {
+        // Update existing draft
+        response = await fetch(`/api/building-structure/${currentDraftId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(formData),
+        });
+      } else {
+        // Create new draft
+        response = await fetch('/api/building-structure', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(formData),
+        });
+      }
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('Save result:', result);
+        // Store the draft ID for future updates
+        if (result.data?.id) {
+          localStorage.setItem('draft_id', result.data.id.toString());
+          const savedDraftId = result.data.id;
+          // Navigate to step 2 with the draft ID
+          router.push(`/building-other-structure/fill/step-2?id=${savedDraftId}`);
+        }
+      } else {
+        const error = await response.json();
+        console.error('Save error:', error);
+        alert('Failed to save: ' + (error.message || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Error saving:', error);
+      alert('Error saving. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   // Reusable Select Component
@@ -313,9 +481,28 @@ export default function BuildingOtherStructureFillPage() {
 
               <div className="rpfaas-fill-footer border-t border-border pt-4 mt-4">
                 <div className="rpfaas-fill-actions flex gap-2 justify-end">
-                  <Button type="button" onClick={() => router.push("/building-other-structure/fill/step-2")} className="rpfaas-fill-button rpfaas-fill-button-primary">
-                    Next
-                  </Button>
+                  {isLoadingDraft ? (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Loading draft...
+                    </div>
+                  ) : (
+                    <Button 
+                      type="button" 
+                      onClick={handleNext}
+                      disabled={isSaving}
+                      className="rpfaas-fill-button rpfaas-fill-button-primary"
+                    >
+                      {isSaving ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        'Next'
+                      )}
+                    </Button>
+                  )}
                 </div>
               </div>
             </form>
@@ -323,5 +510,13 @@ export default function BuildingOtherStructureFillPage() {
         </div>
       </SidebarInset>
     </SidebarProvider>
+  );
+}
+
+export default function BuildingOtherStructureFillPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <BuildingOtherStructureFillPageContent />
+    </Suspense>
   );
 }

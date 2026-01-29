@@ -1,3 +1,5 @@
+"use client"
+
 import { AppSidebar } from "@/components/app-sidebar"
 import {
   Breadcrumb,
@@ -13,8 +15,167 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { Badge } from "@/components/ui/badge"
+import { FileText, Plus, ArrowLeft, Loader2, Eye, Edit } from "lucide-react"
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+
+type FormType = "building-structure" | "land-improvements" | "machinery" | "notes"
+
+interface FormSubmission {
+  id: number
+  owner_name?: string
+  title?: string
+  updated_at: string
+  status: string
+}
+
+const formsMenu = [
+  {
+    id: "building-structure",
+    title: "Building & Structures",
+    description: "Property assessment forms for buildings and structures",
+    icon: FileText,
+    apiEndpoint: "/api/forms/building-structures",
+    formRoute: "/building-other-structure/fill/step-1",
+  },
+  {
+    id: "land-improvements",
+    title: "Land & Improvements",
+    description: "Assessment forms for land and property improvements",
+    icon: FileText,
+    apiEndpoint: "/api/forms/land-improvements",
+    formRoute: "/land-other-improvements/fill",
+  },
+  {
+    id: "machinery",
+    title: "Machinery",
+    description: "Equipment and machinery assessment forms",
+    icon: FileText,
+    apiEndpoint: "/api/forms/machinery",
+    formRoute: "/machinery/fill",
+  },
+  {
+    id: "notes",
+    title: "Notes",
+    description: "Additional notes and documentation",
+    icon: FileText,
+    apiEndpoint: "/api/forms/notes",
+    formRoute: "/notes/create",
+  },
+]
+
+const getStatusColor = (status: string) => {
+  switch (status.toLowerCase()) {
+    case "approved":
+      return "success"
+    case "pending":
+      return "warning"
+    case "draft":
+      return "secondary"
+    case "rejected":
+      return "destructive"
+    default:
+      return "default"
+  }
+}
 
 export default function Page() {
+  const router = useRouter()
+  const [selectedForm, setSelectedForm] = useState<FormType | null>(null)
+  const [showForm, setShowForm] = useState(false)
+  const [submissions, setSubmissions] = useState<FormSubmission[]>([])
+  const [loading, setLoading] = useState(false)
+  const [submissionCounts, setSubmissionCounts] = useState<Record<string, number>>({})
+
+  // Fetch submission counts for all forms
+  useEffect(() => {
+    const fetchCounts = async () => {
+      try {
+        const response = await fetch('/api/forms/counts')
+        if (response.ok) {
+          const data = await response.json()
+          setSubmissionCounts(data)
+        }
+      } catch (error) {
+        console.error('Error fetching counts:', error)
+      }
+    }
+    fetchCounts()
+  }, [])
+
+  // Fetch submissions when a form is selected
+  useEffect(() => {
+    if (selectedForm) {
+      const fetchSubmissions = async () => {
+        setLoading(true)
+        const form = formsMenu.find((f) => f.id === selectedForm)
+        if (!form) return
+
+        try {
+          const response = await fetch(form.apiEndpoint)
+          if (response.ok) {
+            const data = await response.json()
+            setSubmissions(data)
+          } else {
+            const errorData = await response.json().catch(() => ({}))
+            console.error('Failed to fetch submissions:', errorData)
+            setSubmissions([])
+          }
+        } catch (error) {
+          console.error('Error fetching submissions:', error)
+          setSubmissions([])
+        } finally {
+          setLoading(false)
+        }
+      }
+      fetchSubmissions()
+    } else {
+      setSubmissions([])
+    }
+  }, [selectedForm])
+
+  const handleFormSelect = (formId: FormType) => {
+    setSelectedForm(formId)
+    setShowForm(false)
+  }
+
+  const handleBackToMenu = () => {
+    setSelectedForm(null)
+    setShowForm(false)
+  }
+
+  const handleNewForm = () => {
+    const form = formsMenu.find((f) => f.id === selectedForm)
+    if (form?.formRoute) {
+      router.push(form.formRoute)
+    }
+  }
+
+  const handleViewSubmission = (submissionId: number) => {
+    const form = formsMenu.find((f) => f.id === selectedForm)
+    if (form?.formRoute) {
+      // For now, redirect to the form with the ID as a query param
+      router.push(`${form.formRoute}?id=${submissionId}`)
+    }
+  }
+
+  const handleBackToTable = () => {
+    setShowForm(false)
+  }
+
+  const currentFormData = formsMenu.find((f) => f.id === selectedForm)
+
   return (
     <SidebarProvider>
       <AppSidebar />
@@ -27,25 +188,164 @@ export default function Page() {
           />
           <Breadcrumb>
             <BreadcrumbList>
-              <BreadcrumbItem className="hidden md:block">
-                <BreadcrumbLink href="#">
-                  Building Your Application
+              <BreadcrumbItem>
+                <BreadcrumbLink href="/dashboard">
+                  Dashboard
                 </BreadcrumbLink>
               </BreadcrumbItem>
-              <BreadcrumbSeparator className="hidden md:block" />
-              <BreadcrumbItem>
-                <BreadcrumbPage>Data Fetching</BreadcrumbPage>
-              </BreadcrumbItem>
+              {selectedForm && (
+                <>
+                  <BreadcrumbSeparator />
+                  <BreadcrumbItem>
+                    <BreadcrumbPage>{currentFormData?.title}</BreadcrumbPage>
+                  </BreadcrumbItem>
+                </>
+              )}
+              {showForm && (
+                <>
+                  <BreadcrumbSeparator />
+                  <BreadcrumbItem>
+                    <BreadcrumbPage>New Submission</BreadcrumbPage>
+                  </BreadcrumbItem>
+                </>
+              )}
             </BreadcrumbList>
           </Breadcrumb>
         </header>
-        <div className="flex flex-1 flex-col gap-4 p-4">
-          <div className="grid auto-rows-min gap-4 md:grid-cols-3">
-            <div className="bg-muted/50 aspect-video rounded-xl" />
-            <div className="bg-muted/50 aspect-video rounded-xl" />
-            <div className="bg-muted/50 aspect-video rounded-xl" />
-          </div>
-          <div className="bg-muted/50 min-h-[100vh] flex-1 rounded-xl md:min-h-min" />
+        <div className="flex flex-1 flex-col gap-4 p-6">
+          {!selectedForm && !showForm && (
+            <>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h1 className="text-3xl font-bold tracking-tight">Forms Dashboard</h1>
+                  <p className="text-muted-foreground mt-1">
+                    Select a form type to view submissions or create new entries
+                  </p>
+                </div>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {formsMenu.map((form) => (
+                  <Card
+                    key={form.id}
+                    className="cursor-pointer transition-all hover:shadow-lg hover:border-primary"
+                    onClick={() => handleFormSelect(form.id as FormType)}
+                  >
+                    <CardHeader>
+                      <div className="flex items-center gap-2">
+                        <form.icon className="h-5 w-5 text-primary" />
+                        <CardTitle>{form.title}</CardTitle>
+                      </div>
+                      <CardDescription>{form.description}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-sm text-muted-foreground">
+                        {submissionCounts[form.id] || 0} submissions
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </>
+          )}
+
+          {selectedForm && !showForm && (
+            <>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleBackToMenu}
+                  >
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Back to Forms
+                  </Button>
+                </div>
+                <Button onClick={handleNewForm}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  New Submission
+                </Button>
+              </div>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>{currentFormData?.title}</CardTitle>
+                  <CardDescription>
+                    View and manage all submissions for this form type
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {loading ? (
+                    <div className="flex items-center justify-center py-12">
+                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    </div>
+                  ) : submissions.length === 0 ? (
+                    <div className="text-center py-12">
+                      <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                      <h3 className="text-lg font-semibold mb-2">No submissions yet</h3>
+                      <p className="text-muted-foreground mb-4">
+                        Get started by creating a new submission
+                      </p>
+                      <Button onClick={handleNewForm}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Create First Submission
+                      </Button>
+                    </div>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>ID</TableHead>
+                          <TableHead>Owner Name</TableHead>
+                          <TableHead>Last Updated</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {submissions.map((submission) => (
+                          <TableRow key={submission.id}>
+                            <TableCell className="font-medium">
+                              #{submission.id}
+                            </TableCell>
+                            <TableCell>{submission.owner_name || submission.title || 'N/A'}</TableCell>
+                            <TableCell>
+                              {new Date(submission.updated_at).toLocaleDateString()}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={getStatusColor(submission.status) as any}>
+                                {submission.status.charAt(0).toUpperCase() + submission.status.slice(1)}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex gap-2">
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm"
+                                  onClick={() => handleViewSubmission(submission.id)}
+                                >
+                                  <Eye className="h-4 w-4 mr-1" />
+                                  View
+                                </Button>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm"
+                                  onClick={() => handleViewSubmission(submission.id)}
+                                >
+                                  <Edit className="h-4 w-4 mr-1" />
+                                  Edit
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </CardContent>
+              </Card>
+            </>
+          )}
         </div>
       </SidebarInset>
     </SidebarProvider>

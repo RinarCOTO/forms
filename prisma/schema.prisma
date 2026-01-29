@@ -17,6 +17,9 @@ model BuildingStructure {
   pin              String?   @db.VarChar(50)
   ownerName        String?   @map("owner_name") @db.VarChar(255)
   ownerAddress     String?   @map("owner_address") @db.Text
+  adminCareOf      String?   @map("admin_care_of") @db.VarChar(255)
+  adminAddress     String?   @map("admin_address") @db.Text
+  propertyAddress  String?   @map("property_address") @db.Text
   
   // Step 2: Building Details
   typeOfBuilding   String?   @map("type_of_building") @db.VarChar(100)

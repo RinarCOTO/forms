@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { Prisma } from '@prisma/client';
+import { createClient } from '@supabase/supabase-js';
 
 export interface BuildingStructureInput {
   arp_no?: string;
   pin?: string;
   owner_name?: string;
   owner_address?: string;
+  admin_care_of?: string;
+  admin_address?: string;
+  property_address?: string;
   type_of_building?: string;
   number_of_storeys?: number;
   date_constructed?: string;
@@ -38,75 +40,89 @@ export async function POST(request: NextRequest) {
   try {
     const body: BuildingStructureInput = await request.json();
     
-    // Check if Prisma client is available
-    if (!prisma) {
-      throw new Error('Database connection not available');
-    }
+    console.log('🔵 API received data:', body);
     
-    const buildingStructure = await prisma.buildingStructure.create({
-      data: {
-        arpNo: body.arp_no || null,
-        pin: body.pin || null,
-        ownerName: body.owner_name || null,
-        ownerAddress: body.owner_address || null,
-        typeOfBuilding: body.type_of_building || null,
-        numberOfStoreys: body.number_of_storeys || null,
-        dateConstructed: body.date_constructed ? new Date(body.date_constructed) : null,
-        dateCompleted: body.date_completed ? new Date(body.date_completed) : null,
-        dateOccupied: body.date_occupied ? new Date(body.date_occupied) : null,
-        buildingPermitNo: body.building_permit_no || null,
-        totalFloorArea: body.total_floor_area || null,
-        constructionType: body.construction_type || null,
-        structureType: body.structure_type || null,
-        foundationType: body.foundation_type || null,
-        electricalSystem: body.electrical_system || null,
-        plumbingSystem: body.plumbing_system || null,
-        roofingMaterial: body.roofing_material || null,
-        wallMaterial: body.wall_material || null,
-        flooringMaterial: body.flooring_material || null,
-        ceilingMaterial: body.ceiling_material || null,
-        actualUse: body.actual_use || null,
-        marketValue: body.market_value || null,
-        assessmentLevel: body.assessment_level || null,
-        estimatedValue: body.estimated_value || null,
-        amountInWords: body.amount_in_words || null,
-        status: body.status || 'draft',
-      },
-    });
+    // Use service role key to bypass RLS
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    );
+    
+    // Map the input data to match the database schema
+    const dbData: any = {
+      arp_no: body.arp_no || null,
+      pin: body.pin || null,
+      owner_name: body.owner_name || null,
+      owner_address: body.owner_address || null,
+      admin_care_of: body.admin_care_of || null,
+      admin_address: body.admin_address || null,
+      property_address: body.property_address || null,
+      type_of_building: body.type_of_building || null,
+      number_of_storeys: body.number_of_storeys ? parseInt(body.number_of_storeys.toString()) : null,
+      date_constructed: body.date_constructed ? (body.date_constructed.length === 4 ? `${body.date_constructed}-01-01` : body.date_constructed) : null,
+      date_completed: body.date_completed ? (body.date_completed.length === 4 ? `${body.date_completed}-01-01` : body.date_completed) : null,
+      date_occupied: body.date_occupied ? (body.date_occupied.length === 4 ? `${body.date_occupied}-01-01` : body.date_occupied) : null,
+      building_permit_no: body.building_permit_no || null,
+      total_floor_area: body.total_floor_area ? parseFloat(body.total_floor_area.toString()) : null,
+      construction_type: body.construction_type || null,
+      structure_type: body.structure_type || null,
+      foundation_type: body.foundation_type || null,
+      electrical_system: body.electrical_system || null,
+      plumbing_system: body.plumbing_system || null,
+      roofing_material: body.roofing_material || null,
+      wall_material: body.wall_material || null,
+      flooring_material: body.flooring_material || null,
+      ceiling_material: body.ceiling_material || null,
+      actual_use: body.actual_use || null,
+      market_value: body.market_value ? parseFloat(body.market_value.toString()) : null,
+      assessment_level: body.assessment_level ? parseFloat(body.assessment_level.toString()) : null,
+      estimated_value: body.estimated_value ? parseFloat(body.estimated_value.toString()) : null,
+      amount_in_words: body.amount_in_words || null,
+      status: body.status || 'draft',
+      updated_at: new Date().toISOString(),
+    };
+    
+    const { data, error } = await supabase
+      .from('building_structures')
+      .insert([dbData])
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Error creating building structure:', error);
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Failed to create building structure',
+          message: error.message,
+          details: error
+        },
+        { status: 500 }
+      );
+    }
     
     return NextResponse.json({
       success: true,
       message: 'Building structure created successfully',
-      data: buildingStructure,
+      data: data,
     }, { status: 201 });
     
   } catch (error) {
     console.error('Error creating building structure:', error);
     
-    // Provide more helpful error messages
-    let errorMessage = 'Failed to create building structure';
-    let statusCode = 500;
-    
-    if (error instanceof Error) {
-      if (error.message.includes('Database connection')) {
-        errorMessage = 'Database is not connected. Please check your DATABASE_URL environment variable.';
-        statusCode = 503; // Service Unavailable
-      } else if (error.message.includes("Can't reach database")) {
-        errorMessage = 'Cannot reach database server. Please ensure PostgreSQL is running.';
-        statusCode = 503;
-      } else {
-        errorMessage = error.message;
-      }
-    }
-    
     return NextResponse.json(
       {
         success: false,
-        error: errorMessage,
+        error: 'Failed to create building structure',
         message: error instanceof Error ? error.message : 'Unknown error',
-        hint: 'Check DATABASE_URL in .env file and ensure database is running'
       },
-      { status: statusCode }
+      { status: 500 }
     );
   }
 }
@@ -122,39 +138,55 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50');
     const offset = parseInt(searchParams.get('offset') || '0');
     
-    // Build where clause
-    const where: any = {};
+    // Use service role key to bypass RLS
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    );
+    
+    // Build query
+    let query = supabase
+      .from('building_structures')
+      .select('*', { count: 'exact' })
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
     
     if (status) {
-      where.status = status;
+      query = query.eq('status', status);
     }
     
     if (search) {
-      where.OR = [
-        { ownerName: { contains: search, mode: 'insensitive' } },
-        { arpNo: { contains: search, mode: 'insensitive' } },
-      ];
+      query = query.or(`owner_name.ilike.%${search}%,arp_no.ilike.%${search}%`);
     }
     
-    // Fetch records with pagination
-    const [buildingStructures, total] = await Promise.all([
-      prisma.buildingStructure.findMany({
-        where,
-        orderBy: { createdAt: 'desc' },
-        skip: offset,
-        take: limit,
-      }),
-      prisma.buildingStructure.count({ where }),
-    ]);
+    const { data, error, count } = await query;
+    
+    if (error) {
+      console.error('Error fetching building structures:', error);
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Failed to fetch building structures',
+          message: error.message,
+        },
+        { status: 500 }
+      );
+    }
     
     return NextResponse.json({
       success: true,
-      data: buildingStructures,
+      data: data,
       pagination: {
-        total,
+        total: count || 0,
         limit,
         offset,
-        hasMore: offset + limit < total,
+        hasMore: offset + limit < (count || 0),
       },
     });
     

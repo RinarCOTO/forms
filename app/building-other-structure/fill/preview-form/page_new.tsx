@@ -79,34 +79,18 @@ export default function PreviewFormPage() {
     try {
       const formData = collectFormData();
       formData.status = 'draft';
-      
-      // Check if we're editing an existing draft
-      const draftId = localStorage.getItem('draft_id');
-      
-      let response;
-      if (draftId) {
-        // Update existing draft
-        response = await fetch(`/api/building-structure/${draftId}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(formData),
-        });
-      } else {
-        // Create new draft
-        response = await fetch('/api/building-structure', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(formData),
-        });
-      }
+
+      const response = await fetch('/api/building-structure', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
 
       if (response.ok) {
         const result = await response.json();
-        alert(`Draft ${draftId ? 'updated' : 'saved'} successfully! ID: ` + result.data?.id);
+        alert('Draft saved successfully! ID: ' + result.data?.id);
         // Clear localStorage after successful save
         localStorage.clear();
         router.push('/dashboard');
@@ -127,30 +111,14 @@ export default function PreviewFormPage() {
     try {
       const formData = collectFormData();
       formData.status = 'pending'; // Set status to pending for submission
-      
-      // Check if we're editing an existing draft
-      const draftId = localStorage.getItem('draft_id');
-      
-      let response;
-      if (draftId) {
-        // Update existing draft and submit
-        response = await fetch(`/api/building-structure/${draftId}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(formData),
-        });
-      } else {
-        // Create new submission
-        response = await fetch('/api/building-structure', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(formData),
-        });
-      }
+
+      const response = await fetch('/api/building-structure', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
 
       if (response.ok) {
         const result = await response.json();

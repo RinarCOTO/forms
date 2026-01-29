@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState, FormEvent } from "react";
 import "@/app/styles/forms-fill.css";
 import { Label } from "@/components/ui/label";
@@ -30,11 +30,33 @@ import {
   DropdownMenuCheckboxItem,
 } from "@/components/ui/dropdown-menu";
 import MultiSelect from "@/components/ui/multi-select";
+import { Loader2 } from "lucide-react";
+
+// Helper function to collect form data from ONLY this step (step 4)
+// Step 4 saves: construction details and building systems
+function collectFormData(selectedOptions: string[]) {
+  const data: any = {};
+  
+  // Save selected defects/conditions as construction_type
+  if (selectedOptions && selectedOptions.length > 0) {
+    data.construction_type = selectedOptions.join(', ');
+  }
+  
+  // Note: If step 4 has other specific fields like electrical_system, plumbing_system, 
+  // foundation_type, or building_permit_no, add them here as parameters and map them accordingly
+  
+  return data;
+}
 
 const FORM_NAME = "building-structure-form-fill-page-4";
 
 const BuildingStructureFormFillPage4 = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const draftId = searchParams.get('id');
+  
+  const [isSaving, setIsSaving] = useState(false);
+
 
   const [yearBuilt, setYearBuilt] = useState("");
   const [materials, setMaterials] = useState({
@@ -143,6 +165,60 @@ const BuildingStructureFormFillPage4 = () => {
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     router.push("/building-other-structure");
+  };
+
+  const handleNext = async () => {
+    setIsSaving(true);
+    try {
+      const formData = collectFormData(selectedOptions);
+      formData.status = 'draft';
+      
+      console.log('Saving Step 4 form data to Supabase:', formData);
+      
+      let response;
+      const currentDraftId = draftId || localStorage.getItem('draft_id');
+      
+      if (currentDraftId) {
+        // Update existing draft
+        response = await fetch(`/api/building-structure/${currentDraftId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(formData),
+        });
+      } else {
+        // Create new draft
+        response = await fetch('/api/building-structure', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(formData),
+        });
+      }
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('Save result:', result);
+        // Store the draft ID for future updates
+        if (result.data?.id) {
+          localStorage.setItem('draft_id', result.data.id.toString());
+          const savedDraftId = result.data.id;
+          // Navigate to step 5 with the draft ID
+          router.push(`/building-other-structure/fill/step-5?id=${savedDraftId}`);
+        }
+      } else {
+        const error = await response.json();
+        console.error('Save error:', error);
+        alert('Failed to save: ' + (error.message || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Error saving:', error);
+      alert('Error saving. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -444,7 +520,7 @@ const BuildingStructureFormFillPage4 = () => {
                     <Button
                       type="button"
                       variant="outline"
-                      onClick={() => router.push("/building-other-structure/fill/step-3")}
+                      onClick={() => router.push(`/building-other-structure/fill/step-3${draftId ? `?id=${draftId}` : ''}`)}
                       className="rpfaas-fill-button rpfaas-fill-button-secondary"
                     >
                       Previous
@@ -454,10 +530,18 @@ const BuildingStructureFormFillPage4 = () => {
                   <div className="flex gap-2">
                     <Button
                       type="button"
-                      onClick={() => router.push("/building-other-structure/fill/step-5")}
+                      onClick={handleNext}
+                      disabled={isSaving}
                       className="rpfaas-fill-button rpfaas-fill-button-primary"
                     >
-                      Next
+                      {isSaving ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        'Next'
+                      )}
                     </Button>
                   </div>
                 </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, useState, useEffect } from "react";
 import "@/app/styles/forms-fill.css";
 import { AppSidebar } from "@/components/app-sidebar";
@@ -21,6 +21,26 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import { Loader2 } from "lucide-react";
+
+// Helper function to collect form data from ONLY this step (step 5)
+function collectFormData(
+  actualUse: string,
+  estimatedValue: number,
+  amountInWords: string
+) {
+  const data: any = {};
+  
+  // Save assessment data
+  if (actualUse) data.actual_use = actualUse;
+  if (estimatedValue) data.estimated_value = estimatedValue.toString();
+  if (amountInWords) data.amount_in_words = amountInWords;
+  
+  // Note: If you have market_value and assessment_level fields in the form,
+  // add them as parameters and map them here
+  
+  return data;
+}
 
 const FORM_NAME = "building-structure-form-fill-page-5";
 const PAGE_DESCRIPTION = "Final notes and summary of the property assessment.";
@@ -75,6 +95,10 @@ function numberToWords(num: number): string {
 
 export default function BuildingStructureFormFillPage5() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const draftId = searchParams.get('id');
+  
+  const [isSaving, setIsSaving] = useState(false);
   const [notes, setNotes] = useState("");
   const [actualUse, setActualUse] = useState("");
   const [estimatedValue, setEstimatedValue] = useState<number>(0);
@@ -123,6 +147,60 @@ export default function BuildingStructureFormFillPage5() {
     e.preventDefault();
     // For now, go back to main list after submit
     router.push("/building-other-structure");
+  };
+
+  const handlePreview = async () => {
+    setIsSaving(true);
+    try {
+      const formData = collectFormData(actualUse, estimatedValue, amountInWords);
+      formData.status = 'draft';
+      
+      console.log('Saving Step 5 form data to Supabase:', formData);
+      
+      let response;
+      const currentDraftId = draftId || localStorage.getItem('draft_id');
+      
+      if (currentDraftId) {
+        // Update existing draft
+        response = await fetch(`/api/building-structure/${currentDraftId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(formData),
+        });
+      } else {
+        // Create new draft
+        response = await fetch('/api/building-structure', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(formData),
+        });
+      }
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('Save result:', result);
+        // Store the draft ID for future updates
+        if (result.data?.id) {
+          localStorage.setItem('draft_id', result.data.id.toString());
+          const savedDraftId = result.data.id;
+          // Navigate to preview with the draft ID
+          router.push(`/building-other-structure/fill/preview-form?id=${savedDraftId}`);
+        }
+      } else {
+        const error = await response.json();
+        console.error('Save error:', error);
+        alert('Failed to save: ' + (error.message || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Error saving:', error);
+      alert('Error saving. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -243,11 +321,25 @@ export default function BuildingStructureFormFillPage5() {
               <div className="rpfaas-fill-footer border-t border-border pt-4 mt-4">
                 <div className="rpfaas-fill-actions flex gap-2 justify-between items-center">
                   <div className="flex gap-2">
-                    <Button type="button" variant="outline" onClick={() => router.push("/building-other-structure/fill/step-4")} className="rpfaas-fill-button rpfaas-fill-button-secondary">Previous</Button>
+                    <Button type="button" variant="outline" onClick={() => router.push(`/building-other-structure/fill/step-4${draftId ? `?id=${draftId}` : ''}`)} className="rpfaas-fill-button rpfaas-fill-button-secondary">Previous</Button>
                   </div>
 
                   <div className="flex gap-2">
-                    <Button type="button" onClick={() => router.push("/building-other-structure/fill/preview-form")} className="rpfaas-fill-button rpfaas-fill-button-primary">Preview</Button>
+                    <Button 
+                      type="button" 
+                      onClick={handlePreview}
+                      disabled={isSaving}
+                      className="rpfaas-fill-button rpfaas-fill-button-primary"
+                    >
+                      {isSaving ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        'Preview'
+                      )}
+                    </Button>
                   </div>
                 </div>
               </div>

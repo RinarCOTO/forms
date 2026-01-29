@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState, FormEvent, useEffect } from "react";
 import "@/app/styles/forms-fill.css";
 import { Label } from "@/components/ui/label";
@@ -22,11 +22,52 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import { Loader2 } from "lucide-react";
+
+// Helper function to collect form data from ONLY this step (step 3)
+function collectFormData(
+  materials: any,
+  materialsOtherText: string,
+  flooringGrid: boolean[][],
+  wallsGrid: boolean[][]
+) {
+  const data: any = {};
+  
+  // Convert roofing materials checkboxes to comma-separated text
+  const selectedMaterials = [];
+  if (materials.reinforcedConcrete) selectedMaterials.push('Reinforced Concrete');
+  if (materials.longspanRoof) selectedMaterials.push('Longspan Roof');
+  if (materials.tiles) selectedMaterials.push('Tiles');
+  if (materials.giSheets) selectedMaterials.push('GI Sheets');
+  if (materials.aluminum) selectedMaterials.push('Aluminum');
+  if (materials.others && materialsOtherText) selectedMaterials.push(`Other: ${materialsOtherText}`);
+  
+  if (selectedMaterials.length > 0) {
+    data.roofing_material = selectedMaterials.join(', ');
+  }
+  
+  // Serialize flooring grid to JSON string for storage
+  if (flooringGrid && flooringGrid.length > 0) {
+    data.flooring_material = JSON.stringify(flooringGrid);
+  }
+  
+  // Serialize walls grid to JSON string for storage
+  if (wallsGrid && wallsGrid.length > 0) {
+    data.wall_material = JSON.stringify(wallsGrid);
+  }
+  
+  return data;
+}
 
 const FORM_NAME = "building-structure-form-fill-page-3";
 
 const BuildingStructureFormFillPage3 = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const draftId = searchParams.get('id');
+  
+  const [isSaving, setIsSaving] = useState(false);
+
 
   const [numberOfStoreys, setNumberOfStoreys] = useState(0);
   const [materials, setMaterials] = useState({
@@ -154,6 +195,60 @@ const BuildingStructureFormFillPage3 = () => {
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     router.push("/building-other-structure");
+  };
+
+  const handleNext = async () => {
+    setIsSaving(true);
+    try {
+      const formData = collectFormData(materials, materialsOtherText, flooringGrid, wallsGrid);
+      formData.status = 'draft';
+      
+      console.log('Saving Step 3 form data to Supabase:', formData);
+      
+      let response;
+      const currentDraftId = draftId || localStorage.getItem('draft_id');
+      
+      if (currentDraftId) {
+        // Update existing draft
+        response = await fetch(`/api/building-structure/${currentDraftId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(formData),
+        });
+      } else {
+        // Create new draft
+        response = await fetch('/api/building-structure', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(formData),
+        });
+      }
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('Save result:', result);
+        // Store the draft ID for future updates
+        if (result.data?.id) {
+          localStorage.setItem('draft_id', result.data.id.toString());
+          const savedDraftId = result.data.id;
+          // Navigate to step 4 with the draft ID
+          router.push(`/building-other-structure/fill/step-4?id=${savedDraftId}`);
+        }
+      } else {
+        const error = await response.json();
+        console.error('Save error:', error);
+        alert('Failed to save: ' + (error.message || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Error saving:', error);
+      alert('Error saving. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -403,7 +498,7 @@ const BuildingStructureFormFillPage3 = () => {
                     <Button
                       type="button"
                       variant="outline"
-                      onClick={() => router.push("/building-other-structure/fill/step-2")}
+                      onClick={() => router.push(`/building-other-structure/fill/step-2${draftId ? `?id=${draftId}` : ''}`)}
                       className="rpfaas-fill-button rpfaas-fill-button-secondary"
                     >
                       Previous
@@ -413,10 +508,18 @@ const BuildingStructureFormFillPage3 = () => {
                   <div className="flex gap-2">
                     <Button
                       type="button"
-                      onClick={() => router.push("/building-other-structure/fill/step-4")}
+                      onClick={handleNext}
+                      disabled={isSaving}
                       className="rpfaas-fill-button rpfaas-fill-button-primary"
                     >
-                      Next
+                      {isSaving ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        'Next'
+                      )}
                     </Button>
                   </div>
                 </div>
