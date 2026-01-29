@@ -26,7 +26,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { FileText, Plus, ArrowLeft, Loader2, Eye, Edit } from "lucide-react"
+import { FileText, Plus, Loader2, Eye, Edit, ChevronLeft } from "lucide-react"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 
@@ -48,6 +48,8 @@ const formsMenu = [
     icon: FileText,
     apiEndpoint: "/api/forms/building-structures",
     formRoute: "/building-other-structure/fill/step-1",
+    // Adding the dashboard route here
+    dashboardRoute: "/building-other-structure/dashboard",
   },
   {
     id: "land-improvements",
@@ -145,7 +147,17 @@ export default function Page() {
     }
   }, [selectedForm])
 
+  // UPDATED: Logic to handle dashboard redirection
   const handleFormSelect = (formId: FormType) => {
+    const form = formsMenu.find((f) => f.id === formId)
+    
+    // If the form has a specific dashboard route (like Building & Structures), redirect there
+    if (form?.dashboardRoute) {
+      router.push(form.dashboardRoute)
+      return
+    }
+
+    // Otherwise, default to the local table view
     setSelectedForm(formId)
     setShowForm(false)
   }
@@ -155,23 +167,39 @@ export default function Page() {
     setShowForm(false)
   }
 
-  const handleNewForm = () => {
+  const handleNewForm = async () => {
     const form = formsMenu.find((f) => f.id === selectedForm)
-    if (form?.formRoute) {
-      router.push(form.formRoute)
+    if (form?.apiEndpoint && form?.formRoute) {
+      try {
+        const now = new Date().toISOString();
+        const response = await fetch(form.apiEndpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'draft', updated_at: now })
+        });
+        if (response.ok) {
+          const data = await response.json();
+          const newId = data?.data?.id || data?.id;
+          if (newId) {
+            router.push(`${form.formRoute}?id=${newId}`);
+          } else {
+            alert('Failed to get new record ID.');
+          }
+        } else {
+          const error = await response.json();
+          alert('Failed to create new submission: ' + (error?.message || error?.error || 'Unknown error'));
+        }
+      } catch (error) {
+        alert('Error creating new submission.');
+      }
     }
   }
 
   const handleViewSubmission = (submissionId: number) => {
     const form = formsMenu.find((f) => f.id === selectedForm)
     if (form?.formRoute) {
-      // For now, redirect to the form with the ID as a query param
       router.push(`${form.formRoute}?id=${submissionId}`)
     }
-  }
-
-  const handleBackToTable = () => {
-    setShowForm(false)
   }
 
   const currentFormData = formsMenu.find((f) => f.id === selectedForm)
@@ -201,27 +229,18 @@ export default function Page() {
                   </BreadcrumbItem>
                 </>
               )}
-              {showForm && (
-                <>
-                  <BreadcrumbSeparator />
-                  <BreadcrumbItem>
-                    <BreadcrumbPage>New Submission</BreadcrumbPage>
-                  </BreadcrumbItem>
-                </>
-              )}
             </BreadcrumbList>
           </Breadcrumb>
         </header>
+
         <div className="flex flex-1 flex-col gap-4 p-6">
-          {!selectedForm && !showForm && (
+          {!selectedForm && (
             <>
-              <div className="flex items-center justify-between">
-                <div>
-                  <h1 className="text-3xl font-bold tracking-tight">Forms Dashboard</h1>
-                  <p className="text-muted-foreground mt-1">
-                    Select a form type to view submissions or create new entries
-                  </p>
-                </div>
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight">Forms Dashboard</h1>
+                <p className="text-muted-foreground mt-1">
+                  Select a form type to manage submissions
+                </p>
               </div>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {formsMenu.map((form) => (
@@ -248,19 +267,13 @@ export default function Page() {
             </>
           )}
 
-          {selectedForm && !showForm && (
+          {selectedForm && (
             <>
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleBackToMenu}
-                  >
-                    <ArrowLeft className="h-4 w-4 mr-2" />
-                    Back to Forms
-                  </Button>
-                </div>
+                <Button variant="ghost" onClick={handleBackToMenu}>
+                  <ChevronLeft className="h-4 w-4 mr-2" />
+                  Back to Menu
+                </Button>
                 <Button onClick={handleNewForm}>
                   <Plus className="h-4 w-4 mr-2" />
                   New Submission

@@ -143,6 +143,35 @@ export default function BuildingStructureFormFillPage5() {
     }
   }, []);
 
+  // Load draft data if editing
+  useEffect(() => {
+    if (!draftId) return;
+    const loadDraft = async () => {
+      try {
+        const response = await fetch(`/api/building-structure/${draftId}`);
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success && result.data) {
+            const data = result.data;
+            // Populate form fields
+            if (data.actual_use) setActualUse(data.actual_use);
+            if (data.estimated_value) setEstimatedValue(Number(data.estimated_value));
+            if (data.amount_in_words) setAmountInWords(data.amount_in_words);
+            // Save to localStorage for consistency with other steps
+            Object.entries(data).forEach(([key, value]) => {
+              if (value !== null && value !== undefined) {
+                localStorage.setItem(`${key}_p5`, String(value));
+              }
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load draft data for step 5', error);
+      }
+    };
+    loadDraft();
+  }, [draftId]);
+
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     // For now, go back to main list after submit

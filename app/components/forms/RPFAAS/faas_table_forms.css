@@ -68,12 +68,35 @@ table.no-border td {
     border-collapse: collapse;
     page-break-inside: avoid;
     margin-bottom: 4mm;
+    border: 2px solid #000 !important;
   }
 
   td, th {
-    border: 1px solid #000;
+    border: 1px solid #000 !important;
     padding: 2px 3px;
     vertical-align: top;
+  }
+  
+  /* Force all border utilities to be black in print */
+  .border,
+  .border-l,
+  .border-r,
+  .border-t,
+  .border-b,
+  .border-x,
+  .border-y {
+    border-color: #000 !important;
+  }
+
+  /* Force all border utilities to be black in print */
+  .border,
+  .border-l,
+  .border-r,
+  .border-t,
+  .border-b,
+  .border-x,
+  .border-y {
+    border-color: #000 !important;
   }
 
   /* Allow applying no-border to any element (table, tr, td, th) */
@@ -96,7 +119,7 @@ table.no-border td {
   }
 
   .bordered-table td {
-    border: 1px solid #000;
+    border: 1px solid #000 !important;
   }
 
   /* Prevent ugly page breaks */
@@ -169,6 +192,14 @@ table.no-border td {
   .section-divider {
     border-bottom: 2px solid #000 !important;
   }
+  
+  /* Ensure all border classes render black */
+  .border-b-2,
+  .border-t-2,
+  .border-black {
+    border-color: #000 !important;
+  }
+  
   .boxed {
     border: 1px solid #000 !important;
     padding: 4px 6px !important;

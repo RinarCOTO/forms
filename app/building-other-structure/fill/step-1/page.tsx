@@ -180,73 +180,28 @@ function BuildingOtherStructureFillPageContent() {
   // Load draft data if editing
   useEffect(() => {
     if (!draftId) return;
-
     const loadDraft = async () => {
-      setIsLoadingDraft(true);
       try {
         const response = await fetch(`/api/building-structure/${draftId}`);
         if (response.ok) {
           const result = await response.json();
           if (result.success && result.data) {
             const data = result.data;
-            
-            console.log('Loading draft data:', data);
-            
-            // Populate form fields
             if (data.owner_name) setOwnerName(data.owner_name);
             if (data.admin_care_of) setAdminCareOf(data.admin_care_of);
             if (data.property_address) setPropertyStreet(data.property_address);
-            
-            // Store draft ID for later use
-            localStorage.setItem('draft_id', draftId);
-            
-            // Store all data in localStorage for other steps
+            // Save to localStorage for consistency with other steps
             Object.entries(data).forEach(([key, value]) => {
               if (value !== null && value !== undefined) {
-                const pageMapping: Record<string, string> = {
-                  'arp_no': '_p1',
-                  'pin': '_p1',
-                  'owner_name': '_p1',
-                  'owner_address': '_p1',
-                  'admin_care_of': '_p1',
-                  'admin_address': '_p1',
-                  'property_address': '_p1',
-                  'type_of_building': '_p2',
-                  'number_of_storeys': '_p2',
-                  'date_constructed': '_p2',
-                  'total_floor_area': '_p2',
-                  'roofing_material': '_p3',
-                  'wall_material': '_p3',
-                  'flooring_material': '_p3',
-                  'ceiling_material': '_p3',
-                  'construction_type': '_p4',
-                  'structure_type': '_p4',
-                  'foundation_type': '_p4',
-                  'electrical_system': '_p4',
-                  'plumbing_system': '_p4',
-                  'building_permit_no': '_p4',
-                  'actual_use': '_p5',
-                  'market_value': '_p5',
-                  'assessment_level': '_p5',
-                  'estimated_value': '_p5',
-                  'amount_in_words': '_p5',
-                };
-                
-                const pageSuffix = pageMapping[key] || '_p1';
-                localStorage.setItem(`${key}${pageSuffix}`, String(value));
+                localStorage.setItem(`${key}_p1`, String(value));
               }
             });
-            
-            console.log('Draft loaded successfully');
           }
         }
-      } catch (err) {
-        console.error('Error loading draft:', err);
-      } finally {
-        setIsLoadingDraft(false);
+      } catch (error) {
+        console.error('Failed to load draft data for step 1', error);
       }
     };
-
     loadDraft();
   }, [draftId]);
 

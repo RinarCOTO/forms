@@ -254,14 +254,10 @@ const BuildingStructureFormFillPage3 = () => {
   return (
     <SidebarProvider>
       <AppSidebar />
-
       <SidebarInset>
         <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
           <SidebarTrigger className="-ml-1" />
-          <Separator
-            orientation="vertical"
-            className="mr-2 data-[orientation=vertical]:h-4"
-          />
+          <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4" />
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem className="hidden md:block">
@@ -274,225 +270,133 @@ const BuildingStructureFormFillPage3 = () => {
             </BreadcrumbList>
           </Breadcrumb>
         </header>
-
         <div className="flex-1 p-6 overflow-y-auto">
           <div className="rpfaas-fill max-w-3xl mx-auto">
             <header className="rpfaas-fill-header flex items-center justify-between gap-4 mb-6">
               <div>
-                <h1 className="rpfaas-fill-title">Fill-up Form: test</h1>
+                <h1 className="rpfaas-fill-title">Fill-up Form: Structural Materials Table</h1>
                 <p className="text-sm text-muted-foreground">
                   Enter the additional details for the building/structure.
                 </p>
               </div>
             </header>
-
             <form 
                 id={`form_${FORM_NAME}`}
                 data-form-name={FORM_NAME}
                 onSubmit={handleSubmit}
                 className="rpfaas-fill-form rpfaas-fill-form-single space-y-6">
               <section className="rpfaas-fill-section">
-                <h2 className="rpfaas-fill-section-title mb-4">Structural Materials (checklists)</h2>
-
-                <div className="rpfaas-fill-field space-y-1">
-                  <Label className="rpfaas-fill-label" htmlFor="roof_reinforced_concrete_p3">
-                    ROOF
-                  </Label>
-                  <div className="grid grid-cols-1 gap-2">
-                    <div className="flex items-center gap-2">
-                      <input
-                        id="roof_reinforced_concrete_p3"
-                        name="roof_reinforced_concrete_p3"
-                        type="checkbox"
-                        className="h-4 w-4 rounded"
-                        onChange={() => setMaterials((s) => ({ ...s, reinforcedConcrete: !s.reinforcedConcrete }))}
-                        checked={materials.reinforcedConcrete}
-                      />
-                      <Label htmlFor="roof_reinforced_concrete_p3" className="text-sm">
-                        Reinforced Concrete
-                      </Label>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <input
-                        id="roof_longspan_roof_p3"
-                        name="roof_longspan_roof_p3"
-                        type="checkbox"
-                        className="h-4 w-4 rounded"
-                        onChange={() => setMaterials((s) => ({ ...s, longspanRoof: !s.longspanRoof }))}
-                        checked={materials.longspanRoof}
-                      />
-                      <Label htmlFor="roof_longspan_roof_p3" className="text-sm">
-                        Longspan Roof
-                      </Label>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <input
-                        id="roof_tiles_p3"
-                        name="roof_tiles_p3"
-                        type="checkbox"
-                        className="h-4 w-4 rounded"
-                        onChange={() => setMaterials((s) => ({ ...s, tiles: !s.tiles }))}
-                        checked={materials.tiles}
-                      />
-                      <Label htmlFor="roof_tiles_p3" className="text-sm">
-                        Tiles
-                      </Label>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <input
-                        id="roof_gi_sheets_p3"
-                        name="roof_gi_sheets_p3"
-                        type="checkbox"
-                        className="h-4 w-4 rounded"
-                        onChange={() => setMaterials((s) => ({ ...s, giSheets: !s.giSheets }))}
-                        checked={materials.giSheets}
-                      />
-                      <Label htmlFor="roof_gi_sheets_p3" className="text-sm">
-                        G.I. Sheets
-                      </Label>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <input
-                        id="roof_aluminum_p3"
-                        name="roof_aluminum_p3"
-                        type="checkbox"
-                        className="h-4 w-4 rounded"
-                        onChange={() => setMaterials((s) => ({ ...s, aluminum: !s.aluminum }))}
-                        checked={materials.aluminum}
-                      />
-                      <Label htmlFor="roof_aluminum_p3" className="text-sm">
-                        Aluminum
-                      </Label>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <input
-                        id="roof_others_p3"
-                        name="roof_others_p3"
-                        type="checkbox"
-                        className="h-4 w-4 rounded"
-                        onChange={() => setMaterials((s) => ({ ...s, others: !s.others }))}
-                        checked={materials.others}
-                      />
-                      <Label htmlFor="roof_others_p3" className="text-sm">
-                        Others
-                      </Label>
-                      <Input
-                        id="roof_others_specify_p3"
-                        type="text"
-                        value={materialsOtherText}
-                        onChange={(e) => setMaterialsOtherText(e.target.value)}
-                        placeholder="Specify"
-                        className="rpfaas-fill-input ml-2 flex-1"
-                        disabled={!materials.others}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </section>
-              <section className="rpfaas-fill-section">
-                <div className="rpfaas-fill-field space-y-1">
-                  <Label className="rpfaas-fill-label" htmlFor="flooring_table_p3">
-                    FLOORING
-                  </Label>
-
-                  <div className="overflow-auto">
-                    <table id="flooring_table_p3" className="w-full table-auto border-collapse">
-                      <thead>
-                        <tr>
-                          <th className="border px-2 py-1 text-left">FLOORING</th>
-                          {Array.from({ length: numberOfStoreys }, (_, i) => {
-                              const floor = i + 1;
-                              const suffix = ["st", "nd", "rd"][floor - 1] || "th";
-                              return <th key={i} className="border px-2 py-1 text-center">{floor}<sup>{suffix}</sup>&nbsp;Floor</th>
-                          })}
+                <div className="overflow-auto">
+                  <table className="w-full table-auto border-collapse">
+                    <tbody>
+                      <tr>
+                        <th colSpan={2 + numberOfStoreys} className="py-4 section-divider text-left text-lg font-semibold">
+                          Structural Materials (checklists)
+                        </th>
+                      </tr>
+                      {/* ROOF ROW */}
+                      <tr>
+                        <td className="border px-2 py-1 font-bold w-50">ROOF</td>
+                        <td className="border px-2 py-1">
+                          <div className="flex flex-col gap-1">
+                            <label className="flex items-center gap-2">
+                              <input type="checkbox" checked={materials.reinforcedConcrete} onChange={() => setMaterials((s) => ({ ...s, reinforcedConcrete: !s.reinforcedConcrete }))} /> Reinforced Concrete
+                            </label>
+                            <label className="flex items-center gap-2">
+                              <input type="checkbox" checked={materials.longspanRoof} onChange={() => setMaterials((s) => ({ ...s, longspanRoof: !s.longspanRoof }))} /> Longspan Roof
+                            </label>
+                            <label className="flex items-center gap-2">
+                              <input type="checkbox" checked={materials.tiles} onChange={() => setMaterials((s) => ({ ...s, tiles: !s.tiles }))} /> Tiles
+                            </label>
+                            <label className="flex items-center gap-2">
+                              <input type="checkbox" checked={materials.giSheets} onChange={() => setMaterials((s) => ({ ...s, giSheets: !s.giSheets }))} /> G.I. Sheets
+                            </label>
+                            <label className="flex items-center gap-2">
+                              <input type="checkbox" checked={materials.aluminum} onChange={() => setMaterials((s) => ({ ...s, aluminum: !s.aluminum }))} /> Aluminum
+                            </label>
+                            <label className="flex items-center gap-2">
+                              <input type="checkbox" checked={materials.others} onChange={() => setMaterials((s) => ({ ...s, others: !s.others }))} /> Others
+                              <Input type="text" value={materialsOtherText} onChange={(e) => setMaterialsOtherText(e.target.value)} placeholder="Specify" className="rpfaas-fill-input ml-2 flex-1" disabled={!materials.others} />
+                            </label>
+                          </div>
+                        </td>
+                        {/* Empty cells for roof row storeys */}
+                        {Array.from({ length: numberOfStoreys }).map((_, i) => (
+                          <td key={i} className="border px-2 py-1 bg-gray-50"></td>
+                        ))}
+                      </tr>
+                      {/* FLOORING ROW */}
+                      <tr>
+                        <td className="border px-2 py-1 font-bold w-38">FLOORING</td>
+                        <td className="border px-2 py-1 font-bold w-32">Material</td>
+                        {Array.from({ length: numberOfStoreys }).map((_, i) => (
+                          <td key={`floor-header-${i}`} className="border px-2 py-1 text-center font-bold">
+                            {i + 1}
+                            <sup>{["st", "nd", "rd"][i] || "th"}</sup>
+                          </td>
+                        ))}
+                      </tr>
+                      {flooringLabels.map((label, rIdx) => (
+                        <tr key={label}>
+                          <td className="border px-2 py-1"></td>
+                          <td className="border px-2 py-1">{label}</td>
+                          {flooringGrid[rIdx]?.map((cell, cIdx) => (
+                            <td key={cIdx} className="border px-2 py-1 text-center">
+                              <button
+                                type="button"
+                                aria-pressed={cell}
+                                onClick={() => toggleFlooringCell(rIdx, cIdx)}
+                                className="w-8 h-8 inline-flex items-center justify-center border rounded"
+                              >
+                                {cell ? "X" : ""}
+                              </button>
+                            </td>
+                          ))}
                         </tr>
-                      </thead>
-                      <tbody>
-                        {flooringGrid.map((row, rIdx) => (
-                          <tr key={rIdx}>
-                            <td className="border px-2 py-1">{flooringLabels[rIdx] || `Item ${rIdx + 1}`}</td>
-                             {row.map((cell, cIdx) => (
-                               <td key={cIdx} className="border px-2 py-1 text-center">
-                                 <button
-                                   id={`flooring_r${rIdx + 1}_c${cIdx + 1}_p3`}
-                                   type="button"
-                                   aria-pressed={cell}
-                                   onClick={() => toggleFlooringCell(rIdx, cIdx)}
-                                   className="w-8 h-8 inline-flex items-center justify-center border rounded"
-                                 >
-                                   {cell ? "X" : ""}
-                                 </button>
-                               </td>
-                             ))}
-                           </tr>
-                         ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </section>
-              <section className="rpfaas-fill-section">
-                <div className="rpfaas-fill-field space-y-1">
-                  <Label className="rpfaas-fill-label" htmlFor="walls_table_p3">
-                    WALLS
-                  </Label>
-
-                  {(() => {
-                    const wallLabels = [
-                      "Concrete",
-                      "Plain Cement",
-                      "Wood",
-                      "CHB",
-                      "C.I. Sheets",
-                    ];
-
-                    return (
-                      <div className="overflow-auto">
-                        <table id="walls_table_p3" className="w-full table-auto border-collapse">
-                          <thead>
-                            <tr>
-                              <th className="border px-2 py-1 text-left">WALLS</th>
-                              {Array.from({ length: numberOfStoreys }, (_, i) => {
-                                  const floor = i + 1;
-                                  const suffix = ["st", "nd", "rd"][floor - 1] || "th";
-                                  return <th key={i} className="border px-2 py-1 text-center">{floor}<sup>{suffix}</sup>&nbsp;Floor</th>
-                              })}
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {wallsGrid.map((row, rIdx) => (
-                              <tr key={rIdx}>
-                                <td className="border px-2 py-1">{wallLabels[rIdx] || `Item ${rIdx + 1}`}</td>
-                                {row.map((cell, cIdx) => (
-                                  <td key={cIdx} className="border px-2 py-1 text-center">
-                                    <button
-                                      id={`walls_r${rIdx + 1}_c${cIdx + 1}_p3`}
-                                      type="button"
-                                      aria-pressed={cell}
-                                      onClick={() => toggleWallsCell(rIdx, cIdx)}
-                                      className="w-8 h-8 inline-flex items-center justify-center border rounded"
-                                    >
-                                      {cell ? "X" : ""}
-                                    </button>
-                                  </td>
-                                ))}
-                              </tr>
+                      ))}
+                      {/* WALLS ROW */}
+                      <tr>
+                        <td className="border px-2 py-1 font-bold w-38">WALLS</td>
+                        <td className="border px-2 py-1 font-bold w-32">Material</td>
+                        {Array.from({ length: numberOfStoreys }).map((_, i) => (
+                          <td key={`wall-header-${i}`} className="border px-2 py-1 text-center font-bold">
+                            {i + 1}
+                            <sup>{["st", "nd", "rd"][i] || "th"}</sup>
+                          </td>
+                        ))}
+                      </tr>
+                      {(() => {
+                        const wallLabels = [
+                          "Concrete",
+                          "Plain Cement",
+                          "Wood",
+                          "CHB",
+                          "C.I. Sheets",
+                        ];
+                        return wallLabels.map((label, rIdx) => (
+                          <tr key={label}>
+                            <td className="border px-2 py-1"></td>
+                            <td className="border px-2 py-1">{label}</td>
+                            {wallsGrid[rIdx]?.map((cell, cIdx) => (
+                              <td key={cIdx} className="border px-2 py-1 text-center">
+                                <button
+                                  type="button"
+                                  aria-pressed={cell}
+                                  onClick={() => toggleWallsCell(rIdx, cIdx)}
+                                  className="w-8 h-8 inline-flex items-center justify-center border rounded"
+                                >
+                                  {cell ? "X" : ""}
+                                </button>
+                              </td>
                             ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    );
-                  })()}
+                          </tr>
+                        ));
+                      })()}
+                    </tbody>
+                  </table>
                 </div>
               </section>
-
               <div className="rpfaas-fill-footer border-t border-border pt-4 mt-4">
-
                 <div className="rpfaas-fill-actions flex gap-2 justify-between items-center">
                   <div className="flex gap-2">
                     <Button
@@ -504,7 +408,6 @@ const BuildingStructureFormFillPage3 = () => {
                       Previous
                     </Button>
                   </div>
-
                   <div className="flex gap-2">
                     <Button
                       type="button"

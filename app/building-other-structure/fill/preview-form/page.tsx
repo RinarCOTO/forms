@@ -109,7 +109,7 @@ export default function PreviewFormPage() {
         alert(`Draft ${draftId ? 'updated' : 'saved'} successfully! ID: ` + result.data?.id);
         // Clear localStorage after successful save
         localStorage.clear();
-        router.push('/dashboard');
+        router.push('/building-other-structure/dashboard');
       } else {
         const error = await response.json();
         alert('Failed to save draft: ' + (error.message || 'Unknown error'));
@@ -157,7 +157,7 @@ export default function PreviewFormPage() {
         alert('Form submitted successfully! ID: ' + result.data?.id);
         // Clear localStorage after successful submission
         localStorage.clear();
-        router.push('/dashboard');
+        router.push('/building-other-structure/dashboard');
       } else {
         const error = await response.json();
         alert('Failed to submit form: ' + (error.message || 'Unknown error'));

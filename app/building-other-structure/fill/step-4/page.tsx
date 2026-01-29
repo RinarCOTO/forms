@@ -31,32 +31,41 @@ import {
 } from "@/components/ui/dropdown-menu";
 import MultiSelect from "@/components/ui/multi-select";
 import { Loader2 } from "lucide-react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import React from "react";
 
 // Helper function to collect form data from ONLY this step (step 4)
 // Step 4 saves: construction details and building systems
 function collectFormData(selectedOptions: string[]) {
   const data: any = {};
-  
+
   // Save selected defects/conditions as construction_type
   if (selectedOptions && selectedOptions.length > 0) {
-    data.construction_type = selectedOptions.join(', ');
+    data.construction_type = selectedOptions.join(", ");
   }
-  
-  // Note: If step 4 has other specific fields like electrical_system, plumbing_system, 
+
+  // Note: If step 4 has other specific fields like electrical_system, plumbing_system,
   // foundation_type, or building_permit_no, add them here as parameters and map them accordingly
-  
+
   return data;
 }
 
 const FORM_NAME = "building-structure-form-fill-page-4";
 
+const FormSchema = z.object({
+  deductions: z.array(z.string()).min(1, {
+    message: "Please select at least one deduction.",
+  }),
+});
+
 const BuildingStructureFormFillPage4 = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const draftId = searchParams.get('id');
-  
-  const [isSaving, setIsSaving] = useState(false);
+  const draftId = searchParams.get("id");
 
+  const [isSaving, setIsSaving] = useState(false);
 
   const [yearBuilt, setYearBuilt] = useState("");
   const [materials, setMaterials] = useState({
@@ -158,9 +167,19 @@ const BuildingStructureFormFillPage4 = () => {
   // grid dimensions for selection table
   const selRows = 5;
   const selCols = 4;
-  const selectionGrid = Array.from({ length: selRows }).map((_, r) =>
-    Array.from({ length: selCols }).map((_, c) => selectedOptions[r * selCols + c] || "")
-  );
+
+  const form = useForm({
+    resolver: zodResolver(FormSchema),
+    defaultValues: { deductions: selectedOptions },
+  });
+
+  const watchedDeductions: string[] = form.watch("deductions");
+  // Build selectionGrid so that each row has one selection in the first column, rest empty
+  const selectionGrid = Array.from({ length: selRows }).map((_, r) => {
+    const row: string[] = Array(selCols).fill("");
+    if (watchedDeductions[r]) row[0] = watchedDeductions[r];
+    return row;
+  });
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -170,8 +189,12 @@ const BuildingStructureFormFillPage4 = () => {
   const handleNext = async () => {
     setIsSaving(true);
     try {
-      const formData = collectFormData(selectedOptions);
+      // Always use the latest selected options from the form
+      const currentSelections = form.getValues("deductions");
+      setSelectedOptions(currentSelections); // keep state in sync
+      const formData = collectFormData(currentSelections);
       formData.status = 'draft';
+      formData.deductions = currentSelections; // Save the selections as a field
       
       console.log('Saving Step 4 form data to Supabase:', formData);
       
@@ -221,6 +244,83 @@ const BuildingStructureFormFillPage4 = () => {
     }
   };
 
+  const deductionOptions = flattenedOptions.map((label) => ({ value: label, label }));
+
+  function onSubmit(data: { deductions: string[] }) {
+    setSelectedOptions(data.deductions);
+    handleNext();
+  }
+
+  // Add state for custom percentages for each deduction, default to even distribution
+  const [deductionPercentages, setDeductionPercentages] = useState<number[]>(() => {
+    const initial = Array(selRows).fill(0);
+    const watched = form.getValues("deductions") || [];
+    if (watched.length > 0) {
+      const even = +(100 / watched.length).toFixed(2);
+      watched.forEach((_, idx) => {
+        if (idx < selRows) initial[idx] = even;
+      });
+    }
+    return initial;
+  });
+
+  // When deductions change, auto-assign even percentages
+  React.useEffect(() => {
+    const watched = form.watch("deductions") || [];
+    if (watched.length > 0) {
+      const even = +(100 / watched.length).toFixed(2);
+      setDeductionPercentages((prev) => {
+        const arr = Array(selRows).fill(0);
+        watched.forEach((_, idx) => {
+          if (idx < selRows) arr[idx] = even;
+        });
+        return arr;
+      });
+    } else {
+      setDeductionPercentages(Array(selRows).fill(0));
+    }
+  }, [form.watch("deductions")]);
+
+  // Handler to update percentage for a given row
+  const handlePercentageChange = (rowIdx: number, value: string) => {
+    const num = parseFloat(value);
+    setDeductionPercentages((prev) => {
+      const copy = [...prev];
+      copy[rowIdx] = isNaN(num) ? 0 : num;
+      return copy;
+    });
+  };
+
+  // Calculate total percentage
+  const totalPercentage = deductionPercentages.reduce((sum, val) => sum + val, 0);
+
+  // Load draft data if editing
+  React.useEffect(() => {
+    if (!draftId) return;
+    const loadDraft = async () => {
+      try {
+        const response = await fetch(`/api/building-structure/${draftId}`);
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success && result.data) {
+            const data = result.data;
+            // Populate form fields
+            if (data.construction_type) setSelectedOptions(data.construction_type.split(', '));
+            // Save to localStorage for consistency with other steps
+            Object.entries(data).forEach(([key, value]) => {
+              if (value !== null && value !== undefined) {
+                localStorage.setItem(`${key}_p4`, String(value));
+              }
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load draft data for step 4', error);
+      }
+    };
+    loadDraft();
+  }, [draftId]);
+
   return (
     <SidebarProvider>
       <AppSidebar />
@@ -256,265 +356,81 @@ const BuildingStructureFormFillPage4 = () => {
               </div>
             </header>
 
-            <form 
-                id={`form_${FORM_NAME}`}
-                data-form-name={FORM_NAME}
-                onSubmit={handleSubmit}
-                className="rpfaas-fill-form rpfaas-fill-form-single space-y-6">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <section className="rpfaas-fill-section">
-                <h2 className="rpfaas-fill-section-title mb-4">Structural Materials (checklists)</h2>
-
-                <div className="rpfaas-fill-field space-y-1">
-                  <Label className="rpfaas-fill-label" htmlFor="roof_reinforced_concrete_p4">
-                    ROOF
-                  </Label>
-                  <div className="grid grid-cols-1 gap-2">
-                    <div className="flex items-center gap-2">
-                      <input
-                        id="roof_reinforced_concrete_p4"
-                        name="roof_reinforced_concrete_p4"
-                        type="checkbox"
-                        className="h-4 w-4 rounded"
-                        onChange={() => setMaterials((s) => ({ ...s, reinforcedConcrete: !s.reinforcedConcrete }))}
-                        checked={materials.reinforcedConcrete}
-                      />
-                      <Label htmlFor="roof_reinforced_concrete_p4" className="text-sm">
-                        Reinforced Concrete
-                      </Label>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <input
-                        id="roof_longspan_roof_p4"
-                        name="roof_longspan_roof_p4"
-                        type="checkbox"
-                        className="h-4 w-4 rounded"
-                        onChange={() => setMaterials((s) => ({ ...s, longspanRoof: !s.longspanRoof }))}
-                        checked={materials.longspanRoof}
-                      />
-                      <Label htmlFor="roof_longspan_roof_p4" className="text-sm">
-                        Longspan Roof
-                      </Label>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <input
-                        id="roof_tiles_p4"
-                        name="roof_tiles_p4"
-                        type="checkbox"
-                        className="h-4 w-4 rounded"
-                        onChange={() => setMaterials((s) => ({ ...s, tiles: !s.tiles }))}
-                        checked={materials.tiles}
-                      />
-                      <Label htmlFor="roof_tiles_p4" className="text-sm">
-                        Tiles
-                      </Label>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <input
-                        id="roof_gi_sheets_p4"
-                        name="roof_gi_sheets_p4"
-                        type="checkbox"
-                        className="h-4 w-4 rounded"
-                        onChange={() => setMaterials((s) => ({ ...s, giSheets: !s.giSheets }))}
-                        checked={materials.giSheets}
-                      />
-                      <Label htmlFor="roof_gi_sheets_p4" className="text-sm">
-                        G.I. Sheets
-                      </Label>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <input
-                        id="roof_aluminum_p4"
-                        name="roof_aluminum_p4"
-                        type="checkbox"
-                        className="h-4 w-4 rounded"
-                        onChange={() => setMaterials((s) => ({ ...s, aluminum: !s.aluminum }))}
-                        checked={materials.aluminum}
-                      />
-                      <Label htmlFor="roof_aluminum_p4" className="text-sm">
-                        Aluminum
-                      </Label>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <input
-                        id="roof_others_p4"
-                        name="roof_others_p4"
-                        type="checkbox"
-                        className="h-4 w-4 rounded"
-                        onChange={() => setMaterials((s) => ({ ...s, others: !s.others }))}
-                        checked={materials.others}
-                      />
-                      <Label htmlFor="roof_others_p4" className="text-sm">
-                        Others
-                      </Label>
-                      <Input
-                        id="roof_others_specify_p4"
-                        type="text"
-                        value={materialsOtherText}
-                        onChange={(e) => setMaterialsOtherText(e.target.value)}
-                        placeholder="Specify"
-                        className="rpfaas-fill-input ml-2 flex-1"
-                        disabled={!materials.others}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </section>
-              <section className="rpfaas-fill-section">
-                <div className="rpfaas-fill-field space-y-1">
-                  <Label className="rpfaas-fill-label" htmlFor="flooring_table_p4">
-                    FLOORING
-                  </Label>
-
-                  <div className="overflow-auto">
-                    <table id="flooring_table_p4" className="w-full table-auto border-collapse">
-                      <thead>
-                        <tr>
-                          <th className="border px-2 py-1 text-left">FLOORING</th>
-                          <th className="border px-2 py-1 text-center">1<sup>st</sup>Floor</th>
-                          <th className="border px-2 py-1 text-center">2<sup>nd</sup>Floor</th>
-                          <th className="border px-2 py-1 text-center">3<sup>rd</sup>Floor</th>
-                          <th className="border px-2 py-1 text-center">4<sup>th</sup>Floor</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {flooringGrid.map((row, rIdx) => (
-                          <tr key={rIdx}>
-                            <td className="border px-2 py-1">{flooringLabels[rIdx] || `Item ${rIdx + 1}`}</td>
-                             {row.map((cell, cIdx) => (
-                               <td key={cIdx} className="border px-2 py-1 text-center">
-                                 <button
-                                   id={`flooring_r${rIdx + 1}_c${cIdx + 1}_p4`}
-                                   type="button"
-                                   aria-pressed={cell}
-                                   onClick={() => toggleFlooringCell(rIdx, cIdx)}
-                                   className="w-8 h-8 inline-flex items-center justify-center border rounded"
-                                 >
-                                   {cell ? "X" : ""}
-                                 </button>
-                               </td>
-                             ))}
-                           </tr>
-                         ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </section>
-              <section className="rpfaas-fill-section">
-                <div className="rpfaas-fill-field space-y-1">
-                  <Label className="rpfaas-fill-label" htmlFor="walls_table_p4">
-                    WALLS
-                  </Label>
-
-                  {(() => {
-                    const wallLabels = [
-                      "Concrete",
-                      "Plain Cement",
-                      "Wood",
-                      "CHB",
-                      "C.I. Sheets",
-                    ];
-
-                    return (
-                      <div className="overflow-auto">
-                        <table id="walls_table_p4" className="w-full table-auto border-collapse">
-                          <thead>
-                            <tr>
-                              <th className="border px-2 py-1 text-left">WALLS</th>
-                              <th className="border px-2 py-1 text-center">1<sup>st</sup>Floor</th>
-                              <th className="border px-2 py-1 text-center">2<sup>nd</sup>Floor</th>
-                              <th className="border px-2 py-1 text-center">3<sup>rd</sup>Floor</th>
-                              <th className="border px-2 py-1 text-center">4<sup>th</sup>Floor</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {wallsGrid.map((row, rIdx) => (
-                              <tr key={rIdx}>
-                                <td className="border px-2 py-1">{wallLabels[rIdx] || `Item ${rIdx + 1}`}</td>
-                                {row.map((cell, cIdx) => (
-                                  <td key={cIdx} className="border px-2 py-1 text-center">
-                                    <button
-                                      id={`walls_r${rIdx + 1}_c${cIdx + 1}_p4`}
-                                      type="button"
-                                      aria-pressed={cell}
-                                      onClick={() => toggleWallsCell(rIdx, cIdx)}
-                                      className="w-8 h-8 inline-flex items-center justify-center border rounded"
-                                    >
-                                      {cell ? "X" : ""}
-                                    </button>
-                                  </td>
-                                ))}
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    );
-                  })()}
-                </div>
-              </section>
-
-              <section className="rpfaas-fill-section">
-                <div className="rpfaas-fill-field space-y-1">
-                  <Label className="rpfaas-fill-label">Please select</Label>
-
-                  <div className="overflow-auto">
+                <div className="rpfaas-fill-field space-y-4">
+                  <Label className="rpfaas-fill-label">DEDUCTIONS</Label>
+                  <label className="block text-sm font-medium mb-2">Please Select Here</label>
+                  <MultiSelect
+                    options={flattenedOptions}
+                    value={form.watch("deductions")}
+                    onChange={val => form.setValue("deductions", val)}
+                    placeholder="Please select..."
+                  />
+                  {form.formState.errors.deductions && (
+                    <div className="text-red-500 text-xs mt-1">{form.formState.errors.deductions.message as string}</div>
+                  )}
+                  <div className="overflow-auto mt-4">
                     <table className="w-full table-auto border-collapse">
                       <thead>
                         <tr>
-                          <th className="border px-2 py-1 text-left w-64">Select</th>
-                          {Array.from({ length: selCols }).map((_, i) => (
-                            <th key={i} className="border px-2 py-1 text-center">Col {i + 1}</th>
-                          ))}
+                          <th className="border px-2 py-1 text-center">Deduction</th>
+                          <th className="border px-2 py-1 text-center">%</th>
+                          <th className="border px-2 py-1 text-center">Comments</th>
+                          <th className="border px-2 py-1 text-center">Calculation</th>
                         </tr>
                       </thead>
                       <tbody>
+                        {/* subsequent rows: map selectionGrid into table cells */}
+                        {selectionGrid.filter(row => row[0] || row === selectionGrid[0]).map((row, rIdx) => (
+                          <tr key={rIdx}>
+                            {/* Deduction column */}
+                            <td className="border px-2 py-1 text-left">
+                              {row[0] || (rIdx === 0 ? <span className="text-gray-400 italic">please select item</span> : null)}
+                            </td>
+                            {/* % column */}
+                            <td className="border px-2 py-1 text-center">
+                              {row[0] ? (
+                                <span className="inline-block w-20 text-right bg-transparent">
+                                  {deductionPercentages[rIdx]}
+                                </span>
+                              ) : null}
+                            </td>
+                            {/* Comments column (rowspan) */}
+                            {rIdx === 0 && (
+                              <td
+                                className="border px-2 py-1 text-center align-top"
+                                rowSpan={selectionGrid.filter(r => r[0]).length || 1}
+                              >
+                                <textarea
+                                  className="w-full min-h-20 border rounded-md px-2 py-2 text-sm resize-y focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+                                  placeholder="Enter comment..."
+                                  // Optionally, add value/onChange for controlled input
+                                />
+                              </td>
+                            )}
+                            {/* Calculation column */}
+                            <td className="border px-2 py-1 text-center">{row[0] ? 1 : null}</td>
+                          </tr>
+                        ))}
+                        {/* Total row */}
                         <tr>
-                          <td className="border px-2 py-1 align-top">
-                            <div className="space-y-2">
-                              <div className="text-sm">Tech Stack Selection</div>
-                              <MultiSelect
-                                options={flattenedOptions}
-                                placeholder="Please select..."
-                                className="w-full"
-                                value={selectedOptions}
-                                onChange={(vals: any) => setSelectedOptions(Array.isArray(vals) ? (vals as string[]) : [])}
-                              />
-                            </div>
-                          </td>
-
                           {Array.from({ length: selCols }).map((_, cIdx) => (
-                            <td key={cIdx} className="border px-2 py-1 text-center">
-                              {/* first row mirrors the selections (concise) */}
-                              {selectedOptions[cIdx] ?? ""}
+                            <td
+                              key={cIdx}
+                              className={`border px-2 py-1 text-left ${cIdx === 0 ? 'bg-gray-100' : ''}`}
+                            >
+                              {cIdx === 0 ? 'Total' : cIdx === 1 ? totalPercentage.toFixed(2) + ' %' : ''}
                             </td>
                           ))}
                         </tr>
-
-                        {/* subsequent rows: map selectionGrid into table cells */}
-                        {selectionGrid.map((row, rIdx) => (
-                          <tr key={rIdx}>
-                            <td className="border px-2 py-1">Row {rIdx + 1}</td>
-                            {row.map((cell, cIdx) => (
-                              <td key={cIdx} className="border px-2 py-1 text-center">
-                                {cell}
-                              </td>
-                            ))}
-                          </tr>
-                        ))}
                       </tbody>
                     </table>
                   </div>
                 </div>
               </section>
- 
-              <div className="rpfaas-fill-footer border-t border-border pt-4 mt-4">
 
+              <div className="rpfaas-fill-footer border-t border-border pt-4 mt-4">
                 <div className="rpfaas-fill-actions flex gap-2 justify-between items-center">
                   <div className="flex gap-2">
                     <Button
@@ -529,8 +445,7 @@ const BuildingStructureFormFillPage4 = () => {
 
                   <div className="flex gap-2">
                     <Button
-                      type="button"
-                      onClick={handleNext}
+                      type="submit"
                       disabled={isSaving}
                       className="rpfaas-fill-button rpfaas-fill-button-primary"
                     >
