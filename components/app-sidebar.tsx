@@ -1,5 +1,8 @@
+"use client"
+
 import * as React from "react"
 import { UserProfile } from "@/components/user-profile"
+import { ChevronRight, ChevronDown } from "lucide-react"
 
 import {
   Sidebar,
@@ -12,10 +15,14 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   SidebarRail,
 } from "@/components/ui/sidebar"
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const [rpfaasOpen, setRpfaasOpen] = React.useState(false)
   return (
     <Sidebar {...props}>
       <SidebarHeader>
@@ -27,31 +34,39 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>RPFAAS Forms</SidebarGroupLabel>
+          <SidebarGroupLabel>Land Assessor</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <a href="/rpfaas">All RPFAAS Forms</a>
+                <SidebarMenuButton onClick={(e) => { e.preventDefault(); setRpfaasOpen((v) => !v); }}>
+                  <div className="flex items-center w-full">
+                    <span className="flex-1 text-left">RPFAAS Forms</span>
+                    {rpfaasOpen ? (
+                      <ChevronDown className="ml-2 w-4 h-4" />
+                    ) : (
+                      <ChevronRight className="ml-2 w-4 h-4" />
+                    )}
+                  </div>
                 </SidebarMenuButton>
-              </SidebarMenuItem>
-
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <a href="/rpfaas/building-structure/fill">Building &amp; Structures</a>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <a href="/rpfaas/land-improvements/view">Land &amp; Improvements</a>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <a href="/rpfaas/machinery">Machinery</a>
-                </SidebarMenuButton>
+                {rpfaasOpen && (
+                  <SidebarMenuSub>
+                    <SidebarMenuSubItem>
+                      <SidebarMenuSubButton asChild>
+                        <a href="/building-other-structure/dashboard">Building &amp; Structures</a>
+                      </SidebarMenuSubButton>
+                    </SidebarMenuSubItem>
+                    <SidebarMenuSubItem>
+                      <SidebarMenuSubButton asChild>
+                        <a href="/rpfaas/land-improvements/view">Land &amp; Improvements</a>
+                      </SidebarMenuSubButton>
+                    </SidebarMenuSubItem>
+                    <SidebarMenuSubItem>
+                      <SidebarMenuSubButton asChild>
+                        <a href="/rpfaas/machinery">Machinery</a>
+                      </SidebarMenuSubButton>
+                    </SidebarMenuSubItem>
+                  </SidebarMenuSub>
+                )}
               </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>

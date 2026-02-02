@@ -235,10 +235,12 @@ export default function BuildingStructureFormFillPage5() {
   return (
     <SidebarProvider>
       <AppSidebar />
+
       <SidebarInset>
         <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4" />
+
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem className="hidden md:block">
@@ -251,6 +253,7 @@ export default function BuildingStructureFormFillPage5() {
             </BreadcrumbList>
           </Breadcrumb>
         </header>
+
         <div className="flex-1 p-6 overflow-y-auto">
           <div className="rpfaas-fill max-w-3xl mx-auto">
             <header className="rpfaas-fill-header flex items-center justify-between gap-4 mb-6">
@@ -261,47 +264,115 @@ export default function BuildingStructureFormFillPage5() {
                 </p>
               </div>
             </header>
-            <form id={`form_${FORM_NAME}`} data-form-name={FORM_NAME} onSubmit={async (e) => {
-  e.preventDefault();
-  const formData = new FormData(e.currentTarget);
-  setIsSaving(true);
-  try {
-    const response = await fetch('/api/submit-user-form', {
-      method: 'POST',
-      body: formData,
-    });
-    const result = await response.json();
-    if (result.success) {
-      // handle success (e.g., redirect, show message)
-      router.push(`/building-other-structure/fill/preview-form`);
-    } else {
-      alert(result.error || 'Upload failed');
-    }
-  } catch (error) {
-    alert('Error submitting form');
-  } finally {
-    setIsSaving(false);
-  }
-}} className="rpfaas-fill-form rpfaas-fill-form-single space-y-6">
-  <div>
-    <Label htmlFor="description">Description</Label>
-    <Input id="description" name="description" type="text" />
-  </div>
-  <div>
-    <Label htmlFor="photo">Attach Image</Label>
-    <Input id="photo" name="photo" type="file" accept="image/*" />
-  </div>
-  <div className="rpfaas-fill-footer border-t border-border pt-4 mt-4">
-    <div className="rpfaas-fill-actions flex gap-2 justify-between items-center">
-      <div className="flex gap-2">
-        <Button type="button" variant="outline" onClick={() => router.push(`/building-other-structure/fill/step-4${draftId ? `?id=${draftId}` : ''}`)} className="rpfaas-fill-button rpfaas-fill-button-secondary">Previous</Button>
-      </div>
-      <div className="flex gap-2">
-        <Button type="button" variant="outline" className="rpfaas-fill-button rpfaas-fill-button-primary" onClick={() => router.push(`/building-other-structure/fill/step-6${draftId ? `?id=${draftId}` : ''}`)}>Next</Button>
-      </div>
-    </div>
-  </div>
-</form>
+
+            <form id={`form_${FORM_NAME}`} data-form-name={FORM_NAME} onSubmit={handleSubmit} className="rpfaas-fill-form rpfaas-fill-form-single space-y-6">
+              <section className="rpfaas-fill-section">
+                <h2 className="rpfaas-fill-section-title mb-4">Property Assessment</h2>
+                <div className="rpfaas-fill-field space-y-1">
+                    <Label className="rpfaas-fill-label" htmlFor="actual_use_p5">Actual Use</Label>
+                    <Input
+                    id="actual_use_p5"
+                    name="actual_use_p5"
+                    value={actualUse}
+                    readOnly
+                    disabled
+                    aria-disabled="true"
+                    className="rpfaas-fill-input bg-white"
+                  />
+                </div>
+                <div className="rpfaas-fill-field space-y-1">
+                    <Label className="rpfaas-fill-label" htmlFor="market_value_p5">Market Value</Label>
+                    <Input
+                    id="market_value_p5"
+                    name="market_value_p5"
+                    value="number"
+                    readOnly
+                    disabled
+                    aria-disabled="true"
+                    className="rpfaas-fill-input bg-white"
+                  />
+                </div>
+                <div className="rpfaas-fill-field space-y-1">
+                    <Label className="rpfaas-fill-label" htmlFor="assessment_level_p5">Assessment Level</Label>
+                    <Input
+                    id="assessment_level_p5"
+                    name="assessment_level_p5"
+                    value="number"
+                    readOnly
+                    disabled
+                    aria-disabled="true"
+                    className="rpfaas-fill-input bg-white"
+                  />
+                </div>
+                <div className="rpfaas-fill-field space-y-1">
+                    <Label className="rpfaas-fill-label" htmlFor="estimated_value_p5">Estimated Value</Label>
+                    <Input
+                    id="estimated_value_p5"
+                    name="estimated_value_p5"
+                    type="text"
+                    value={estimatedValueDisplay}
+                    onChange={(e) => {
+                      const inputValue = e.target.value;
+                      const numericValue = removeCommas(inputValue);
+                      
+                      // Only allow numbers
+                      if (/^\d*$/.test(numericValue)) {
+                        const value = parseFloat(numericValue) || 0;
+                        setEstimatedValue(value);
+                        setEstimatedValueDisplay(numericValue ? formatNumberWithCommas(value) : "");
+                        
+                        if (value > 0) {
+                          setAmountInWords(numberToWords(value));
+                        } else {
+                          setAmountInWords("");
+                        }
+                        localStorage.setItem("estimated_value_p5", value.toString());
+                      }
+                    }}
+                    className="rpfaas-fill-input bg-white"
+                    placeholder="0"
+                  />
+                </div>
+                <div className="rpfaas-fill-field space-y-1">
+                    <Label className="rpfaas-fill-label" htmlFor="amount_in_words_p5">Amount in Words:</Label>
+                    <Input
+                    id="amount_in_words_p5"
+                    name="amount_in_words_p5"
+                    value={amountInWords}
+                    readOnly
+                    disabled
+                    aria-disabled="true"
+                    className="rpfaas-fill-input bg-white"
+                  />
+                </div>
+              </section>
+
+              <div className="rpfaas-fill-footer border-t border-border pt-4 mt-4">
+                <div className="rpfaas-fill-actions flex gap-2 justify-between items-center">
+                  <div className="flex gap-2">
+                    <Button type="button" variant="outline" onClick={() => router.push(`/building-other-structure/fill/step-5${draftId ? `?id=${draftId}` : ''}`)} className="rpfaas-fill-button rpfaas-fill-button-secondary">Previous</Button>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button 
+                      type="button" 
+                      onClick={handlePreview}
+                      disabled={isSaving}
+                      className="rpfaas-fill-button rpfaas-fill-button-primary"
+                    >
+                      {isSaving ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        'Preview'
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </form>
           </div>
         </div>
       </SidebarInset>
