@@ -35,7 +35,8 @@ export async function GET() {
       .from('building_structures')
       .select('id, owner_name, updated_at, status')
       .order('updated_at', { ascending: false })
-    
+    console.log('Supabase SELECT error:', error);
+    console.log('Supabase SELECT data:', data);
     if (error) {
       console.error('Error fetching building structures:', error)
       return NextResponse.json(
@@ -43,7 +44,13 @@ export async function GET() {
         { status: 500 }
       )
     }
-    
+    if (!data) {
+      console.error('No data returned from Supabase');
+      return NextResponse.json(
+        { error: 'No data returned from Supabase' },
+        { status: 500 }
+      )
+    }
     return NextResponse.json(data || [])
   } catch (error) {
     console.error('Error:', error)
@@ -78,12 +85,15 @@ export async function POST(request: Request) {
       }
     )
     const body = await request.json();
+    console.log('POST body:', body);
     // Insert a new row with the provided data
     const { data, error } = await supabase
       .from('building_structures')
       .insert([body])
       .select()
       .single();
+    console.log('Supabase INSERT error:', error);
+    console.log('Supabase INSERT data:', data);
     if (error) {
       return NextResponse.json(
         { error: 'Failed to create building structure', details: error.message, code: error.code },
