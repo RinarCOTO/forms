@@ -1,6 +1,12 @@
 // User Types for the application
 
-export type UserRole = 'admin' | 'user' | 'assessor' | 'manager' | 'viewer';
+export type UserRole =
+  | 'super_admin'
+  | 'admin'
+  | 'tax_mapper'
+  | 'municipal_tax_mapper'
+  | 'accountant'
+  | 'user';
 
 export interface User {
   id: string; // UUID from Supabase Auth

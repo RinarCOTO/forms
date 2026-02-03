@@ -22,6 +22,7 @@ export default function SignupPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -48,6 +49,26 @@ export default function SignupPage() {
         return;
       }
 
+      // Email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        setError("Please enter a valid email address");
+        setIsLoading(false);
+        return;
+      }
+
+      // Password strength validation
+      const hasUpperCase = /[A-Z]/.test(password);
+      const hasLowerCase = /[a-z]/.test(password);
+      const hasNumbers = /\d/.test(password);
+      const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+      
+      if (!hasUpperCase || !hasLowerCase || !hasNumbers) {
+        setError("Password must contain at least one uppercase letter, one lowercase letter, and one number");
+        setIsLoading(false);
+        return;
+      }
+
       // Call server-side API route
       const response = await fetch("/api/auth/signup", {
         method: "POST",
@@ -65,9 +86,14 @@ export default function SignupPage() {
       }
 
       if (data.success) {
-        // Redirect to dashboard
-        router.push("/dashboard");
-        router.refresh();
+        // Show success message before redirect
+        setError("");
+        setSuccess(true);
+        // Redirect to dashboard after a brief delay
+        setTimeout(() => {
+          router.push("/dashboard");
+          router.refresh();
+        }, 1000);
       }
     } catch (err) {
       setError("Signup failed. Please try again.");
@@ -92,6 +118,11 @@ export default function SignupPage() {
             {error && (
               <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md">
                 {error}
+              </div>
+            )}
+            {success && (
+              <div className="p-3 text-sm text-green-600 bg-green-50 border border-green-200 rounded-md">
+                Account created successfully! Redirecting to dashboard...
               </div>
             )}
             <div className="space-y-2">
@@ -130,7 +161,7 @@ export default function SignupPage() {
                 disabled={isLoading}
               />
               <p className="text-xs text-muted-foreground">
-                Must be at least 8 characters long
+                Must be at least 8 characters long and contain uppercase, lowercase, and numbers
               </p>
             </div>
             <div className="space-y-2">
@@ -150,9 +181,9 @@ export default function SignupPage() {
             <Button
               type="submit"
               className="w-full"
-              disabled={isLoading}
+              disabled={isLoading || success}
             >
-              {isLoading ? "Creating account..." : "Create Account"}
+              {isLoading ? "Creating account..." : success ? "Account created!" : "Create Account"}
             </Button>
             <div className="text-sm text-center text-muted-foreground">
               Already have an account?{" "}

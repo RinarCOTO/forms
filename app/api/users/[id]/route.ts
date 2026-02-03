@@ -33,7 +33,7 @@ export async function GET(
       .eq('id', authUser.id)
       .single();
 
-    if (!currentUser || (currentUser.role !== 'admin' && authUser.id !== userId)) {
+    if (!currentUser || (!['admin', 'super_admin'].includes(currentUser.role) && authUser.id !== userId)) {
       return NextResponse.json(
         { error: 'Forbidden' },
         { status: 403 }
@@ -93,7 +93,7 @@ export async function PATCH(
       .eq('id', authUser.id)
       .single();
 
-    if (!currentUser || currentUser.role !== 'admin') {
+    if (!currentUser || !['admin', 'super_admin'].includes(currentUser.role)) {
       return NextResponse.json(
         { error: 'Forbidden: Admin access required' },
         { status: 403 }
@@ -165,7 +165,7 @@ export async function DELETE(
       .eq('id', authUser.id)
       .single();
 
-    if (!currentUser || currentUser.role !== 'admin') {
+    if (!currentUser || !['admin', 'super_admin'].includes(currentUser.role)) {
       return NextResponse.json(
         { error: 'Forbidden: Admin access required' },
         { status: 403 }

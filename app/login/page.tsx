@@ -119,20 +119,6 @@ export default function LoginPage() {
             >
               {isLoading ? "Signing in..." : "Sign In"}
             </Button>
-            <div className="text-sm text-center text-muted-foreground">
-              Don't have an account?{" "}
-              <a
-                href="#"
-                className="text-primary hover:underline font-medium"
-                onClick={(e) => {
-                  e.preventDefault();
-                  // TODO: Navigate to signup
-                  router.push("/signup");
-                }}
-              >
-                Sign up
-              </a>
-            </div>
           </CardFooter>
         </form>
       </Card>

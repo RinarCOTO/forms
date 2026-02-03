@@ -140,7 +140,7 @@ model User {
   email        String    @unique @db.VarChar(255)
   passwordHash String?   @map("password_hash") @db.VarChar(255)
   fullName     String?   @map("full_name") @db.VarChar(255)
-  role         String    @default("user") @db.VarChar(50)
+  role         String    @default("user") @db.VarChar(50) // super_admin, admin, tax_mapper, municipal_tax_mapper, accountant, user
   isActive     Boolean   @default(true) @map("is_active")
   lastLogin    DateTime? @map("last_login")
   createdAt    DateTime  @default(now()) @map("created_at")

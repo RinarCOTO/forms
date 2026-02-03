@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
       .eq('id', authUser.id)
       .single();
 
-    if (!currentUser || currentUser.role !== 'admin') {
+    if (!currentUser || !['admin', 'super_admin'].includes(currentUser.role)) {
       return NextResponse.json(
         { error: 'Forbidden: Admin access required' },
         { status: 403 }
@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
       .eq('id', authUser.id)
       .single();
 
-    if (!currentUser || currentUser.role !== 'admin') {
+    if (!currentUser || !['admin', 'super_admin'].includes(currentUser.role)) {
       return NextResponse.json(
         { error: 'Forbidden: Admin access required' },
         { status: 403 }

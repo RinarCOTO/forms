@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createClient as createAdminClient } from '@supabase/supabase-js';
 
 export async function GET(request: NextRequest) {
   try {
@@ -18,24 +19,63 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Fetch user profile from users table
-    const { data: userProfile, error: profileError } = await supabase
+    // Use admin client to bypass RLS and fetch user profile
+    const supabaseAdmin = createAdminClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    );
+
+    // Fetch user profile from users table using admin client
+    const { data: userProfile, error: profileError } = await supabaseAdmin
       .from('users')
       .select('*')
       .eq('id', authUser.id)
       .single();
 
     if (profileError) {
-      // If profile doesn't exist, return auth user data
-      return NextResponse.json(
-        {
-          user: {
-            id: authUser.id,
-            email: authUser.email,
-            user_metadata: authUser.user_metadata,
-            created_at: authUser.created_at,
+      console.log('User profile not found, creating one...', profileError);
+      
+      // Create user profile if it doesn't exist using admin client
+      const { data: newProfile, error: createError } = await supabaseAdmin
+        .from('users')
+        .insert({
+          id: authUser.id,
+          email: authUser.email,
+          full_name: authUser.user_metadata?.full_name || null,
+          role: 'user', // Default role
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+
+      if (createError) {
+        console.error('Failed to create user profile:', createError);
+        // Still return auth user data but with default role
+        return NextResponse.json(
+          {
+            user: {
+              id: authUser.id,
+              email: authUser.email,
+              user_metadata: authUser.user_metadata,
+              created_at: authUser.created_at,
+              role: 'user', // Default role
+              full_name: authUser.user_metadata?.full_name || null
+            },
           },
-        },
+          { status: 200 }
+        );
+      }
+
+      console.log('User profile created:', newProfile);
+      return NextResponse.json(
+        { user: newProfile },
         { status: 200 }
       );
     }
