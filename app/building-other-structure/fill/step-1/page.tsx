@@ -36,6 +36,16 @@ function collectFormData(
     owner_name: ownerName,
     admin_care_of: adminCareOf,
     property_address: propertyStreet,
+    // Save the codes for restoring selects
+    owner_province_code: ownerLoc.provinceCode,
+    owner_municipality_code: ownerLoc.municipalityCode,
+    owner_barangay_code: ownerLoc.barangayCode,
+    admin_province_code: adminLoc.provinceCode,
+    admin_municipality_code: adminLoc.municipalityCode,
+    admin_barangay_code: adminLoc.barangayCode,
+    property_province_code: propLoc.provinceCode,
+    property_municipality_code: propLoc.municipalityCode,
+    property_barangay_code: propLoc.barangayCode,
   };
   
   // Build owner address from location selections
@@ -182,7 +192,8 @@ function BuildingOtherStructureFillPageContent() {
     if (!draftId) return;
     const loadDraft = async () => {
       try {
-        const response = await fetch(`/api/building-structure/${draftId}`);
+        // FIX: Use correct API endpoint for building-other-structure
+        const response = await fetch(`/api/building-other-structure/${draftId}`);
         if (response.ok) {
           const result = await response.json();
           if (result.success && result.data) {
@@ -190,6 +201,16 @@ function BuildingOtherStructureFillPageContent() {
             if (data.owner_name) setOwnerName(data.owner_name);
             if (data.admin_care_of) setAdminCareOf(data.admin_care_of);
             if (data.property_address) setPropertyStreet(data.property_address);
+            // Restore location selects if data exists
+            if (data.owner_province_code) ownerLoc.setProvinceCode(data.owner_province_code);
+            if (data.owner_municipality_code) ownerLoc.setMunicipalityCode(data.owner_municipality_code);
+            if (data.owner_barangay_code) ownerLoc.setBarangayCode(data.owner_barangay_code);
+            if (data.admin_province_code) adminLoc.setProvinceCode(data.admin_province_code);
+            if (data.admin_municipality_code) adminLoc.setMunicipalityCode(data.admin_municipality_code);
+            if (data.admin_barangay_code) adminLoc.setBarangayCode(data.admin_barangay_code);
+            if (data.property_province_code) propLoc.setProvinceCode(data.property_province_code);
+            if (data.property_municipality_code) propLoc.setMunicipalityCode(data.property_municipality_code);
+            if (data.property_barangay_code) propLoc.setBarangayCode(data.property_barangay_code);
             // Save to localStorage for consistency with other steps
             Object.entries(data).forEach(([key, value]) => {
               if (value !== null && value !== undefined) {
@@ -228,7 +249,7 @@ function BuildingOtherStructureFillPageContent() {
       
       if (currentDraftId) {
         // Update existing draft
-        response = await fetch(`/api/building-structure/${currentDraftId}`, {
+        response = await fetch(`/api/building-other-structure/${currentDraftId}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -237,7 +258,7 @@ function BuildingOtherStructureFillPageContent() {
         });
       } else {
         // Create new draft
-        response = await fetch('/api/building-structure', {
+        response = await fetch('/api/building-other-structure', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
