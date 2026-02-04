@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FileText, Plus, ArrowLeft, Loader2, Eye, Edit } from "lucide-react";
+import { FileText, Plus, ArrowLeft, Loader2, Eye, Edit, Trash2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { AppSidebar } from "@/components/app-sidebar";
@@ -19,8 +19,24 @@ export default function BuildingOtherStructureDashboard() {
   const router = useRouter();
   const [submissions, setSubmissions] = useState<FormSubmission[]>([]);
   const [loading, setLoading] = useState(false);
+  const [user, setUser] = useState<{ role: string } | null>(null);
+  const [userLoading, setUserLoading] = useState(true);
 
   useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const response = await fetch("/api/auth/user");
+        if (response.ok) {
+          const userData = await response.json();
+          setUser(userData.user);
+        }
+      } catch (error) {
+        console.error('Failed to fetch user:', error);
+      } finally {
+        setUserLoading(false);
+      }
+    };
+
     const fetchSubmissions = async () => {
       setLoading(true);
       try {
@@ -37,6 +53,8 @@ export default function BuildingOtherStructureDashboard() {
         setLoading(false);
       }
     };
+    
+    fetchUser();
     fetchSubmissions();
   }, []);
 
@@ -67,6 +85,33 @@ export default function BuildingOtherStructureDashboard() {
   const handleViewSubmission = (submissionId: number) => {
     router.push(`/building-other-structure/fill/step-1?id=${submissionId}`);
   };
+
+  const handleDeleteSubmission = async (submissionId: number) => {
+    if (!confirm('Are you sure you want to delete this submission? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/building-other-structure/${submissionId}`, {
+        method: 'DELETE',
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        // Remove the deleted submission from the list
+        setSubmissions(prev => prev.filter(sub => sub.id !== submissionId));
+        alert('Submission deleted successfully.');
+      } else {
+        alert(result.message || 'Failed to delete submission.');
+      }
+    } catch (error) {
+      console.error('Delete error:', error);
+      alert('Error deleting submission.');
+    }
+  };
+
+  const canDelete = user && (user.role === 'admin' || user.role === 'super_admin');
 
   return (
     <SidebarProvider>
@@ -146,6 +191,16 @@ export default function BuildingOtherStructureDashboard() {
                               <Button variant="ghost" size="sm" onClick={() => handleViewSubmission(submission.id)}>
                                 <Edit className="h-4 w-4 mr-1" /> Edit
                               </Button>
+                              {canDelete && (
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  onClick={() => handleDeleteSubmission(submission.id)}
+                                  className="text-destructive hover:text-destructive"
+                                >
+                                  <Trash2 className="h-4 w-4 mr-1" /> Delete
+                                </Button>
+                              )}
                             </div>
                           </TableCell>
                         </TableRow>
