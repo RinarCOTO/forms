@@ -276,11 +276,38 @@ function BuildingOtherStructureFillPageContent() {
           const savedDraftId = result.data.id;
           // Navigate to step 2 with the draft ID
           router.push(`/building-other-structure/fill/step-2?id=${savedDraftId}`);
+        } else {
+          console.error('No draft ID returned:', result);
+          alert('Save completed but no ID returned. Please try again.');
         }
       } else {
-        const error = await response.json();
-        console.error('Save error:', error);
-        alert('Failed to save: ' + (error.message || 'Unknown error'));
+        let errorMessage = 'Unknown error';
+        let errorDetails = '';
+        console.log('Response not OK. Status:', response.status, 'StatusText:', response.statusText);
+        
+        try {
+          const error = await response.json();
+          console.error('Save error response:', JSON.stringify(error, null, 2));
+          console.log('Error object keys:', Object.keys(error));
+          console.log('Error object values:', Object.values(error));
+          
+          if (error && typeof error === 'object') {
+            errorMessage = error.message || error.error || error.details?.message || `Server error (${response.status})`;
+            if (error.details) {
+              errorDetails = ` Details: ${JSON.stringify(error.details)}`;
+            }
+          } else {
+            errorMessage = `Server error (${response.status}): Unexpected response format`;
+          }
+        } catch (parseError) {
+          console.error('Failed to parse error response:', parseError);
+          console.log('Raw response status:', response.status, response.statusText);
+          errorMessage = `Server error (${response.status}): ${response.statusText}`;
+        }
+        
+        const fullErrorMessage = errorMessage + errorDetails;
+        console.error('Final error message to show user:', fullErrorMessage);
+        alert('Failed to save: ' + fullErrorMessage);
       }
     } catch (error) {
       console.error('Error saving:', error);
