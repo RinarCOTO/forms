@@ -113,6 +113,11 @@ export default function BuildingOtherStructureDashboard() {
 
   const canDelete = user && (user.role === 'admin' || user.role === 'super_admin');
 
+  // Open print preview for a submission
+  const handlePrintPreview = (submissionId: number) => {
+    router.push(`/building-other-structure/print-preview?id=${submissionId}`);
+  };
+
   return (
     <SidebarProvider>
       <AppSidebar />
@@ -185,9 +190,10 @@ export default function BuildingOtherStructureDashboard() {
                           </TableCell>
                           <TableCell>
                             <div className="flex gap-2">
-                              <Button variant="ghost" size="sm" onClick={() => handleViewSubmission(submission.id)}>
+                              <Button variant="ghost" size="sm" onClick={() => handlePrintPreview(submission.id)}>
                                 <Eye className="h-4 w-4 mr-1" /> View
                               </Button>
+
                               <Button variant="ghost" size="sm" onClick={() => handleViewSubmission(submission.id)}>
                                 <Edit className="h-4 w-4 mr-1" /> Edit
                               </Button>
