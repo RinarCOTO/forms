@@ -56,8 +56,9 @@ const formsMenu = [
     title: "Land & Improvements",
     description: "Assessment forms for land and property improvements",
     icon: FileText,
-    apiEndpoint: "/api/forms/land-improvements",
-    formRoute: "/land-other-improvements/fill",
+    apiEndpoint: "/api/forms/land-other-improvements",
+    formRoute: "/land-other-improvements/fill/step-1",
+    dashboardRoute: "/land-other-improvements/dashboard",
   },
   {
     id: "machinery",
