@@ -26,13 +26,32 @@ import {
 import { Loader2 } from "lucide-react";
 import { Separator } from "@radix-ui/react-separator";
 
+const FORM_NAME = "land-other-improvements-fill-2";
+
+
+
 const LandOtherImprovementFormFillPage2 = () => {
     const router = useRouter();
     const searchParams = useSearchParams();
     const draftId = searchParams.get("id");
+    const [isLoadingDraft, setIsLoadingDraft] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
 
-    const FORM_NAME = "land-other-improvements-fill-2";
+    //Basic Fields
+    const [SouthProperty, setSouthProperty] = useState("");
+    const [EastProperty, setEastProperty] = useState("");
+    const [WestProperty, setWestProperty] = useState("");
+
+
+    //handle next button then collect data for database and for auto saving
+
+    // const handleNext = async () => {
+    //     setIsSaving (true);
+    //     try {
+    //         const formData = 
+    //     }
+
+    // }
 
     useEffect(() => {
         const isDataApplied = checkIfDataIsApplied();
@@ -75,11 +94,50 @@ const LandOtherImprovementFormFillPage2 = () => {
                                 <h1 className="rpfaas-fill-title">Fill-up form: Property Boundaries</h1>
                             </div>
                         </header>
-                        <form 
-                        id={`form_${FORM_NAME}`}
-                        data-form-name={FORM_NAME}
-                        onSubmit={handleSubmit}
-                        ></form>
+                        <form id={`form_${FORM_NAME}_main`} onSubmit={handleSubmit}
+                        className="rpfaas-fill-form rpfaas-fill-form-single space-y-6"
+                        >
+                            <section className="rpfaas-fill-section">
+                                <div className="rpfaas-fill-field space-y-1">
+                                    <Label className="rpfaas-fill-label">South</Label>
+                                    <Input value={SouthProperty} onChange={(e) => setSouthProperty(e.target.value)} className="rpfaas-fill-input" />
+                                </div>
+                                <div className="rpfaas-fill-field space-y-1">
+                                    <Label className="rpfaas-fill-label">East</Label>
+                                    <Input value={EastProperty} onChange={(e) => setEastProperty(e.target.value)} className="rpfaas-fill-input" />
+                                </div>
+                                <div className="rpfaas-fill-field space-y-1">
+                                    <Label className="rpfaas-fill-label">West</Label>
+                                    <Input value={WestProperty} onChange={(e) => setWestProperty(e.target.value)} className="rpfaas-fill-input" />
+                                </div>
+                            </section>
+                            <div className="rpfaas-fill-footer border-t border-border pt-4 mt-4">
+                                <div className="rpfaas-fill-actions flex gap-2 justify-end">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() => router.push(`/land-other-improvements/fill/step-1${draftId ? `?id=${draftId}` : ''}`)}
+                                        className="rpfaas-fill-button rpfaas-fill-button-secondary"
+                                    >
+                                        Previous
+                                    </Button>
+                                    {/* <Button
+                                    type="button"
+                                    onClick={handleNext}
+                                    disabled={isSaving}
+                                    className="rpfaas-fill-button rpfaas-fill-button-primary"
+                                    >
+                                        {isSaving ? (
+                                            <>
+                                                <Loader2 className="h-4 w-4 animate-spin"/>
+                                            </>
+                                        ) : (
+                                            "Next"
+                                        )}
+                                    </Button> */}
+                                </div>
+                            </div>
+                        </form>
                     </div>
                 </div>
             </SidebarInset>
