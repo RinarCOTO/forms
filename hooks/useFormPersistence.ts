@@ -1,19 +1,21 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 /**
  * Custom hook to persist form data to localStorage.
  * @param keyPrefix Prefix for localStorage keys
  * @param data Object containing form data
  */
-export function useFormPersistence<T extends Record<string, any>>(keyPrefix: string, data: T) {
+export function useFormPersistence<T>(keyPrefix: string, data: T) {
+  const isFirstRender = useRef(true);
+
   useEffect(() => {
-    try {
-      Object.entries(data).forEach(([key, value]) => {
-        localStorage.setItem(`${keyPrefix}_${key}`, typeof value === "object" ? JSON.stringify(value) : String(value));
-      });
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error("Failed to save to localStorage", error);
+    // Prevent saving empty initial state on first render
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    if (data && Object.keys(data).length > 0) {
+      localStorage.setItem(keyPrefix, JSON.stringify(data));
     }
   }, [keyPrefix, data]);
 }

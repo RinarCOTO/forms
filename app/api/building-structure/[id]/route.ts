@@ -4,6 +4,16 @@ import { createClient } from '@supabase/supabase-js';
 /**
  * GET - Retrieve a single building structure by ID
  */
+
+// HELPER: Sanitize floor areas (removes empty strings that crash the DB)
+const cleanFloorAreas = (areas: any[] | undefined): number[] | null => {
+  if (!Array.isArray(areas) || areas.length === 0) return null;
+  // Convert to numbers and remove NaNs/empty strings
+  const cleaned = areas
+    .map(a => (a === "" || a === null || a === undefined) ? NaN : Number(a))
+    .filter(n => !isNaN(n));
+  return cleaned.length > 0 ? cleaned : null;
+};
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -78,39 +88,34 @@ export async function PUT(
   try {
     const { id: idString } = await params;
     const id = parseInt(idString);
-    
+
     if (isNaN(id)) {
-      return NextResponse.json(
-        { success: false, error: 'Invalid ID format' },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: 'Invalid ID format' }, { status: 400 });
     }
-    
+
     const body: any = await request.json();
-    
+
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    
+
     if (!supabaseUrl || !supabaseServiceKey) {
-      return NextResponse.json(
-        { error: 'Supabase configuration missing' },
-        { status: 500 }
-      )
+      return NextResponse.json({ error: 'Supabase configuration missing' }, { status: 500 });
     }
-    
+
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
-      }
+      auth: { autoRefreshToken: false, persistSession: false }
     });
-    
-    // Only include fields that are actually provided in the request
-    // This allows partial updates without overwriting existing data
+
     const dbData: any = {
       updated_at: new Date().toISOString()
     };
-    
+
+    // --- 👇 THIS WAS MISSING 👇 ---
+    if (body.floor_areas !== undefined) {
+      dbData.floor_areas = cleanFloorAreas(body.floor_areas);
+    }
+    // ------------------------------
+
     // Only add fields that are present in the body
     if (body.arp_no !== undefined) dbData.arp_no = body.arp_no || null;
     if (body.pin !== undefined) dbData.pin = body.pin || null;
@@ -122,10 +127,16 @@ export async function PUT(
     if (body.type_of_building !== undefined) dbData.type_of_building = body.type_of_building || null;
     if (body.number_of_storeys !== undefined) dbData.number_of_storeys = body.number_of_storeys ? parseInt(body.number_of_storeys.toString()) : null;
     if (body.date_constructed !== undefined) dbData.date_constructed = body.date_constructed ? (body.date_constructed.length === 4 ? `${body.date_constructed}-01-01` : body.date_constructed) : null;
+    if (body.completion_issued_on !== undefined) dbData.completion_issued_on = body.completion_issued_on ? (body.completion_issued_on.length === 4 ? `${body.completion_issued_on}-01-01` : body.completion_issued_on) : null;
     if (body.date_completed !== undefined) dbData.date_completed = body.date_completed ? (body.date_completed.length === 4 ? `${body.date_completed}-01-01` : body.date_completed) : null;
     if (body.date_occupied !== undefined) dbData.date_occupied = body.date_occupied ? (body.date_occupied.length === 4 ? `${body.date_occupied}-01-01` : body.date_occupied) : null;
     if (body.building_permit_no !== undefined) dbData.building_permit_no = body.building_permit_no || null;
+    
     if (body.total_floor_area !== undefined) dbData.total_floor_area = body.total_floor_area ? parseFloat(body.total_floor_area.toString()) : null;
+    if (body.land_owner !== undefined) dbData.land_owner = body.land_owner || null;
+    if (body.td_arp_no !== undefined) dbData.td_arp_no = body.td_arp_no || null;
+    if (body.land_area !== undefined) dbData.land_area = body.land_area ? parseFloat(body.land_area.toString()) : null; 
+    
     if (body.construction_type !== undefined) dbData.construction_type = body.construction_type || null;
     if (body.structure_type !== undefined) dbData.structure_type = body.structure_type || null;
     if (body.foundation_type !== undefined) dbData.foundation_type = body.foundation_type || null;
@@ -141,14 +152,14 @@ export async function PUT(
     if (body.estimated_value !== undefined) dbData.estimated_value = body.estimated_value ? parseFloat(body.estimated_value.toString()) : null;
     if (body.amount_in_words !== undefined) dbData.amount_in_words = body.amount_in_words || null;
     if (body.status !== undefined) dbData.status = body.status || 'draft';
-    
+
     const { data, error } = await supabase
       .from('building_structures')
       .update(dbData)
       .eq('id', id)
       .select()
       .single();
-    
+
     if (error) {
       console.error('Error updating building structure:', error);
       return NextResponse.json(
@@ -156,13 +167,13 @@ export async function PUT(
         { status: 500 }
       );
     }
-    
+
     return NextResponse.json({
       success: true,
       message: 'Building structure updated successfully',
       data: data,
     });
-    
+
   } catch (error) {
     console.error('Error updating building structure:', error);
     return NextResponse.json(

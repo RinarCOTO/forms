@@ -1,13 +1,18 @@
-// Static dropdown options for forms
+// config/form-options.ts
 
 export const BUILDING_TYPES = [
-  { value: "residential", label: "Residential Building" },
-  { value: "commercial", label: "Commercial Building" },
-  { value: "industrial", label: "Industrial Buildings" },
-  { value: "agricultural", label: "Agricultural Structures" },
+  "Residential",
+  "Commercial",
+  "Industrial",
+  "Institutional",
+  "Mixed-Use",
+  "Other",
 ];
 
 export const STRUCTURAL_TYPES = [
-  { value: "type_a", label: "Type A" },
-  { value: "type_b", label: "Type B" },
+  "Type A",
+  "Type B",
+  "Type C",
+  "Type D",
+  "Other",
 ];

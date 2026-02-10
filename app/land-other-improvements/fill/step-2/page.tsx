@@ -42,17 +42,6 @@ const LandOtherImprovementFormFillPage2 = () => {
     const [EastProperty, setEastProperty] = useState("");
     const [WestProperty, setWestProperty] = useState("");
 
-
-    //handle next button then collect data for database and for auto saving
-
-    // const handleNext = async () => {
-    //     setIsSaving (true);
-    //     try {
-    //         const formData = 
-    //     }
-
-    // }
-
     useEffect(() => {
         const isDataApplied = checkIfDataIsApplied();
         if (isDataApplied) {

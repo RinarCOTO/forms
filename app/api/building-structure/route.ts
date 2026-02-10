@@ -16,6 +16,7 @@ export interface BuildingStructureInput {
   date_occupied?: string;
   building_permit_no?: string;
   total_floor_area?: number;
+  floor_areas?: number[] | string[];
   construction_type?: string;
   structure_type?: string;
   foundation_type?: string;
@@ -31,6 +32,9 @@ export interface BuildingStructureInput {
   estimated_value?: number;
   amount_in_words?: string;
   status?: string;
+  land_owner?: string;
+  td_arp_no?: string;
+  land_area?: number;
 }
 
 /**
@@ -66,10 +70,12 @@ export async function POST(request: NextRequest) {
       type_of_building: body.type_of_building || null,
       number_of_storeys: body.number_of_storeys ? parseInt(body.number_of_storeys.toString()) : null,
       date_constructed: body.date_constructed ? (body.date_constructed.length === 4 ? `${body.date_constructed}-01-01` : body.date_constructed) : null,
+      completion_issued_on: body.completion_issued_on ? (body.completion_issued_on.length === 4 ? `${body.completion_issued_on}-01-01` : body.completion_issued_on) : null,
       date_completed: body.date_completed ? (body.date_completed.length === 4 ? `${body.date_completed}-01-01` : body.date_completed) : null,
       date_occupied: body.date_occupied ? (body.date_occupied.length === 4 ? `${body.date_occupied}-01-01` : body.date_occupied) : null,
       building_permit_no: body.building_permit_no || null,
       total_floor_area: body.total_floor_area ? parseFloat(body.total_floor_area.toString()) : null,
+      floor_areas: body.floor_areas ? JSON.stringify(body.floor_areas) : null,
       construction_type: body.construction_type || null,
       structure_type: body.structure_type || null,
       foundation_type: body.foundation_type || null,
@@ -86,6 +92,11 @@ export async function POST(request: NextRequest) {
       amount_in_words: body.amount_in_words || null,
       status: body.status || 'draft',
       updated_at: new Date().toISOString(),
+      land_owner: body.land_owner || null,
+      td_arp_no: body.td_arp_no || null,
+      land_area: body.land_area ? parseFloat(body.land_area.toString()) : null,
+      
+
     };
     
     const { data, error } = await supabase
