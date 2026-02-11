@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, FormEvent, useEffect } from "react";
+import { useFormData } from "@/hooks/useFormData";
+import { useFormPersistence } from "@/hooks/useFormPersistence";
 import "@/app/styles/forms-fill.css";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { AppSidebar } from "@/components/app-sidebar";
 import {
@@ -23,8 +23,23 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { Loader2 } from "lucide-react";
+import { RoofMaterialsForm } from "@/components/forms/RoofMaterialsForm";
 
-// Helper function to collect form data from ONLY this step (step 3)
+// --- HELPER: Parse JSON Safely ---
+// This prevents the "0": "{" error if the DB returns a string instead of an object
+const safeParse = (data: any) => {
+  if (typeof data === "string") {
+    try {
+      return JSON.parse(data);
+    } catch (e) {
+      console.error("Failed to parse JSON:", e);
+      return null;
+    }
+  }
+  return data;
+};
+
+// --- HELPER: Collect Data for DB ---
 function collectFormData(
   materials: any,
   materialsOtherText: string,
@@ -32,30 +47,76 @@ function collectFormData(
   wallsGrid: boolean[][]
 ) {
   const data: any = {};
+
+  // --- 1. GENERATE READABLE STRINGS ---
   
-  // Convert roofing materials checkboxes to comma-separated text
-  const selectedMaterials = [];
-  if (materials.reinforcedConcrete) selectedMaterials.push('Reinforced Concrete');
-  if (materials.longspanRoof) selectedMaterials.push('Longspan Roof');
-  if (materials.tiles) selectedMaterials.push('Tiles');
-  if (materials.giSheets) selectedMaterials.push('GI Sheets');
-  if (materials.aluminum) selectedMaterials.push('Aluminum');
-  if (materials.others && materialsOtherText) selectedMaterials.push(`Other: ${materialsOtherText}`);
+  // Roof String
+  const selectedRoof = [];
+  // Ensure 'materials' is actually an object before checking keys
+  const safeMaterials = typeof materials === 'object' && materials !== null ? materials : {};
   
-  if (selectedMaterials.length > 0) {
-    data.roofing_material = selectedMaterials.join(', ');
-  }
-  
-  // Serialize flooring grid to JSON string for storage
+  if (safeMaterials.reinforcedConcrete) selectedRoof.push('Reinforced Concrete');
+  if (safeMaterials.longspanRoof) selectedRoof.push('Longspan Roof');
+  if (safeMaterials.tiles) selectedRoof.push('Tiles');
+  if (safeMaterials.giSheets) selectedRoof.push('GI Sheets');
+  if (safeMaterials.aluminum) selectedRoof.push('Aluminum');
+  if (safeMaterials.others && materialsOtherText) selectedRoof.push(`Other: ${materialsOtherText}`);
+  const roofSummary = selectedRoof.join(', ');
+
+  // Flooring String
+  let flooringSummary = "";
   if (flooringGrid && flooringGrid.length > 0) {
-    data.flooring_material = JSON.stringify(flooringGrid);
+    const flooringLabels = ["Concrete", "Plain Cement", "Marble", "Wood", "Tiles", "Other"];
+    const selectedFlooring: string[] = [];
+    flooringGrid.forEach((row, rIdx) => {
+      if(Array.isArray(row)) {
+        row.forEach((cell, cIdx) => {
+          if (cell && flooringLabels[rIdx]) {
+            const suffix = ["st", "nd", "rd"][cIdx] || "th";
+            selectedFlooring.push(`${flooringLabels[rIdx]} (${cIdx + 1}${suffix} floor)`);
+          }
+        });
+      }
+    });
+    flooringSummary = selectedFlooring.join(", ");
   }
-  
-  // Serialize walls grid to JSON string for storage
+
+  // Walls String
+  let wallSummary = "";
   if (wallsGrid && wallsGrid.length > 0) {
-    data.wall_material = JSON.stringify(wallsGrid);
+    const wallLabels = ["Concrete", "Plain Cement", "Wood", "CHB", "C.I. Sheets"];
+    const selectedWalls: string[] = [];
+    wallsGrid.forEach((row, rIdx) => {
+      if(Array.isArray(row)) {
+        row.forEach((cell, cIdx) => {
+          if (cell && wallLabels[rIdx]) {
+            const suffix = ["st", "nd", "rd"][cIdx] || "th";
+            selectedWalls.push(`${wallLabels[rIdx]} (${cIdx + 1}${suffix} floor)`);
+          }
+        });
+      }
+    });
+    wallSummary = selectedWalls.join(", ");
   }
+
+  // --- 2. SAVE HYBRID DATA ---
   
+  data.roofing_material = {
+    summary: roofSummary,
+    data: safeMaterials,
+    otherText: materialsOtherText
+  };
+
+  data.flooring_material = {
+    summary: flooringSummary,
+    grid: flooringGrid
+  };
+
+  data.wall_material = {
+    summary: wallSummary,
+    grid: wallsGrid
+  };
+
   return data;
 }
 
@@ -68,8 +129,10 @@ const BuildingStructureFormFillPage3 = () => {
   
   const [isSaving, setIsSaving] = useState(false);
 
-
+  // --- State ---
   const [numberOfStoreys, setNumberOfStoreys] = useState(0);
+  
+  // Roof State
   const [materials, setMaterials] = useState({
     reinforcedConcrete: false,
     longspanRoof: false,
@@ -78,123 +141,110 @@ const BuildingStructureFormFillPage3 = () => {
     aluminum: false,
     others: false,
   });
-
   const [materialsOtherText, setMaterialsOtherText] = useState("");
-
+  
+  // Grids State
   const [flooringGrid, setFlooringGrid] = useState<boolean[][]>([]);
-  const flooringLabels = [
-    "Concrete",
-    "Plain Cement",
-    "Marble",
-    "Wood",
-    "Tiles",
-    "Other",
-  ];
+  const [wallsGrid, setWallsGrid] = useState<boolean[][]>([]);
 
+  // Labels
+  const flooringLabels = ["Concrete", "Plain Cement", "Marble", "Wood", "Tiles", "Other"];
+  const wallLabels = ["Concrete", "Plain Cement", "Wood", "CHB", "C.I. Sheets"];
+
+  // --- Load from DB if editing ---
+  const { data: loadedData, isLoading: isLoadingData } = useFormData<any>("building-structure", draftId || "");
+
+  useEffect(() => {
+    if (loadedData) {
+      // 1. Set Storeys
+      const storeys = loadedData.number_of_storeys ? Math.max(1, Number(loadedData.number_of_storeys)) : 1;
+      setNumberOfStoreys(storeys);
+
+      // --- PARSING LOGIC (Fixes the "0": "{" error) ---
+      
+      const parsedFloor = safeParse(loadedData.flooring_material);
+      const parsedWall = safeParse(loadedData.wall_material);
+      const parsedRoof = safeParse(loadedData.roofing_material);
+
+      // 2. Handle Flooring
+      if (parsedFloor?.grid && Array.isArray(parsedFloor.grid)) {
+         setFlooringGrid(parsedFloor.grid);
+      } else if (Array.isArray(parsedFloor)) {
+         setFlooringGrid(parsedFloor); 
+      } else if (flooringGrid.length === 0 || (flooringGrid[0] && flooringGrid[0].length !== storeys)) {
+         setFlooringGrid(Array.from({ length: 6 }, () => Array(storeys).fill(false)));
+      }
+
+      // 3. Handle Walls
+      if (parsedWall?.grid && Array.isArray(parsedWall.grid)) {
+         setWallsGrid(parsedWall.grid);
+      } else if (Array.isArray(parsedWall)) {
+         setWallsGrid(parsedWall); 
+      } else if (wallsGrid.length === 0 || (wallsGrid[0] && wallsGrid[0].length !== storeys)) {
+         setWallsGrid(Array.from({ length: 5 }, () => Array(storeys).fill(false)));
+      }
+
+      // 4. Handle Roof
+      if (parsedRoof) {
+        // Case A: New Hybrid Format
+        if (parsedRoof.data) {
+          // Verify 'data' is an object and not that weird "0:{..." string array
+          if (typeof parsedRoof.data === 'object' && !Array.isArray(parsedRoof.data)) {
+            // Filter out numeric keys that represent character-by-character breakdowns
+            const filteredData = Object.keys(parsedRoof.data).reduce((acc, key) => {
+              // Only include non-numeric keys (the actual material properties)
+              if (!(/^\d+$/.test(key))) {
+                acc[key] = parsedRoof.data[key];
+              }
+              return acc;
+            }, {} as any);
+            setMaterials(prev => ({...prev, ...filteredData}));
+          }
+          if (parsedRoof.otherText) {
+             setMaterialsOtherText(parsedRoof.otherText);
+          }
+        } 
+        // Case B: Old/Flat Format (Fallback)
+        else if (!parsedRoof.summary && !parsedRoof.data) {
+           setMaterials(prev => ({...prev, ...parsedRoof}));
+        }
+      }
+    }
+  }, [loadedData]);
+
+  // --- Persistence ---
+  useFormPersistence("roofing_material_json", materials);
+  useFormPersistence("roofing_material_other_text", materialsOtherText);
+  useFormPersistence("flooring_material_json", flooringGrid);
+  useFormPersistence("wall_material_json", wallsGrid);
+
+  // --- Toggling Logic ---
   const toggleFlooringCell = (row: number, col: number) => {
     setFlooringGrid((prev) => {
-      const copy = prev.map((r) => r.slice());
-      copy[row][col] = !copy[row][col];
+      if (!prev || prev.length === 0) return prev;
+      const copy = prev.map((r) => [...r]); 
+      if (copy[row] && copy[row][col] !== undefined) {
+        copy[row][col] = !copy[row][col];
+      }
       return copy;
     });
   };
-
-  // Separate state for WALLS table so it doesn't share data with FLOORING
-  const [wallsGrid, setWallsGrid] = useState<boolean[][]>([]);
 
   const toggleWallsCell = (row: number, col: number) => {
     setWallsGrid((prev) => {
-      const copy = prev.map((r) => r.slice());
-      copy[row][col] = !copy[row][col];
+      if (!prev || prev.length === 0) return prev;
+      const copy = prev.map((r) => [...r]);
+      if (copy[row] && copy[row][col] !== undefined) {
+        copy[row][col] = !copy[row][col];
+      }
       return copy;
     });
   };
 
-  // --- Load initial state from localStorage ---
-  useEffect(() => {
-    try {
-      // Get number of storeys from Step 2
-      const savedStoreys = localStorage.getItem("number_of_storey_p2");
-      const storeys = savedStoreys ? parseInt(savedStoreys, 10) : 0;
-      const validStoreys = isNaN(storeys) ? 0 : storeys;
-      setNumberOfStoreys(validStoreys);
-
-      const savedMaterials = localStorage.getItem("structural_materials_roof_p3");
-      if (savedMaterials) {
-        setMaterials(JSON.parse(savedMaterials));
-      }
-      const savedMaterialsOther = localStorage.getItem("structural_materials_roof_other_text_p3");
-      if (savedMaterialsOther) {
-        setMaterialsOtherText(savedMaterialsOther);
-      }
-
-      // Initialize or adjust flooring grid
-      const savedFlooring = localStorage.getItem("structural_materials_flooring_p3");
-      let currentFlooringGrid: boolean[][] = [];
-      if (savedFlooring) {
-        currentFlooringGrid = JSON.parse(savedFlooring);
-      }
-      // Check if grid needs to be created or resized
-      if (validStoreys > 0 && (currentFlooringGrid.length !== 6 || (currentFlooringGrid[0] && currentFlooringGrid[0].length !== validStoreys))) {
-          const newGrid = Array.from({ length: 6 }, () => Array(validStoreys).fill(false));
-          // Preserve old data if possible
-          if(currentFlooringGrid.length === 6) {
-              for(let r=0; r < 6; r++) {
-                  for(let c=0; c < Math.min(currentFlooringGrid[r].length, validStoreys); c++) {
-                      newGrid[r][c] = currentFlooringGrid[r][c];
-                  }
-              }
-          }
-          setFlooringGrid(newGrid);
-      } else {
-          setFlooringGrid(currentFlooringGrid);
-      }
-
-
-      // Initialize or adjust walls grid
-      const savedWalls = localStorage.getItem("structural_materials_walls_p3");
-      let currentWallsGrid: boolean[][] = [];
-      if (savedWalls) {
-        currentWallsGrid = JSON.parse(savedWalls);
-      }
-       // Check if grid needs to be created or resized
-      if (validStoreys > 0 && (currentWallsGrid.length !== 5 || (currentWallsGrid[0] && currentWallsGrid[0].length !== validStoreys))) {
-          const newGrid = Array.from({ length: 5 }, () => Array(validStoreys).fill(false));
-           // Preserve old data if possible
-           if(currentWallsGrid.length === 5) {
-              for(let r=0; r < 5; r++) {
-                  for(let c=0; c < Math.min(currentWallsGrid[r].length, validStoreys); c++) {
-                      newGrid[r][c] = currentWallsGrid[r][c];
-                  }
-              }
-          }
-          setWallsGrid(newGrid);
-      } else {
-          setWallsGrid(currentWallsGrid);
-      }
-
-    } catch (e) {
-      console.error("Failed to load step 3 data from localStorage", e);
-    }
-  }, []);
-
-
-  // --- Save state to localStorage on change ---
-  useEffect(() => {
-    try {
-      localStorage.setItem("structural_materials_roof_p3", JSON.stringify(materials));
-      localStorage.setItem("structural_materials_roof_other_text_p3", materialsOtherText);
-      localStorage.setItem("structural_materials_flooring_p3", JSON.stringify(flooringGrid));
-      localStorage.setItem("structural_materials_walls_p3", JSON.stringify(wallsGrid));
-    } catch (e) {
-      console.error("Failed to save step 3 data to localStorage", e);
-    }
-  }, [materials, materialsOtherText, flooringGrid, wallsGrid]);
-
-
+  // --- Handlers ---
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    router.push("/building-other-structure");
+    handleNext();
   };
 
   const handleNext = async () => {
@@ -203,40 +253,32 @@ const BuildingStructureFormFillPage3 = () => {
       const formData = collectFormData(materials, materialsOtherText, flooringGrid, wallsGrid);
       formData.status = 'draft';
       
-      console.log('Saving Step 3 form data to Supabase:', formData);
+      console.log('Saving Step 3 form data:', formData);
       
       let response;
       const currentDraftId = draftId || localStorage.getItem('draft_id');
       
       if (currentDraftId) {
-        // Update existing draft
         response = await fetch(`/api/building-structure/${currentDraftId}`, {
           method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(formData),
         });
       } else {
-        // Create new draft
         response = await fetch('/api/building-structure', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(formData),
         });
       }
 
       if (response.ok) {
         const result = await response.json();
-        console.log('Save result:', result);
-        // Store the draft ID for future updates
-        if (result.data?.id) {
-          localStorage.setItem('draft_id', result.data.id.toString());
-          const savedDraftId = result.data.id;
-          // Navigate to step 4 with the draft ID
-          router.push(`/building-other-structure/fill/step-4?id=${savedDraftId}`);
+        const finalId = result.data?.id || currentDraftId;
+        
+        if (finalId) {
+          localStorage.setItem('draft_id', finalId.toString());
+          router.push(`/building-other-structure/fill/step-4?id=${finalId}`);
         }
       } else {
         const error = await response.json();
@@ -270,67 +312,53 @@ const BuildingStructureFormFillPage3 = () => {
             </BreadcrumbList>
           </Breadcrumb>
         </header>
+        
         <div className="flex-1 p-6 overflow-y-auto">
           <div className="rpfaas-fill max-w-3xl mx-auto">
             <header className="rpfaas-fill-header flex items-center justify-between gap-4 mb-6">
               <div>
-                <h1 className="rpfaas-fill-title">Fill-up Form: Structural Materials Table</h1>
+                <h1 className="rpfaas-fill-title">Fill-up Form: Structural Materials Checklist</h1>
                 <p className="text-sm text-muted-foreground">
                   Enter the additional details for the building/structure.
                 </p>
               </div>
             </header>
-            <form 
-                id={`form_${FORM_NAME}`}
-                data-form-name={FORM_NAME}
-                onSubmit={handleSubmit}
-                className="rpfaas-fill-form rpfaas-fill-form-single space-y-6">
+
+            <form
+              id={`form_${FORM_NAME}`}
+              data-form-name={FORM_NAME}
+              onSubmit={handleSubmit}
+              className="rpfaas-fill-form rpfaas-fill-form-single space-y-6"  
+            >
+              {/* ROOF SECTION */}
+              <section className="rpfaas-fill-section">
+                <h2 className="rpfaas-fill-section-title mb-4">Roof Information</h2>
+                <div>
+                   <RoofMaterialsForm
+                      materials={materials}
+                      setMaterials={setMaterials}
+                      materialsOtherText={materialsOtherText}
+                      setMaterialsOtherText={setMaterialsOtherText}
+                    />
+                </div>
+              </section>
+              
+              {/* FLOORING & WALLS SECTION */}
               <section className="rpfaas-fill-section">
                 <div className="overflow-auto">
-                  <table className="w-full table-auto border-collapse">
+                   
+                   {/* FLOORING TABLE */}
+                  <table className="w-full table-auto border-collapse mb-8">
                     <tbody>
                       <tr>
                         <th colSpan={2 + numberOfStoreys} className="py-4 section-divider text-left text-lg font-semibold">
-                          Structural Materials (checklists)
+                          Flooring Materials
                         </th>
                       </tr>
-                      {/* ROOF ROW */}
                       <tr>
-                        <td className="border px-2 py-1 font-bold w-50">ROOF</td>
-                        <td className="border px-2 py-1">
-                          <div className="flex flex-col gap-1">
-                            <label className="flex items-center gap-2">
-                              <input type="checkbox" checked={materials.reinforcedConcrete} onChange={() => setMaterials((s) => ({ ...s, reinforcedConcrete: !s.reinforcedConcrete }))} /> Reinforced Concrete
-                            </label>
-                            <label className="flex items-center gap-2">
-                              <input type="checkbox" checked={materials.longspanRoof} onChange={() => setMaterials((s) => ({ ...s, longspanRoof: !s.longspanRoof }))} /> Longspan Roof
-                            </label>
-                            <label className="flex items-center gap-2">
-                              <input type="checkbox" checked={materials.tiles} onChange={() => setMaterials((s) => ({ ...s, tiles: !s.tiles }))} /> Tiles
-                            </label>
-                            <label className="flex items-center gap-2">
-                              <input type="checkbox" checked={materials.giSheets} onChange={() => setMaterials((s) => ({ ...s, giSheets: !s.giSheets }))} /> G.I. Sheets
-                            </label>
-                            <label className="flex items-center gap-2">
-                              <input type="checkbox" checked={materials.aluminum} onChange={() => setMaterials((s) => ({ ...s, aluminum: !s.aluminum }))} /> Aluminum
-                            </label>
-                            <label className="flex items-center gap-2">
-                              <input type="checkbox" checked={materials.others} onChange={() => setMaterials((s) => ({ ...s, others: !s.others }))} /> Others
-                              <Input type="text" value={materialsOtherText} onChange={(e) => setMaterialsOtherText(e.target.value)} placeholder="Specify" className="rpfaas-fill-input ml-2 flex-1" disabled={!materials.others} />
-                            </label>
-                          </div>
-                        </td>
-                        {/* Empty cells for roof row storeys */}
+                        <td className="border px-2 py-1 font-bold w-32 bg-gray-50">Material</td>
                         {Array.from({ length: numberOfStoreys }).map((_, i) => (
-                          <td key={i} className="border px-2 py-1 bg-gray-50"></td>
-                        ))}
-                      </tr>
-                      {/* FLOORING ROW */}
-                      <tr>
-                        <td className="border px-2 py-1 font-bold w-38">FLOORING</td>
-                        <td className="border px-2 py-1 font-bold w-32">Material</td>
-                        {Array.from({ length: numberOfStoreys }).map((_, i) => (
-                          <td key={`floor-header-${i}`} className="border px-2 py-1 text-center font-bold">
+                          <td key={`floor-header-${i}`} className="border px-2 py-1 text-center font-bold bg-gray-50">
                             {i + 1}
                             <sup>{["st", "nd", "rd"][i] || "th"}</sup>
                           </td>
@@ -338,64 +366,74 @@ const BuildingStructureFormFillPage3 = () => {
                       </tr>
                       {flooringLabels.map((label, rIdx) => (
                         <tr key={label}>
-                          <td className="border px-2 py-1"></td>
-                          <td className="border px-2 py-1">{label}</td>
-                          {flooringGrid[rIdx]?.map((cell, cIdx) => (
-                            <td key={cIdx} className="border px-2 py-1 text-center">
-                              <button
-                                type="button"
-                                aria-pressed={cell}
-                                onClick={() => toggleFlooringCell(rIdx, cIdx)}
-                                className="w-8 h-8 inline-flex items-center justify-center border rounded"
-                              >
-                                {cell ? "X" : ""}
-                              </button>
-                            </td>
-                          ))}
+                          <td className="border px-2 py-1 font-medium">{label}</td>
+                          {Array.from({ length: numberOfStoreys }).map((_, cIdx) => {
+                             const isChecked = flooringGrid[rIdx]?.[cIdx] || false;
+                             return (
+                              <td key={cIdx} className="border px-2 py-1 text-center hover:bg-gray-50">
+                                <button
+                                  type="button"
+                                  aria-pressed={isChecked}
+                                  onClick={() => toggleFlooringCell(rIdx, cIdx)}
+                                  className={`w-8 h-8 inline-flex items-center justify-center border rounded transition-colors ${
+                                    isChecked ? "bg-primary text-primary-foreground border-primary" : "bg-white border-gray-300"
+                                  }`}
+                                >
+                                  {isChecked ? "✓" : ""}
+                                </button>
+                              </td>
+                            );
+                          })}
                         </tr>
                       ))}
-                      {/* WALLS ROW */}
+                    </tbody>
+                  </table>
+
+                  {/* WALLS TABLE */}
+                  <table className="w-full table-auto border-collapse">
+                    <tbody>
                       <tr>
-                        <td className="border px-2 py-1 font-bold w-38">WALLS</td>
-                        <td className="border px-2 py-1 font-bold w-32">Material</td>
+                        <th colSpan={2 + numberOfStoreys} className="py-4 section-divider text-left text-lg font-semibold">
+                          Wall Materials
+                        </th>
+                      </tr>
+                      <tr>
+                        <td className="border px-2 py-1 font-bold w-32 bg-gray-50">Material</td>
                         {Array.from({ length: numberOfStoreys }).map((_, i) => (
-                          <td key={`wall-header-${i}`} className="border px-2 py-1 text-center font-bold">
+                          <td key={`wall-header-${i}`} className="border px-2 py-1 text-center font-bold bg-gray-50">
                             {i + 1}
                             <sup>{["st", "nd", "rd"][i] || "th"}</sup>
                           </td>
                         ))}
                       </tr>
-                      {(() => {
-                        const wallLabels = [
-                          "Concrete",
-                          "Plain Cement",
-                          "Wood",
-                          "CHB",
-                          "C.I. Sheets",
-                        ];
-                        return wallLabels.map((label, rIdx) => (
-                          <tr key={label}>
-                            <td className="border px-2 py-1"></td>
-                            <td className="border px-2 py-1">{label}</td>
-                            {wallsGrid[rIdx]?.map((cell, cIdx) => (
-                              <td key={cIdx} className="border px-2 py-1 text-center">
+                      {wallLabels.map((label, rIdx) => (
+                        <tr key={label}>
+                          <td className="border px-2 py-1 font-medium">{label}</td>
+                          {Array.from({ length: numberOfStoreys }).map((_, cIdx) => {
+                             const isChecked = wallsGrid[rIdx]?.[cIdx] || false;
+                             return (
+                              <td key={cIdx} className="border px-2 py-1 text-center hover:bg-gray-50">
                                 <button
                                   type="button"
-                                  aria-pressed={cell}
+                                  aria-pressed={isChecked}
                                   onClick={() => toggleWallsCell(rIdx, cIdx)}
-                                  className="w-8 h-8 inline-flex items-center justify-center border rounded"
+                                  className={`w-8 h-8 inline-flex items-center justify-center border rounded transition-colors ${
+                                    isChecked ? "bg-primary text-primary-foreground border-primary" : "bg-white border-gray-300"
+                                  }`}
                                 >
-                                  {cell ? "X" : ""}
+                                  {isChecked ? "✓" : ""}
                                 </button>
                               </td>
-                            ))}
-                          </tr>
-                        ));
-                      })()}
+                            );
+                          })}
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
                 </div>
               </section>
+
+              {/* FOOTER ACTIONS */}
               <div className="rpfaas-fill-footer border-t border-border pt-4 mt-4">
                 <div className="rpfaas-fill-actions flex gap-2 justify-between items-center">
                   <div className="flex gap-2">
@@ -417,7 +455,7 @@ const BuildingStructureFormFillPage3 = () => {
                     >
                       {isSaving ? (
                         <>
-                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
                           Saving...
                         </>
                       ) : (

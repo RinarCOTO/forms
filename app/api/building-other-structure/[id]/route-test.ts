@@ -1,53 +1,77 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 
-// Simple test route to verify the dynamic route is working
-export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> | { id: string } }) {
-  console.log('TEST - GET /api/building-other-structure/[id] - Starting');
-  
+// Helper to initialize Supabase inside the dynamic route
+const getSupabase = () => {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !supabaseServiceKey) {
+    throw new Error('Supabase configuration missing');
+  }
+
+  return createClient(supabaseUrl, supabaseServiceKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+    db: { schema: 'public' }
+  });
+};
+
+export async function GET(req: NextRequest, { params }: { params: any }) {
   try {
-    const resolvedParams = await Promise.resolve(params);
-    const id = resolvedParams.id;
-    
-    console.log('TEST - ID received:', id);
-    
-    return NextResponse.json({ 
-      success: true, 
-      message: 'API route is working',
-      id: id,
-      timestamp: new Date().toISOString()
-    });
-  } catch (error) {
-    console.error('TEST - Error:', error);
-    return NextResponse.json({ 
-      success: false, 
-      error: String(error) 
-    }, { status: 500 });
+    const { id } = await params; // Standard Next.js 15+ param handling
+    const supabase = getSupabase();
+
+    const { data, error } = await supabase
+      .from('building_structures') // Verify this table name matches your main route
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 404 });
+    }
+
+    return NextResponse.json(data);
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
-export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> | { id: string } }) {
-  console.log('TEST - PUT /api/building-other-structure/[id] - Starting');
-  
+export async function PUT(req: NextRequest, { params }: { params: any }) {
   try {
-    const resolvedParams = await Promise.resolve(params);
-    const id = resolvedParams.id;
-    const data = await req.json();
-    
-    console.log('TEST - PUT ID:', id);
-    console.log('TEST - PUT Data:', data);
-    
+    const { id } = await params;
+    const body = await req.json();
+    const supabase = getSupabase();
+
+    console.log(`Updating record ${id} in Supabase...`);
+
+    // We pass the body directly. 
+    // It should contain structural_materials_flooring_p3, etc.
+    const { data, error } = await supabase
+      .from('building_structures')
+      .update(body)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Supabase Update Error:', error);
+      return NextResponse.json({ 
+        success: false, 
+        error: error.message 
+      }, { status: 500 });
+    }
+
     return NextResponse.json({ 
       success: true, 
-      message: 'PUT route is working',
-      id: id,
-      receivedData: data,
-      timestamp: new Date().toISOString()
+      data: data,
+      message: 'Materials saved successfully' 
     });
-  } catch (error) {
-    console.error('TEST - PUT Error:', error);
+  } catch (error: any) {
+    console.error('ID Route PUT Error:', error);
     return NextResponse.json({ 
       success: false, 
-      error: String(error) 
+      error: error.message 
     }, { status: 500 });
   }
 }

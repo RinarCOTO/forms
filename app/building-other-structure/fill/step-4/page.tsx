@@ -30,7 +30,7 @@ import {
   DropdownMenuCheckboxItem,
 } from "@/components/ui/dropdown-menu";
 import MultiSelect from "@/components/ui/multi-select";
-import { Loader2 } from "lucide-react";
+import { Loader2, Percent } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -129,23 +129,16 @@ const BuildingStructureFormFillPage4 = () => {
     {
       heading: "Depreciation Category",
       options: [
-        { value: "physical_deterioration", label: "Physical deterioration" },
-        { value: "functional_obsolescence", label: "Functional obsolescence" },
-        { value: "external_economic_obsolescencete", label: "External/economic obsolescence" },
+        { value: "no_plumbing", label: "No Plumbing", percent: 3 },
+        { value: "no_electrical", label: "No Electrical", percent: 3},
+        { value: "no_paint", label: "No Paint", percent: 6 },
+        { value: "no_ceiling", label: "No Ceiling", percent: 7},
+        { value: "no_partition", label: "No Partition" },
+        { value: "no_cement_plaster_inside", label: "No Cement Plaster Inside" },
+        { value: "no_cement_plaster_outside", label: "No Cement Plaster Outside" },
+        { value: "second_hand_material_used", label: "Second Hand material used" },
       ],
     },
-    {
-      heading: "Specific Defects / Conditions",
-      options: [
-        { value: "no_paint", label: "No paint" },
-        { value: "no_ceiling", label: "No Ceiling" },
-        { value: "no_partitions", label: "No Partitions" },
-        { value: "damaged_floors", label: "Damaged Floors" },
-        { value: "roof_issues", label: "Roof Issues" },
-        { value: "structural_cracks", label: "Structural Cracks" },
-        { value: "incomplete_construction", label: "Incomplete Construction" },
-      ],
-    }   
   ];
 
   // flatten groupedOptions into the simple string[] expected by the existing MultiSelect implementation

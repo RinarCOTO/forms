@@ -347,14 +347,14 @@ const BuildingStructureFormFillPage2 = () => {
                       </div>
                     </div>
                     <div className="rpfaas-fill-field space-y-1">
-                    <Label className="rpfaas-fill-label">Building Age</Label>
-                    <Input 
-                      type="text" 
-                      className="rpfaas-fill-input bg-gray-100 pr-12 font-medium"
-                      value={buildingAge}
-                      readOnly
-                    />
-                </div>
+                      <Label className="rpfaas-fill-label">Building Age</Label>
+                      <Input 
+                        type="text" 
+                        className="rpfaas-fill-input bg-gray-100 pr-12 font-medium"
+                        value={buildingAge}
+                        readOnly
+                      />
+                    </div>
                 </div>
               </section>
 

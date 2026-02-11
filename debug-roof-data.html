@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Roof Data</title>
+</head>
+<body>
+    <h1>Debug Roof Data</h1>
+    <div id="output"></div>
+    
+    <script>
+        // Test data from the user's example
+        const roofData = {"summary":"Reinforced Concrete, Tiles, Other: test13","data":{"0":"{","1":"\"","2":"s","3":"u","4":"m","5":"m","6":"a","7":"r","8":"y","9":"\"","10":":","11":"\"","12":"O","13":"t","14":"h","15":"e","16":"r","17":":","18":" ","19":"t","20":"e","21":"s","22":"t","23":" ","24":"1","25":"2","26":"\"","27":",","28":"\"","29":"d","30":"a","31":"t","32":"a","33":"\"","34":":","35":"{","36":"\"","37":"r","38":"e","39":"i","40":"n","41":"f","42":"o","43":"r","44":"c","45":"e","46":"d","47":"C","48":"o","49":"n","50":"c","51":"r","52":"e","53":"t","54":"e","55":"\"","56":":","57":"f","58":"a","59":"l","60":"s","61":"e","62":",","63":"\"","64":"l","65":"o","66":"n","67":"g","68":"s","69":"p","70":"a","71":"n","72":"R","73":"o","74":"o","75":"f","76":"\"","77":":","78":"f","79":"a","80":"l","81":"s","82":"e","83":",","84":"\"","85":"t","86":"i","87":"l","88":"e","89":"s","90":"\"","91":":","92":"f","93":"a","94":"l","95":"s","96":"e","97":",","98":"\"","99":"g","100":"i","101":"S","102":"h","103":"e","104":"e","105":"t","106":"s","107":"\"","108":":","109":"f","110":"a","111":"l","112":"s","113":"e","114":",","115":"\"","116":"a","117":"l","118":"u","119":"m","120":"i","121":"n","122":"u","123":"m","124":"\"","125":":","126":"f","127":"a","128":"l","129":"s","130":"e","131":",","132":"\"","133":"o","134":"t","135":"h","136":"e","137":"r","138":"s","139":"\"","140":":","141":"t","142":"r","143":"u","144":"e","145":"}","146":",","147":"\"","148":"o","149":"t","150":"h","151":"e","152":"r","153":"T","154":"e","155":"x","156":"t","157":"\"","158":":","159":"\"","160":"t","161":"e","162":"s","163":"t","164":" ","165":"1","166":"2","167":"\"","168":"}","reinforcedConcrete":true,"longspanRoof":false,"tiles":true,"giSheets":false,"aluminum":false,"others":true},"otherText":"test13"};
+        
+        // Reconstruct the JSON string from the numbered properties
+        let reconstructed = "";
+        for (let i = 0; i < 200; i++) {
+            if (roofData.data[i.toString()]) {
+                reconstructed += roofData.data[i.toString()];
+            } else {
+                break;
+            }
+        }
+        
+        const output = document.getElementById('output');
+        output.innerHTML = `
+            <h2>Reconstructed JSON from numbered properties:</h2>
+            <pre>${reconstructed}</pre>
+            
+            <h2>Original data properties:</h2>
+            <pre>${JSON.stringify({
+                reinforcedConcrete: roofData.data.reinforcedConcrete,
+                longspanRoof: roofData.data.longspanRoof,
+                tiles: roofData.data.tiles,
+                giSheets: roofData.data.giSheets,
+                aluminum: roofData.data.aluminum,
+                others: roofData.data.others
+            }, null, 2)}</pre>
+            
+            <h2>Analysis:</h2>
+            <p>The numbered properties spell out: <strong>${reconstructed}</strong></p>
+            <p>This suggests that at some point, this JSON string was spread character-by-character into an object.</p>
+        `;
+    </script>
+</body>
+</html>

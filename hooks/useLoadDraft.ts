@@ -52,7 +52,16 @@ export function useLoadDraft() {
                 };
                 
                 const pageSuffix = pageMapping[key] || '_p1';
-                localStorage.setItem(`${key}${pageSuffix}`, String(value));
+                
+                // Handle complex objects (like roofing_material) properly
+                let valueToStore: string;
+                if (typeof value === 'object') {
+                  valueToStore = JSON.stringify(value);
+                } else {
+                  valueToStore = String(value);
+                }
+                
+                localStorage.setItem(`${key}${pageSuffix}`, valueToStore);
               }
             });
             

@@ -39,7 +39,18 @@ function collectFormData() {
         
         // Convert to snake_case for API
         const apiKey = cleanKey;
-        data[apiKey] = value;
+        
+        // Special handling for JSON data that should be parsed
+        if (value && (apiKey.includes('flooring_material') || apiKey.includes('wall_material'))) {
+          try {
+            data[apiKey] = JSON.parse(value);
+          } catch (e) {
+            console.warn(`Failed to parse JSON for ${apiKey}:`, value);
+            data[apiKey] = value;
+          }
+        } else {
+          data[apiKey] = value;
+        }
       }
     }
   }
