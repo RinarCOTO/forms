@@ -2,10 +2,9 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, FormEvent } from "react";
+import { useState, useEffect } from "react";
 import "@/app/styles/forms-fill.css";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { AppSidebar } from "@/components/app-sidebar";
 import {
@@ -23,50 +22,14 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar"
 
-
 import { DynamicSelectGroup, SelectOption } from "@/components/dynamicSelectButton";
-
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuCheckboxItem,
-} from "@/components/ui/dropdown-menu";
-import MultiSelect from "@/components/ui/multi-select";
-import { Loader2, Percent } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import React from "react";
-import {
-  DEDUCTION_OPTIONS,
-  FLOORING_MATERIALS,
-  WALLS_MATERIALS,
-  FORM_CONSTANTS,
-  MULTI_SELECT_OPTIONS,
-} from "@/config/form-options";
-import { de, id } from "zod/v4/locales";
-import { Select } from "radix-ui";
-
-
-// Helper function to collect form data from ONLY this step (step 4)
-// Step 4 saves: construction details and building systems
-function collectFormData(selectedOptions: string[]) {
-  const data: any = {};
-
-  // Save selected defects/conditions as construction_type
-  if (selectedOptions && selectedOptions.length > 0) {
-    data.construction_type = selectedOptions.join(", ");
-  }
-
-  // Note: If step 4 has other specific fields like electrical_system, plumbing_system,
-  // foundation_type, or building_permit_no, add them here as parameters and map them accordingly
-
-  return data;
-}
-
-const FORM_NAME = FORM_CONSTANTS.FORM_NAMES.BUILDING_STRUCTURE_STEP_4;
+import { FORM_CONSTANTS } from "@/config/form-options";
+import { useFormData } from "@/hooks/useFormData"; // Assuming you have this hook
 
 const FormSchema = z.object({
   deductions: z.array(z.string()).min(1, {
@@ -80,395 +43,215 @@ const BuildingStructureFormFillPage4 = () => {
   const draftId = searchParams.get("id");
 
   const [isSaving, setIsSaving] = useState(false);
+  const [selections, setSelections] = useState<(string | number | null)[]>(() => [null]);
+  const [unitCost, setUnitCost] = useState<number>(0);
 
-  const [yearBuilt, setYearBuilt] = useState("");
-  const [materials, setMaterials] = useState({
-    reinforcedConcrete: false,
-    longspanRoof: false,
-    tiles: false,
-    giSheets: false,
-    aluminum: false,
-    others: false,
-  });
+  // Load existing data if editing a draft
+  const { data: loadedData } = useFormData<any>("building-structure", draftId || "");
 
-  const [materialsOtherText, setMaterialsOtherText] = useState("");
-
-  const [flooringGrid, setFlooringGrid] = useState<boolean[][]>(() =>
-    Array.from({ length: FORM_CONSTANTS.GRID_DIMENSIONS.FLOORING.ROWS }, () => 
-      Array(FORM_CONSTANTS.GRID_DIMENSIONS.FLOORING.COLS).fill(false)
-    )
-  );
-
-  const flooringLabels = FLOORING_MATERIALS;
-
-  const toggleFlooringCell = (row: number, col: number) => {
-    setFlooringGrid((prev) => {
-      const copy = prev.map((r) => r.slice());
-      copy[row][col] = !copy[row][col];
-      return copy;
-    });
-  };
-
-  // Separate state for WALLS table so it doesn't share data with FLOORING
-  const [wallsGrid, setWallsGrid] = useState<boolean[][]>(() =>
-    Array.from({ length: FORM_CONSTANTS.GRID_DIMENSIONS.WALLS.ROWS }, () => 
-      Array(FORM_CONSTANTS.GRID_DIMENSIONS.WALLS.COLS).fill(false)
-    )
-  );
-
-  const toggleWallsCell = (row: number, col: number) => {
-    setWallsGrid((prev) => {
-      const copy = prev.map((r) => r.slice());
-      copy[row][col] = !copy[row][col];
-      return copy;
-    });
-  };
-
-  // multi-select for the new selections table
-  const multiOptions = MULTI_SELECT_OPTIONS;
-  // grouped options for the MultiSelect (used in the table below)
-  const groupedOptions = DEDUCTION_OPTIONS;
-
-  // flatten groupedOptions into the simple string[] expected by the existing MultiSelect implementation
-  const flattenedOptions = groupedOptions.flatMap((g) => g.options.map((o) => o.label));
-
-  const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
-  const toggleSelectedOption = (opt: string, checked: boolean) => {
-    setSelectedOptions((prev) => {
-      if (checked) return prev.includes(opt) ? prev : [...prev, opt];
-      return prev.filter((v) => v !== opt);
-    });
-  };
-
-  // remove selected option by index (used by the table 'X' buttons)
-  const removeSelectedOptionAtIndex = (idx: number) => {
-    setSelectedOptions((prev) => prev.filter((_, i) => i !== idx));
-  };
-
-  // grid dimensions for selection table
-  const selRows = FORM_CONSTANTS.GRID_DIMENSIONS.SELECTION.ROWS;
-  const selCols = FORM_CONSTANTS.GRID_DIMENSIONS.SELECTION.COLS;
+  const deductionChoices: SelectOption[] = [
+    { id: 'no_plumbing', name: 'No Plumbing', percentage: 3 },
+    { id: 'no_electrical', name: 'No Electrical', percentage: 3 },
+    { id: 'no_paint', name: 'No Paint', percentage: 6 },
+    { id: 'no_ceiling', name: 'No Ceiling', percentage: 7 },
+    { id: 'no_partition', name: 'No Partition', percentage: 5 },
+    { id: 'no_cement_plaster_inside', name: 'No Cement Plaster Inside', percentage: 3 },
+    { id: 'no_cement_plaster_outside', name: 'No Cement Plaster Outside', percentage: 3 },
+    { id: 'second_hand_material_used', name: 'Second Hand Material Used', percentage: 10 },
+  ];
 
   const form = useForm({
     resolver: zodResolver(FormSchema),
-    defaultValues: { deductions: selectedOptions },
+    defaultValues: { deductions: [] },
   });
 
-  const watchedDeductions: string[] = form.watch("deductions");
-  // Build selectionGrid so that each row has one selection in the first column, rest empty
-  const selectionGrid = Array.from({ length: selRows }).map((_, r) => {
-    const row: string[] = Array(selCols).fill("");
-    if (watchedDeductions[r]) row[0] = watchedDeductions[r];
-    return row;
-  });
+  // --- 1. Load Unit Cost and Draft Data ---
+  useEffect(() => {
+    // A. Retrieve Unit Cost (Priority: LocalStorage -> DB -> 0)
+    const savedCost = localStorage.getItem('unit_cost_p2');
+    const dbCost = loadedData?.cost_of_construction;
 
-  const handleSubmit = (e: FormEvent) => {
-    e.preventDefault();
-    router.push("/building-other-structure");
+    if (savedCost) {
+      setUnitCost(parseFloat(savedCost));
+    } else if (dbCost) {
+      setUnitCost(parseFloat(dbCost));
+    }
+
+    // B. Load Saved Deductions (if editing)
+    if (loadedData?.deductions) {
+      // Assuming db saves array of strings: ['no_plumbing', 'no_paint']
+      // Or if saved as comma-separated string, add .split(',') logic
+      const savedDeductions = Array.isArray(loadedData.deductions) 
+        ? loadedData.deductions 
+        : typeof loadedData.deductions === 'string' 
+          ? loadedData.deductions.split(',') 
+          : []; // Adjust based on how your DB saves it
+      
+      if (savedDeductions.length > 0) {
+        // Map saved IDs back to SelectOption format
+        const recoveredSelections = savedDeductions.map((d: string) => {
+             // If d is the name, find ID. If d is ID, use it directly.
+             const match = deductionChoices.find(c => c.id === d || c.name === d);
+             return match ? match.id : null;
+        }).filter(Boolean);
+
+        setSelections(recoveredSelections);
+        
+        // Update form validation
+        const validNames = recoveredSelections.map((id: string) => 
+            deductionChoices.find(c => String(c.id) === String(id))?.name
+        ).filter(Boolean);
+        form.setValue("deductions", validNames);
+      }
+    }
+  }, [loadedData]);
+
+  const handleSelectionChange = (newValues: (string | number | null)[]) => {
+    setSelections([...newValues]);
+    const validNames = newValues
+      .map(val => deductionChoices.find(c => String(c.id) === String(val))?.name)
+      .filter((v): v is string => !!v);
+    
+    form.setValue("deductions", validNames);
   };
 
-  const handleNext = async () => {
+  // --- 2. Calculate Totals ---
+  const totalPercentage = selections.reduce((acc, curr) => {
+    const option = deductionChoices.find(c => String(c.id) === String(curr));
+    return acc + (option?.percentage || 0);
+  }, 0);
+
+  const totalDeductionValue = (unitCost * totalPercentage) / 100;
+  const netUnitCost = unitCost - totalDeductionValue;
+
+  const handleNext = async (data: any) => {
     setIsSaving(true);
     try {
-      // Always use the latest selected options from the form
-      const currentSelections = form.getValues("deductions");
-      setSelectedOptions(currentSelections); // keep state in sync
-      const formData = collectFormData(currentSelections);
-      formData.status = 'draft';
-      formData.deductions = currentSelections; // Save the selections as a field
+      const formData = {
+        status: 'draft',
+        deductions: selections.filter(Boolean), // Save IDs: ['no_plumbing', ...]
+        total_deduction_percentage: totalPercentage,
+        net_unit_construction_cost: netUnitCost // Optional: save the computed net cost
+      };
       
-      console.log('Saving Step 4 form data to Supabase:', formData);
-      
-      let response;
       const currentDraftId = draftId || localStorage.getItem('draft_id');
-      
-      if (currentDraftId) {
-        // Update existing draft
-        response = await fetch(`${FORM_CONSTANTS.API_ENDPOINTS.BUILDING_STRUCTURE}/${currentDraftId}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(formData),
-        });
-      } else {
-        // Create new draft
-        response = await fetch(FORM_CONSTANTS.API_ENDPOINTS.BUILDING_STRUCTURE, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(formData),
-        });
-      }
+      const method = currentDraftId ? 'PUT' : 'POST';
+      const url = currentDraftId 
+        ? `${FORM_CONSTANTS.API_ENDPOINTS.BUILDING_STRUCTURE}/${currentDraftId}`
+        : FORM_CONSTANTS.API_ENDPOINTS.BUILDING_STRUCTURE;
+
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
 
       if (response.ok) {
         const result = await response.json();
-        console.log('Save result:', result);
-        // Store the draft ID for future updates
         if (result.data?.id) {
           localStorage.setItem('draft_id', result.data.id.toString());
-          const savedDraftId = result.data.id;
-          // Navigate to step 5 with the draft ID
-          router.push(`/building-other-structure/fill/step-5?id=${savedDraftId}`);
+          router.push(`/building-other-structure/fill/step-5?id=${result.data.id}`);
         }
-      } else {
-        const error = await response.json();
-        console.error('Save error:', error);
-        alert('Failed to save: ' + (error.message || 'Unknown error'));
       }
     } catch (error) {
       console.error('Error saving:', error);
-      alert('Error saving. Please try again.');
     } finally {
       setIsSaving(false);
     }
   };
 
-  const deductionOptions = flattenedOptions.map((label) => ({ value: label, label }));
-
-  function onSubmit(data: { deductions: string[] }) {
-    setSelectedOptions(data.deductions);
-    handleNext();
-  }
-
-  // Add state for custom percentages for each deduction, default to even distribution
-  const [deductionPercentages, setDeductionPercentages] = useState<number[]>(() => {
-    const initial = Array(selRows).fill(0);
-    const watched = form.getValues("deductions") || [];
-    if (watched.length > 0) {
-      const even = +(100 / watched.length).toFixed(2);
-      watched.forEach((_, idx) => {
-        if (idx < selRows) initial[idx] = even;
-      });
-    }
-    return initial;
-  });
-
-
-  const deductionChoices: SelectOption[] = [
-    {id: 'no_plumbing', name: 'No Plumbing'},
-    {id: 'no_electrical', name: 'No Electrical'},
-    {id: 'no_paint', name: 'No Paint'},
-    {id: 'no_ceiling', name: 'No Ceiling'},
-    {id: 'no_partition', name: 'No Partition'},
-    {id: 'no_cement_plaster_inside', name: 'No Cement Plaster Inside'},
-    {id: 'no_cement_plaster_outside', name: 'No Cement Plaster Outside'},
-    {id: 'second_hand_material_used', name: 'Second Hand Material Used'},
-  ]
-const [selections, setSelections] = useState<(string | number | null)[]>(() => [null]);
-
-const handleSelectionChange = (newValues: (string | number | null)[]) => {
-  setSelections([...newValues]);
-  
-  // Find the 'name' for each selected 'id' so the table displays text, not snake_case
-  const validSelections = newValues
-    .map(val => deductionChoices.find(c => String(c.id) === String(val))?.name)
-    .filter((v): v is string => !!v);
-
-  form.setValue("deductions", validSelections);
-};
-  // When deductions change, auto-assign even percentages
-  React.useEffect(() => {
-    const watched = form.watch("deductions") || [];
-    if (watched.length > 0) {
-      const even = +(100 / watched.length).toFixed(2);
-      setDeductionPercentages((prev) => {
-        const arr = Array(selRows).fill(0);
-        watched.forEach((_, idx) => {
-          if (idx < selRows) arr[idx] = even;
-        });
-        return arr;
-      });
-    } else {
-      setDeductionPercentages(Array(selRows).fill(0));
-    }
-  }, [form.watch("deductions")]);
-
-  // Handler to update percentage for a given row
-  const handlePercentageChange = (rowIdx: number, value: string) => {
-    const num = parseFloat(value);
-    setDeductionPercentages((prev) => {
-      const copy = [...prev];
-      copy[rowIdx] = isNaN(num) ? 0 : num;
-      return copy;
-    });
-  };
-
-  // Calculate total percentage
-  const totalPercentage = deductionPercentages.reduce((sum, val) => sum + val, 0);
-
-  // Load draft data if editing
-  React.useEffect(() => {
-    if (!draftId) return;
-    const loadDraft = async () => {
-      try {
-        const response = await fetch(`${FORM_CONSTANTS.API_ENDPOINTS.BUILDING_STRUCTURE}/${draftId}`);
-        if (response.ok) {
-          const result = await response.json();
-          if (result.success && result.data) {
-            const data = result.data;
-            // Populate form fields
-            if (data.construction_type) setSelectedOptions(data.construction_type.split(', '));
-            // Save to localStorage for consistency with other steps
-            Object.entries(data).forEach(([key, value]) => {
-              if (value !== null && value !== undefined) {
-                localStorage.setItem(`${key}_p4`, String(value));
-              }
-            });
-          }
-        }
-      } catch (error) {
-        console.error('Failed to load draft data for step 4', error);
-      }
-    };
-    loadDraft();
-  }, [draftId]);
-
   return (
     <SidebarProvider>
       <AppSidebar />
-
       <SidebarInset>
         <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
           <SidebarTrigger className="-ml-1" />
-          <Separator
-            orientation="vertical"
-            className="mr-2 data-[orientation=vertical]:h-4"
-          />
+          <Separator orientation="vertical" className="mr-2 h-4" />
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem className="hidden md:block">
                 <BreadcrumbLink href="#">Building Your Application</BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator className="hidden md:block" />
-              <BreadcrumbItem>
-                <BreadcrumbPage>Additional Structure Details</BreadcrumbPage>
-              </BreadcrumbItem>
+              <BreadcrumbItem><BreadcrumbPage>Additional Structure Details</BreadcrumbPage></BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
         </header>
 
         <div className="flex-1 p-6 overflow-y-auto">
-          <div className="rpfaas-fill max-w-3xl mx-auto">
-            <header className="rpfaas-fill-header flex items-center justify-between gap-4 mb-6">
-              <div>
-                <h1 className="rpfaas-fill-title">Fill-up Form: General Description</h1>
-                <p className="text-sm text-muted-foreground">
-                 Click on the + button to add more.
-                </p>
-              </div>
+          <div className="max-w-4xl mx-auto">
+            <header className="mb-6">
+              <h1 className="text-2xl font-bold tracking-tight">Fill-up Form: General Description</h1>
+              <p className="text-sm text-muted-foreground">Manage structure deductions and percentages.</p>
             </header>
 
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <section className="rpfaas-fill-section">
-        <div className="p-8 max-w-sm">
-          <DynamicSelectGroup 
-            label="Select Deductions "
-            options={deductionChoices}
-            values={selections}
-            onChange={handleSelectionChange}
-          />
-        </div>
-              </section>
-              <section className="rpfaas-fill-section">
-                <div className="rpfaas-fill-field space-y-4">
-                  <Label className="rpfaas-fill-label">DEDUCTIONS</Label>
-                  <label className="block text-sm font-medium mb-2">Please Select Here</label>
+            <form onSubmit={form.handleSubmit(handleNext)} className="space-y-8">
+              <section className="bg-card rounded-lg border p-6 shadow-sm">
+                <div className="flex justify-between items-center mb-4">
+                  <Label className="text-base font-semibold block">DEDUCTIONS TABLE</Label>
+                  <div className="text-sm text-muted-foreground">
+                    Base Unit Cost: <span className="font-mono font-medium text-foreground">₱{unitCost.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                  </div>
+                </div>
+                
+                {form.formState.errors.deductions && (
+                  <p className="text-destructive text-sm mb-2">{form.formState.errors.deductions.message as string}</p>
+                )}
 
-                  {form.formState.errors.deductions && (
-                    <div className="text-red-500 text-xs mt-1">{form.formState.errors.deductions.message as string}</div>
-                  )}
-                  <div className="overflow-auto mt-4">
-                    <table className="w-full table-auto border-collapse">
-                      <thead>
-                        <tr>
-                          <th className="border px-2 py-1 text-center">Deduction</th>
-                          <th className="border px-2 py-1 text-center">%</th>
-                          <th className="border px-2 py-1 text-center">Comments</th>
-                          <th className="border px-2 py-1 text-center">Calculation</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {/* subsequent rows: map selectionGrid into table cells */}
-                        {selectionGrid.filter(row => row[0] || row === selectionGrid[0]).map((row, rIdx) => (
-                          <tr key={rIdx}>
-                            {/* Deduction column */}
-                            <td className="border px-2 py-1 text-left">
-                              {row[0] || (rIdx === 0 ? <span className="text-gray-400 italic">please select item</span> : null)}
-                            </td>
-                            {/* % column */}
-                            <td className="border px-2 py-1 text-center">
-                              {row[0] ? (
-                                <span className="inline-block w-20 text-right bg-transparent">
-                                  {deductionPercentages[rIdx]}
-                                </span>
-                              ) : null}
-                            </td>
-                            {/* Comments column (rowspan) */}
-                            {rIdx === 0 && (
-                              <td
-                                className="border px-2 py-1 text-center align-top"
-                                rowSpan={selectionGrid.filter(r => r[0]).length || 1}
-                              >
-                                <textarea
-                                  className="w-full min-h-20 border rounded-md px-2 py-2 text-sm resize-y focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
-                                  placeholder="Enter comment..."
-                                  // Optionally, add value/onChange for controlled input
-                                />
-                              </td>
-                            )}
-                            {/* Calculation column */}
-                            <td className="border px-2 py-1 text-center">{row[0] ? 1 : null}</td>
-                          </tr>
-                        ))}
-                        {/* Total row */}
-                        <tr>
-                          {Array.from({ length: selCols }).map((_, cIdx) => (
-                            <td
-                              key={cIdx}
-                              className={`border px-2 py-1 text-left ${cIdx === 0 ? 'bg-gray-100' : ''}`}
-                            >
-                              {cIdx === 0 ? 'Total' : cIdx === 1 ? totalPercentage.toFixed(2) + ' %' : ''}
-                            </td>
-                          ))}
-                        </tr>
-                      </tbody>
-                    </table>
+                <div className="space-y-4">
+                  {/* Pass unitCost to the component */}
+                  <DynamicSelectGroup 
+                    label="Deduction"
+                    options={deductionChoices}
+                    values={selections}
+                    onChange={handleSelectionChange}
+                    unitCost={unitCost} 
+                  />
+
+                  {/* Supplemental information row (Comments/Totals) */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                    <div className="space-y-2">
+                      <Label>Overall Comments</Label>
+                      <textarea 
+                        className="w-full min-h-[100px] rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                        placeholder="Add any additional notes here..."
+                      />
+                    </div>
+                    
+                    {/* Summary Calculation Box */}
+                    <div className="flex flex-col gap-2 p-4 bg-muted/30 rounded-md border">
+                       <div className="flex justify-between items-center text-sm">
+                        <span className="text-muted-foreground">Total Deduction %:</span>
+                        <span className="font-bold">{totalPercentage}%</span>
+                      </div>
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-muted-foreground">Total Deduction Value:</span>
+                        <span className="font-bold text-destructive">- ₱{totalDeductionValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      </div>
+                      <Separator className="my-2"/>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm font-semibold">Cost of Deduction:</span>
+                        <span className="text-xl font-bold text-primary">
+                          ₱{netUnitCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </section>
 
-              <div className="rpfaas-fill-footer border-t border-border pt-4 mt-4">
-                <div className="rpfaas-fill-actions flex gap-2 justify-between items-center">
-                  <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => router.push(`/building-other-structure/fill/step-3${draftId ? `?id=${draftId}` : ''}`)}
-                      className="rpfaas-fill-button rpfaas-fill-button-secondary"
-                    >
-                      Previous
-                    </Button>
-                  </div>
+              <div className="flex justify-between items-center pt-6 border-t">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => router.push(`/building-other-structure/fill/step-3${draftId ? `?id=${draftId}` : ''}`)}
+                >
+                  Previous
+                </Button>
 
-                  <div className="flex gap-2">
-                    <Button
-                      type="submit"
-                      disabled={isSaving}
-                      className="rpfaas-fill-button rpfaas-fill-button-primary"
-                    >
-                      {isSaving ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          Saving...
-                        </>
-                      ) : (
-                        'Next'
-                      )}
-                    </Button>
-                  </div>
-                </div>
+                <Button type="submit" disabled={isSaving}>
+                  {isSaving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : 'Next'}
+                </Button>
               </div>
             </form>
           </div>
@@ -477,4 +260,5 @@ const handleSelectionChange = (newValues: (string | number | null)[]) => {
     </SidebarProvider>
   );
 };
+
 export default BuildingStructureFormFillPage4;

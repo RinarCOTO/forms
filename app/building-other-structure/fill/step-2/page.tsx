@@ -222,16 +222,25 @@ const handleCostOfConstructionChange = (e) => {
     setFloorAreas(newFloorAreas);
   };
 
-  const handleNext = async () => {
+const handleNext = async () => {
     setIsSaving(true);
     try {
-      // Use the correct variable names and snake_case for DB
-      // Ensure date fields are in YYYY-MM-DD format if only year is provided
+      // 1. EXTRACT RAW VALUE FOR STORAGE
+      // Remove commas and currency symbols to get raw number (e.g., "25000.50")
+      const rawCostValue = costOfConstructionDisplay 
+        ? costOfConstructionDisplay.replace(/[^0-9.]/g, "") 
+        : "0";
+
+      // 2. SAVE TO LOCALSTORAGE (This is what Step 4 looks for)
+      localStorage.setItem('unit_cost_p2', rawCostValue);
+
+      // --- Prepare DB Payload ---
       const formatYearToDate = (val: string | number) => {
         if (!val) return null;
         const str = val.toString();
         return str.length === 4 ? `${str}-01-01` : str;
       };
+
       const formData = {
         type_of_building: typeOfBuilding,
         structure_type: structureType,
@@ -247,20 +256,25 @@ const handleCostOfConstructionChange = (e) => {
         land_owner: landOwner,
         td_arp_no: tdArpNo,
         land_area: landArea,
-        cost_of_construction: costOfConstructionDisplay ? costOfConstructionDisplay.replace(/[^0-9.]/g, "") : null,
+        // We use the raw value here for the DB too
+        cost_of_construction: rawCostValue === "0" ? null : rawCostValue,
         status: 'draft',
       };
+
+      // ... rest of your fetch logic remains the same ...
       let response;
       const currentDraftId = draftId || localStorage.getItem('draft_id');
       const method = currentDraftId ? 'PUT' : 'POST';
       const endpoint = currentDraftId 
         ? `/api/building-structure/${currentDraftId}` 
         : '/api/building-structure';
+      
       response = await fetch(endpoint, {
         method: method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
+
       if (response.ok) {
         const result = await response.json();
         if (result.data?.id) {
