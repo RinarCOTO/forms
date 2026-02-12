@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
 export interface BuildingStructureInput {
+    cost_of_construction?: number;
   arp_no?: string;
   pin?: string;
   owner_name?: string;
@@ -95,6 +96,7 @@ export async function POST(request: NextRequest) {
       land_owner: body.land_owner || null,
       td_arp_no: body.td_arp_no || null,
       land_area: body.land_area ? parseFloat(body.land_area.toString()) : null,
+      cost_of_construction: body.cost_of_construction ? parseFloat(body.cost_of_construction.toString()) : null,
       
 
     };

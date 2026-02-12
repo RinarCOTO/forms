@@ -147,6 +147,7 @@ export async function PUT(
     
     if (body.building_permit_no !== undefined) dbData.building_permit_no = body.building_permit_no || null;
     if (body.total_floor_area !== undefined) dbData.total_floor_area = body.total_floor_area ? parseFloat(body.total_floor_area.toString()) : null;
+    if (body.cost_of_construction !== undefined) dbData.cost_of_construction = body.cost_of_construction ? parseFloat(body.cost_of_construction.toString()) : null;
     if (body.land_owner !== undefined) dbData.land_owner = body.land_owner || null;
     if (body.td_arp_no !== undefined) dbData.td_arp_no = body.td_arp_no || null;
     if (body.land_area !== undefined) dbData.land_area = body.land_area ? parseFloat(body.land_area.toString()) : null; 

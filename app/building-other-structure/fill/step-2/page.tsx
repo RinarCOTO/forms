@@ -52,6 +52,51 @@ const BuildingStructureFormFillPage2 = () => {
   const [dateConstructed, setDateConstructed] = useState<number | "">("");
   const [dateOccupied, setDateOccupied] = useState(""); // Added
   const [buildingAge, setBuildingAge] = useState<number | string>("");
+  const [costOfConstruction, setCostOfConstruction] = useState<string>("");
+  const [costOfConstructionDisplay, setCostOfConstructionDisplay] = useState<string>("");
+  // Format number to peso string
+  const formatPeso = (value: string | number) => {
+    if (value === "" || value === undefined) return "";
+    const num = typeof value === "string" ? Number(value.replace(/[^0-9.]/g, "")) : value;
+    if (isNaN(num) || num === 0) return "₱0.00";
+    return `₱${num.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
+  // Handle input change
+const handleCostOfConstructionChange = (e) => {
+  let value = e.target.value;
+
+  // 1. Remove all non-digit characters except the decimal point
+  const cleanValue = value.replace(/[^0-9.]/g, "");
+
+  // 2. Handle multiple decimal points (only allow the first one)
+  const parts = cleanValue.split(".");
+  const integerPart = parts[0];
+  const decimalPart = parts.length > 1 ? "." + parts[1].slice(0, 2) : "";
+
+  // 3. Format the integer part with commas
+  const formattedInteger = integerPart 
+    ? parseInt(integerPart, 10).toLocaleString() 
+    : "";
+
+  // 4. Combine and update state
+  // We use the string version for display so the user can type the decimal
+  setCostOfConstructionDisplay(formattedInteger + decimalPart);
+  
+  // 5. If you need the raw number for calculations, save it elsewhere:
+  // setRawValue(parseFloat(cleanValue) || 0);
+};
+  // Format on blur
+  const handleCostOfConstructionBlur = () => {
+    setCostOfConstructionDisplay(formatPeso(costOfConstruction));
+  };
+  // Show formatted value if not editing
+  useEffect(() => {
+    if (costOfConstruction === "") {
+      setCostOfConstructionDisplay("");
+    } else {
+      setCostOfConstructionDisplay(formatPeso(costOfConstruction));
+    }
+  }, []);
   const [numberOfStoreys, setNumberOfStoreys] = useState<number | "">(1);
   const [floorAreas, setFloorAreas] = useState<(number | "")[]>([""]);
   const [totalFloorArea, setTotalFloorArea] = useState<number | "">("");
@@ -97,21 +142,21 @@ const BuildingStructureFormFillPage2 = () => {
       setStructureType(loadedData.structure_type || "");
       setBuildingPermitNo(loadedData.building_permit_no || "");
       setCct(loadedData.cct || "");
-      
+
       // FIX: Extract Year properly
       setCompletionIssuedOn(getYear(loadedData.completion_issued_on ));
       setDateConstructed(getYear(loadedData.date_constructed));
       setDateOccupied(getYear(loadedData.date_occupied));
-      
+
       if (loadedData.building_age) {
-        setBuildingAge(loadedData.building_age);n
+        setBuildingAge(loadedData.building_age);
       } else if (loadedData.date_constructed) {
         setBuildingAge(calculateAge(getYear(loadedData.date_constructed)));
       } else {
         setBuildingAge("");
       }
       setNumberOfStoreys(loadedData.number_of_storeys ? Number(loadedData.number_of_storeys) : 1);
-      
+
       // Handle Floor Areas safely
       if (loadedData.floor_areas) {
          const areas = typeof loadedData.floor_areas === 'string' 
@@ -124,6 +169,16 @@ const BuildingStructureFormFillPage2 = () => {
       setLandOwner(loadedData.land_owner || "");
       setTdArpNo(loadedData.td_arp_no || "");
       setLandArea(loadedData.land_area || "");
+
+      // Load cost of construction
+      if (loadedData.cost_of_construction !== undefined && loadedData.cost_of_construction !== null) {
+        const raw = loadedData.cost_of_construction.toString();
+        setCostOfConstruction(raw);
+        setCostOfConstructionDisplay(formatPeso(raw));
+      } else {
+        setCostOfConstruction("");
+        setCostOfConstructionDisplay("");
+      }
     }
   }, [loadedData]);
 
@@ -192,6 +247,7 @@ const BuildingStructureFormFillPage2 = () => {
         land_owner: landOwner,
         td_arp_no: tdArpNo,
         land_area: landArea,
+        cost_of_construction: costOfConstructionDisplay ? costOfConstructionDisplay.replace(/[^0-9.]/g, "") : null,
         status: 'draft',
       };
       let response;
@@ -355,6 +411,19 @@ const BuildingStructureFormFillPage2 = () => {
                         readOnly
                       />
                     </div>
+                  <div className="rpfaas-fill-field space-y-1">
+                    <Label className="rpfaas-fill-label">Unit Construction Cost</Label>
+                    <div className="relative">
+                      <Input
+                        type="text"
+                        className="rpfaas-fill-input bg-gray-100 pr-4 font-medium pl-10" 
+                        value={costOfConstructionDisplay}
+                        onChange={handleCostOfConstructionChange}
+                        inputMode="decimal"
+                        placeholder="0.00"
+                      />
+                    </div>
+                  </div>
                 </div>
               </section>
 

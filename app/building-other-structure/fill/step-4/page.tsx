@@ -21,7 +21,11 @@ import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
-} from "@/components/ui/sidebar";
+} from "@/components/ui/sidebar"
+
+
+import { DynamicSelectGroup, SelectOption } from "@/components/dynamicSelectButton";
+
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -35,6 +39,16 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import React from "react";
+import {
+  DEDUCTION_OPTIONS,
+  FLOORING_MATERIALS,
+  WALLS_MATERIALS,
+  FORM_CONSTANTS,
+  MULTI_SELECT_OPTIONS,
+} from "@/config/form-options";
+import { de, id } from "zod/v4/locales";
+import { Select } from "radix-ui";
+
 
 // Helper function to collect form data from ONLY this step (step 4)
 // Step 4 saves: construction details and building systems
@@ -52,7 +66,7 @@ function collectFormData(selectedOptions: string[]) {
   return data;
 }
 
-const FORM_NAME = "building-structure-form-fill-page-4";
+const FORM_NAME = FORM_CONSTANTS.FORM_NAMES.BUILDING_STRUCTURE_STEP_4;
 
 const FormSchema = z.object({
   deductions: z.array(z.string()).min(1, {
@@ -80,17 +94,12 @@ const BuildingStructureFormFillPage4 = () => {
   const [materialsOtherText, setMaterialsOtherText] = useState("");
 
   const [flooringGrid, setFlooringGrid] = useState<boolean[][]>(() =>
-    Array.from({ length: 6 }, () => Array(4).fill(false))
+    Array.from({ length: FORM_CONSTANTS.GRID_DIMENSIONS.FLOORING.ROWS }, () => 
+      Array(FORM_CONSTANTS.GRID_DIMENSIONS.FLOORING.COLS).fill(false)
+    )
   );
 
-  const flooringLabels = [
-    "Concrete",
-    "Plain Cement",
-    "Marble",
-    "Wood",
-    "Tiles",
-    "Other",
-  ];
+  const flooringLabels = FLOORING_MATERIALS;
 
   const toggleFlooringCell = (row: number, col: number) => {
     setFlooringGrid((prev) => {
@@ -102,7 +111,9 @@ const BuildingStructureFormFillPage4 = () => {
 
   // Separate state for WALLS table so it doesn't share data with FLOORING
   const [wallsGrid, setWallsGrid] = useState<boolean[][]>(() =>
-    Array.from({ length: 5 }, () => Array(4).fill(false))
+    Array.from({ length: FORM_CONSTANTS.GRID_DIMENSIONS.WALLS.ROWS }, () => 
+      Array(FORM_CONSTANTS.GRID_DIMENSIONS.WALLS.COLS).fill(false)
+    )
   );
 
   const toggleWallsCell = (row: number, col: number) => {
@@ -114,32 +125,9 @@ const BuildingStructureFormFillPage4 = () => {
   };
 
   // multi-select for the new selections table
-  const multiOptions = [
-    "Option A",
-    "Option B",
-    "Option C",
-    "Option D",
-    "Option E",
-    "Option F",
-    "Option G",
-    "Option H",
-  ];
+  const multiOptions = MULTI_SELECT_OPTIONS;
   // grouped options for the MultiSelect (used in the table below)
-  const groupedOptions = [
-    {
-      heading: "Depreciation Category",
-      options: [
-        { value: "no_plumbing", label: "No Plumbing", percent: 3 },
-        { value: "no_electrical", label: "No Electrical", percent: 3},
-        { value: "no_paint", label: "No Paint", percent: 6 },
-        { value: "no_ceiling", label: "No Ceiling", percent: 7},
-        { value: "no_partition", label: "No Partition" },
-        { value: "no_cement_plaster_inside", label: "No Cement Plaster Inside" },
-        { value: "no_cement_plaster_outside", label: "No Cement Plaster Outside" },
-        { value: "second_hand_material_used", label: "Second Hand material used" },
-      ],
-    },
-  ];
+  const groupedOptions = DEDUCTION_OPTIONS;
 
   // flatten groupedOptions into the simple string[] expected by the existing MultiSelect implementation
   const flattenedOptions = groupedOptions.flatMap((g) => g.options.map((o) => o.label));
@@ -158,8 +146,8 @@ const BuildingStructureFormFillPage4 = () => {
   };
 
   // grid dimensions for selection table
-  const selRows = 5;
-  const selCols = 4;
+  const selRows = FORM_CONSTANTS.GRID_DIMENSIONS.SELECTION.ROWS;
+  const selCols = FORM_CONSTANTS.GRID_DIMENSIONS.SELECTION.COLS;
 
   const form = useForm({
     resolver: zodResolver(FormSchema),
@@ -196,7 +184,7 @@ const BuildingStructureFormFillPage4 = () => {
       
       if (currentDraftId) {
         // Update existing draft
-        response = await fetch(`/api/building-structure/${currentDraftId}`, {
+        response = await fetch(`${FORM_CONSTANTS.API_ENDPOINTS.BUILDING_STRUCTURE}/${currentDraftId}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -205,7 +193,7 @@ const BuildingStructureFormFillPage4 = () => {
         });
       } else {
         // Create new draft
-        response = await fetch('/api/building-structure', {
+        response = await fetch(FORM_CONSTANTS.API_ENDPOINTS.BUILDING_STRUCTURE, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -257,6 +245,26 @@ const BuildingStructureFormFillPage4 = () => {
     return initial;
   });
 
+
+  const deductionChoices: SelectOption[] = [
+    {id: 'no_plumbing', name: 'No Plumbing'},
+    {id: 'no_electrical', name: 'No Electrical'},
+    {id: 'no_paint', name: 'No Paint'},
+    {id: 'no_ceiling', name: 'No Ceiling'},
+    {id: 'no_partition', name: 'No Partition'},
+    {id: 'no_cement_plaster_inside', name: 'No Cement Plaster Inside'},
+    {id: 'no_cement_plaster_outside', name: 'No Cement Plaster Outside'},
+    {id: 'second_hand_material_used', name: 'Second Hand Material Used'},
+  ]
+const [selections, setSelections] = useState<(string | number | null)[]>(() => [null]);
+
+const handleSelectionChange = (newValues: (string | number | null)[]) => {
+  setSelections([...newValues]);
+  
+  // Filter out nulls and update the form state so the table reflects the changes
+  const validSelections = newValues.filter((v): v is string => v !== null);
+  form.setValue("deductions", validSelections);
+};
   // When deductions change, auto-assign even percentages
   React.useEffect(() => {
     const watched = form.watch("deductions") || [];
@@ -292,7 +300,7 @@ const BuildingStructureFormFillPage4 = () => {
     if (!draftId) return;
     const loadDraft = async () => {
       try {
-        const response = await fetch(`/api/building-structure/${draftId}`);
+        const response = await fetch(`${FORM_CONSTANTS.API_ENDPOINTS.BUILDING_STRUCTURE}/${draftId}`);
         if (response.ok) {
           const result = await response.json();
           if (result.success && result.data) {
@@ -344,22 +352,27 @@ const BuildingStructureFormFillPage4 = () => {
               <div>
                 <h1 className="rpfaas-fill-title">Fill-up Form: General Description</h1>
                 <p className="text-sm text-muted-foreground">
-                  Enter the additional details for the building/structure.
+                 Click on the + button to add more.
                 </p>
               </div>
             </header>
 
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <section className="rpfaas-fill-section">
+        <div className="p-8 max-w-sm">
+          <DynamicSelectGroup 
+            label="Select Deductions "
+            options={deductionChoices}
+            values={selections}
+            onChange={handleSelectionChange}
+          />
+        </div>
+              </section>
+              <section className="rpfaas-fill-section">
                 <div className="rpfaas-fill-field space-y-4">
                   <Label className="rpfaas-fill-label">DEDUCTIONS</Label>
                   <label className="block text-sm font-medium mb-2">Please Select Here</label>
-                  <MultiSelect
-                    options={flattenedOptions}
-                    value={form.watch("deductions")}
-                    onChange={val => form.setValue("deductions", val)}
-                    placeholder="Please select..."
-                  />
+
                   {form.formState.errors.deductions && (
                     <div className="text-red-500 text-xs mt-1">{form.formState.errors.deductions.message as string}</div>
                   )}
