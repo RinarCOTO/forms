@@ -261,8 +261,11 @@ const [selections, setSelections] = useState<(string | number | null)[]>(() => [
 const handleSelectionChange = (newValues: (string | number | null)[]) => {
   setSelections([...newValues]);
   
-  // Filter out nulls and update the form state so the table reflects the changes
-  const validSelections = newValues.filter((v): v is string => v !== null);
+  // Find the 'name' for each selected 'id' so the table displays text, not snake_case
+  const validSelections = newValues
+    .map(val => deductionChoices.find(c => String(c.id) === String(val))?.name)
+    .filter((v): v is string => !!v);
+
   form.setValue("deductions", validSelections);
 };
   // When deductions change, auto-assign even percentages
