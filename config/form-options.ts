@@ -32,6 +32,7 @@ export const DEDUCTION_OPTIONS = [
     ],
   },
 ];
+// export const AdditionalTableOptions =
 
 export const BUILDING_MATERIALS = {
   reinforcedConcrete: "Reinforced Concrete",
