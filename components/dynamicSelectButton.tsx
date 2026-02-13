@@ -14,7 +14,7 @@ import {
 export interface SelectOption {
   id: string | number
   name: string
-  percentage?: number
+  percentage?: number // Added percentage to the interface
 }
 
 interface DynamicSelectGroupProps {
@@ -23,7 +23,6 @@ interface DynamicSelectGroupProps {
   values: (string | number | null)[]
   onChange: (newValues: (string | number | null)[]) => void
   placeholder?: string
-  unitCost: number // The base value from Step 2 (e.g., 25000)
 }
 
 export function DynamicSelectGroup({
@@ -31,8 +30,7 @@ export function DynamicSelectGroup({
   options,
   values,
   onChange,
-  placeholder = 'Select an option',
-  unitCost
+  placeholder = 'Select an option'
 }: DynamicSelectGroupProps) {
 
   const handleSelectChange = (index: number, newValue: string | number | null) => {
@@ -64,10 +62,7 @@ export function DynamicSelectGroup({
           <thead className="bg-muted/50">
             <tr>
               <th className="border-b px-4 py-2 text-left font-medium text-muted-foreground">Deduction</th>
-              {/* This is the column you requested to update */}
-              <th className="border-b px-4 py-2 text-center font-medium text-muted-foreground w-48">
-                Deduction Value (% of Unit Cost)
-              </th>
+              <th className="border-b px-4 py-2 text-center font-medium text-muted-foreground w-24">%</th>
               <th className="border-b px-4 py-2 text-center font-medium text-muted-foreground w-16">Action</th>
             </tr>
           </thead>
@@ -81,11 +76,8 @@ export function DynamicSelectGroup({
                 (opt) => !otherSelectedValues.includes(String(opt.id))
               );
 
+              // Find current selected option to display its percentage
               const selectedOption = options.find(opt => String(opt.id) === String(value));
-              
-              // Calculation: (Unit Cost * Percentage) / 100
-              const percentage = selectedOption?.percentage || 0;
-              const computedAmount = (unitCost * percentage) / 100;
 
               return (
                 <tr key={index} className="hover:bg-muted/20 transition-colors">
@@ -112,33 +104,16 @@ export function DynamicSelectGroup({
                               textValue={opt.name}
                               className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 outline-none data-[focused]:bg-accent data-[focused]:text-accent-foreground"
                             >
-                              <div className="flex justify-between w-full">
-                                <span>{opt.name}</span>
-                                <span className="text-muted-foreground">{opt.percentage}%</span>
-                              </div>
+                              {opt.name}
                             </ListBoxItem>
                           ))}
                         </ListBox>
                       </Popover>
                     </Select>
                   </td>
-
-                  {/* COMPUTED VALUE DISPLAY */}
-                  <td className="p-2 text-center">
-                    {selectedOption ? (
-                      <div className="flex flex-col">
-                        <span className="font-mono font-bold text-destructive">
-                          - ₱{computedAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                        </span>
-                        <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                          ({percentage}% of ₱{unitCost.toLocaleString()})
-                        </span>
-                      </div>
-                    ) : (
-                      <span className="text-muted-foreground">—</span>
-                    )}
+                  <td className="p-2 text-center font-mono">
+                    {selectedOption?.percentage ? `${selectedOption.percentage}%` : '—'}
                   </td>
-
                   <td className="p-2 text-center">
                     <Button
                       type="button"

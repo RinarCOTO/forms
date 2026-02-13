@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
 export interface BuildingStructureInput {
-    cost_of_construction?: number;
+  cost_of_construction?: number;
   arp_no?: string;
   pin?: string;
   owner_name?: string;
@@ -23,9 +23,9 @@ export interface BuildingStructureInput {
   foundation_type?: string;
   electrical_system?: string;
   plumbing_system?: string;
-  roofing_material?: string;
-  wall_material?: string;
-  flooring_material?: string;
+  roofing_material?: any; // changed to any to support complex objects
+  wall_material?: any;
+  flooring_material?: any;
   ceiling_material?: string;
   actual_use?: string;
   market_value?: number;
@@ -36,6 +36,13 @@ export interface BuildingStructureInput {
   land_owner?: string;
   td_arp_no?: string;
   land_area?: number;
+  // --- NEW FIELDS ---
+  base_unit_cost?: number;
+  selected_deductions?: string[]; // Array of strings e.g. ['no_plumbing', 'no_paint']
+  total_deduction_percentage?: number;
+  total_deduction_amount?: number;
+  net_unit_construction_cost?: number;
+  overall_comments?: string;
 }
 
 /**
@@ -61,6 +68,15 @@ export async function POST(request: NextRequest) {
     
     // Map the input data to match the database schema
     const dbData: any = {
+      // --- NEW DEDUCTION FIELDS ---
+      base_unit_cost: body.base_unit_cost ? parseFloat(body.base_unit_cost.toString()) : null,
+      selected_deductions: body.selected_deductions || null,
+      total_deduction_percentage: body.total_deduction_percentage ? parseFloat(body.total_deduction_percentage.toString()) : null,
+      total_deduction_amount: body.total_deduction_amount ? parseFloat(body.total_deduction_amount.toString()) : null,
+      net_unit_construction_cost: body.net_unit_construction_cost ? parseFloat(body.net_unit_construction_cost.toString()) : null,
+      overall_comments: body.overall_comments || null,
+      
+      // --- EXISTING FIELDS ---
       arp_no: body.arp_no || null,
       pin: body.pin || null,
       owner_name: body.owner_name || null,
@@ -76,7 +92,11 @@ export async function POST(request: NextRequest) {
       date_occupied: body.date_occupied ? (body.date_occupied.length === 4 ? `${body.date_occupied}-01-01` : body.date_occupied) : null,
       building_permit_no: body.building_permit_no || null,
       total_floor_area: body.total_floor_area ? parseFloat(body.total_floor_area.toString()) : null,
+      
+      // Note: For POST, we assume the frontend sends simple cleaned arrays or strings.
+      // If you need complex cleaning like in PUT, you can add helper functions here too.
       floor_areas: body.floor_areas ? JSON.stringify(body.floor_areas) : null,
+      
       construction_type: body.construction_type || null,
       structure_type: body.structure_type || null,
       foundation_type: body.foundation_type || null,
@@ -97,8 +117,6 @@ export async function POST(request: NextRequest) {
       td_arp_no: body.td_arp_no || null,
       land_area: body.land_area ? parseFloat(body.land_area.toString()) : null,
       cost_of_construction: body.cost_of_construction ? parseFloat(body.cost_of_construction.toString()) : null,
-      
-
     };
     
     const { data, error } = await supabase

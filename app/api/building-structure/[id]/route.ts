@@ -96,15 +96,46 @@ export async function PUT(
       updated_at: new Date().toISOString()
     };
 
-    // --- 1. HANDLE FLOOR AREAS ARRAY ---
+    // --- 1. NEW DEDUCTION FIELDS ---
+    const toNumber = (val: any) => {
+        if (val === null || val === undefined || val === '') return null;
+        const num = Number(val);
+        return isNaN(num) ? null : num;
+    };
+
+    if (body.base_unit_cost !== undefined) {
+      dbData.base_unit_cost = toNumber(body.base_unit_cost);
+    }
+    
+    if (body.selected_deductions !== undefined) {
+      // Ensure it is an array, or null if empty
+      dbData.selected_deductions = Array.isArray(body.selected_deductions) 
+        ? body.selected_deductions 
+        : null;
+    }
+
+    if (body.total_deduction_percentage !== undefined) {
+      dbData.total_deduction_percentage = toNumber(body.total_deduction_percentage);
+    }
+    
+    if (body.total_deduction_amount !== undefined) {
+      dbData.total_deduction_amount = toNumber(body.total_deduction_amount);
+    }
+    
+    if (body.net_unit_construction_cost !== undefined) {
+      dbData.net_unit_construction_cost = toNumber(body.net_unit_construction_cost);
+    }
+    
+    if (body.overall_comments !== undefined) {
+      dbData.overall_comments = body.overall_comments || null;
+    }
+
+    // --- 2. HANDLE FLOOR AREAS ARRAY ---
     if (body.floor_areas !== undefined) {
       dbData.floor_areas = cleanFloorAreas(body.floor_areas);
     }
 
-    // --- 2. HANDLE JSON MATERIAL DATA (Updated for New Schema) ---
-    // This section maps the Frontend objects (containing summary + grid) directly to the DB columns.
-    // The columns 'roofing_material', 'flooring_material', and 'wall_material' must be type JSONB in Supabase.
-    
+    // --- 3. HANDLE JSON MATERIAL DATA ---
     // Clean roof material data - filter out numeric keys that may cause issues
     if (body.roofing_material !== undefined) {
       if (typeof body.roofing_material === 'object' && body.roofing_material !== null && body.roofing_material.data) {
@@ -127,7 +158,7 @@ export async function PUT(
     if (body.flooring_material !== undefined) dbData.flooring_material = body.flooring_material;
     if (body.wall_material !== undefined) dbData.wall_material = body.wall_material;
 
-    // --- 3. HANDLE ALL OTHER FIELDS ---
+    // --- 4. HANDLE ALL OTHER FIELDS ---
     if (body.arp_no !== undefined) dbData.arp_no = body.arp_no || null;
     if (body.pin !== undefined) dbData.pin = body.pin || null;
     if (body.owner_name !== undefined) dbData.owner_name = body.owner_name || null;
