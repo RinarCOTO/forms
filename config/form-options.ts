@@ -1,20 +1,26 @@
 // config/form-options.ts
 
 export const BUILDING_TYPES = [
-  "Residential",
-  "Commercial",
-  "Industrial",
+  "Residential Houses",
+  "Apartment Row Houses",
+  "boarding house, lodging house, hotels, inns, motels, restaurant",
   "Institutional",
-  "Mixed-Use",
-  "Other",
+  "School Buildings",
+  "Open Market",
+  "Open Gym",
 ];
 
 export const STRUCTURAL_TYPES = [
-  "Type A",
-  "Type B",
-  "Type C",
-  "Type D",
-  "Other",
+  "Type V-A",
+  "Type V-B",
+  "Type IV-A",
+  "Type IV-B",
+  "Type IV-C",
+  "III-A",
+  "III-B",
+  "III-C",
+  "II-A",
+  "II-B",
 ];
 
 export const DEDUCTION_OPTIONS = [

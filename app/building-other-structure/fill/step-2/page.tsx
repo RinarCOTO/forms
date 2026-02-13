@@ -16,7 +16,6 @@ import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/s
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Separator } from "@/components/ui/separator";
 import { Loader2 } from "lucide-react";
-
 // Helper function to collect form data
 function collectFormData(
   typeOfBuilding: string,
@@ -306,7 +305,7 @@ const handleNext = async () => {
               
               <section className="rpfaas-fill-section">
                 <h2 className="rpfaas-fill-section-title mb-4">General Description</h2>
-                <div className="grid grid-cols-2 gap-3">
+                <div className=" gap-3">
                   {/* TYPE OF BUILDING */}
                   <div className="space-y-1">
                     <Label className="rpfaas-fill-label">Type of Building</Label>
@@ -323,6 +322,8 @@ const handleNext = async () => {
                       </select>
                     </div>
                   </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
 
                   {/* STRUCTURAL TYPE */}
                   <div className="space-y-1">
@@ -340,8 +341,6 @@ const handleNext = async () => {
                       </select>
                     </div>
                   </div>
-
-
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
