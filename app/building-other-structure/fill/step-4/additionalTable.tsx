@@ -1,6 +1,7 @@
 'use client'
 
 import { MinusIcon, PlusIcon, ChevronDown } from 'lucide-react'
+import React, { useState } from 'react';
 import {
   Button,
   Group,
@@ -35,6 +36,8 @@ export function AdditionalTable({
   placeholder = 'Select an option',
   unitCost = 0
 }: AdditionalTableProps) {
+  // State to store area input for each row
+  const [areas, setAreas] = useState<number[]>(() => values.map(() => 0));
 
   const handleSelectChange = (index: number, newValue: string | number | null) => {
     const newValues = [...values]
@@ -44,19 +47,48 @@ export function AdditionalTable({
 
   const addRow = () => {
     if (values.length >= options.length) return;
-    onChange([...values, null])
+    onChange([...values, null]);
+    setAreas((prev) => [...prev, 0]);
   }
 
   const removeRow = (index: number) => {
     if (values.length <= 1) {
-      onChange([null])
-      return
+      onChange([null]);
+      setAreas([0]);
+      return;
     }
-    const newValues = values.filter((_, i) => i !== index)
-    onChange(newValues)
+    const newValues = values.filter((_, i) => i !== index);
+    onChange(newValues);
+    setAreas((prev) => prev.filter((_, i) => i !== index));
   }
 
   const isLimitReached = values.length >= options.length;
+
+  // Calculate total percentage and deduction values
+  let totalPercentage = 0;
+  let totalDeductionValue = 0;
+  let netUnitCost = unitCost;
+
+  values.forEach((value, idx) => {
+    const selectedOption = options.find(opt => String(opt.id) === String(value));
+    const area = areas[idx] || 0;
+    if (selectedOption) {
+      let deduction = 0;
+      if (selectedOption.percentage) {
+        totalPercentage += selectedOption.percentage;
+        deduction = ((unitCost * selectedOption.percentage) / 100) * area;
+      } else if (selectedOption.pricePerSqm) {
+        deduction = selectedOption.pricePerSqm * area;
+      }
+      totalDeductionValue += deduction;
+      netUnitCost -= deduction;
+    }
+  });
+
+  // Helper for formatting currency
+  function formatCurrency(value: number) {
+    return value.toLocaleString(undefined, { minimumFractionDigits: 2 });
+  }
 
   return (
     <div className="w-full space-y-4">
@@ -65,9 +97,10 @@ export function AdditionalTable({
           <thead className="bg-muted/50">
             <tr>
               <th className="border-b px-4 py-2 text-left font-medium text-muted-foreground">{label}</th>
+              <th className="border-b px-4 py-2 text-left font-medium text-muted-foreground">Area (sqm)</th>
               {/* This is the column you requested to update */}
               <th className="border-b px-4 py-2 text-center font-medium text-muted-foreground w-48">
-                Additional Value
+                Unit Value
               </th>
               <th className="border-b px-4 py-2 text-center font-medium text-muted-foreground w-16">Action</th>
             </tr>
@@ -85,11 +118,14 @@ export function AdditionalTable({
               const selectedOption = options.find(opt => String(opt.id) === String(value));
               
               // Calculation: Check if it's percentage-based or flat-rate
+
               const percentage = selectedOption?.percentage || 0;
               const flatRate = selectedOption?.pricePerSqm || 0;
-              const computedAmount = percentage > 0 
+              const computedValue = percentage > 0 
                 ? (unitCost * percentage) / 100 
                 : flatRate;
+              const areaValue = areas[index] || 0;
+              const deductionCost = computedValue * areaValue;
 
               return (
                 <tr key={index} className="hover:bg-muted/20 transition-colors">
@@ -113,7 +149,7 @@ export function AdditionalTable({
                             <ListBoxItem 
                               key={String(opt.id)} 
                               id={String(opt.id)} 
-                              textValue={opt.name}
+                              textValue={opt.name} 
                               className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 outline-none data-[focused]:bg-accent data-[focused]:text-accent-foreground"
                             >
                               <div className="flex justify-between w-full">
@@ -129,17 +165,40 @@ export function AdditionalTable({
                     </Select>
                   </td>
 
+                  {/* AREA INPUT FIELD */}
+                  <td className="p-2 text-center">
+                    <div className="relative flex items-center justify-center">
+                      <input
+                        type="number"
+                        min="0"
+                        step="any"
+                        className="w-24 rounded-md border border-input bg-background px-2 py-1 pr-10 text-right focus:outline-none focus:ring-2 focus:ring-ring"
+                        placeholder="0"
+                        value={areas[index] || ''}
+                        onChange={e => {
+                          const val = parseFloat(e.target.value) || 0;
+                          setAreas(prev => {
+                            const copy = [...prev];
+                            copy[index] = val;
+                            return copy;
+                          });
+                        }}
+                      />
+                      <span className="absolute right-2 text-xs text-muted-foreground pointer-events-none">sqm</span>
+                    </div>
+                  </td>
+
                   {/* COMPUTED VALUE DISPLAY */}
                   <td className="p-2 text-center">
                     {selectedOption ? (
                       <div className="flex flex-col">
                         <span className="font-mono font-bold text-destructive">
-                          - ₱{computedAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          - ₱{deductionCost.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                         </span>
                         <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
                           {percentage > 0 
-                            ? `(${percentage}% of ₱${unitCost.toLocaleString()})`
-                            : `(₱${flatRate}/sqm)`
+                            ? `(${percentage}% of ₱${unitCost.toLocaleString()} × ${areaValue} sqm)`
+                            : `(₱${flatRate}/sqm × ${areaValue} sqm)`
                           }
                         </span>
                       </div>
@@ -162,6 +221,20 @@ export function AdditionalTable({
             })}
           </tbody>
         </table>
+      </div>
+
+      {/* Deduction summary box */}
+      <div className="flex flex-col gap-2 p-4 bg-muted/30 rounded-md border">
+        <div className="flex justify-between items-center text-sm">
+          <span className="text-muted-foreground">Total Deduction %:</span>
+          <span className="font-bold">{totalPercentage}%</span>
+        </div>
+        <div className="flex justify-between items-center text-sm">
+          <span className="text-muted-foreground">Market Value:</span>
+          <span className="font-bold text-destructive">
+            - ₱{formatCurrency(totalDeductionValue)}
+          </span>
+        </div>
       </div>
 
       <Button

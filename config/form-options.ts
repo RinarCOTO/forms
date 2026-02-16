@@ -1,13 +1,32 @@
 // config/form-options.ts
 
 export const BUILDING_TYPES = [
-  "Residential Houses",
-  "Apartment Row Houses",
-  "boarding house, lodging house, hotels, inns, motels, restaurant",
-  "Institutional",
-  "School Buildings",
-  "Open Market",
-  "Open Gym",
+  { id: "building_type_1", label: "Residential Houses" },
+  { id: "building_type_2", label: "Apartment Row Houses" },
+  {
+    id: "building_type_3",
+    label: "Boarding House, Lodging House, Hotels, Inns, Motels, Restaurant",
+  },
+  {
+    id: "building_type_4",
+    label:
+      "Accessory Garage, Green House, Laundry House, Gasoline Station, Swimming Pool, Bath House",
+  },
+  { id: "building_type_5", label: "School Buildings" },
+  {
+    id: "building_type_6",
+    label: "Hospital Office Buildings, Banta, Condominiums, Super Markets, Shopping Malls",
+  },
+  {
+    id: "building_type_7",
+    label: "Church Chapels, Assembly House, Theaters, Funeral Parlor",
+  },
+  {
+    id: "building_type_8",
+    label: "Factory Wave House, Bodega, Storage, Rice Mill, Shop, Bakery Shop",
+  },
+  { id: "building_type_9", label: "Open Market" },
+  { id: "building_type_10", label: "Open Gym" },
 ];
 
 export const STRUCTURAL_TYPES = [
@@ -16,11 +35,12 @@ export const STRUCTURAL_TYPES = [
   "Type IV-A",
   "Type IV-B",
   "Type IV-C",
-  "III-A",
-  "III-B",
-  "III-C",
-  "II-A",
-  "II-B",
+  "Type III-A",
+  "Type III-B",
+  "Type III-C",
+  "Type II-A",
+  "Type II-B",
+  "Type I",
 ];
 
 export const DEDUCTION_OPTIONS = [

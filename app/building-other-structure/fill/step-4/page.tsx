@@ -88,6 +88,7 @@ const BuildingStructureFormFillPage4 = () => {
   const [additionalFlatRateSelections, setAdditionalFlatRateSelections] = useState<(string | number | null)[]>(() => [null]);
   const [comments, setComments] = useState<string>(""); // State for comments
   const [unitCost, setUnitCost] = useState<number>(0);
+  const [totalFloorArea, setTotalFloorArea] = useState<number>(0);
 
   const { data: loadedData } = useFormData<any>("building-structure", draftId || "");
 
@@ -108,12 +109,22 @@ const BuildingStructureFormFillPage4 = () => {
       setUnitCost(parseFloat(dbCost));
     }
 
-    // 2. Load Comments
+    // 2. Load Total Floor Area
+    const savedFloorArea = localStorage.getItem("total_floor_area_p2");
+    const dbFloorArea = loadedData?.total_floor_area;
+
+    if (savedFloorArea) {
+      setTotalFloorArea(parseFloat(savedFloorArea));
+    } else if (dbFloorArea) {
+      setTotalFloorArea(parseFloat(dbFloorArea));
+    }
+
+    // 3. Load Comments
     if (loadedData?.overall_comments) {
       setComments(loadedData.overall_comments);
     }
 
-    // 3. Load Selections (Check both 'selected_deductions' from API and legacy 'deductions')
+    // 4. Load Selections (Check both 'selected_deductions' from API and legacy 'deductions')
     const dbDeductions = loadedData?.selected_deductions || loadedData?.deductions;
 
     if (dbDeductions) {
@@ -153,14 +164,17 @@ const BuildingStructureFormFillPage4 = () => {
   const handleNext = async (data: any) => {
     setIsSaving(true);
     try {
+      // Calculate subtotal: unit cost × total floor area
+      const subtotal = unitCost * totalFloorArea;
+      
       // Internal calculation for totals to send to API
-      const totalPercentage = selections.reduce((acc, curr) => {
+      const totalPercentage = selections.reduce<number>((acc, curr) => {
         const option = deductionChoices.find((c) => String(c.id) === String(curr));
         return acc + (option?.percentage || 0);
       }, 0);
 
-      const totalDeductionAmount = (unitCost * totalPercentage) / 100;
-      const netUnitCost = unitCost - totalDeductionAmount;
+      const totalDeductionAmount = (subtotal * totalPercentage) / 100;
+      const netUnitCost = subtotal - totalDeductionAmount;
 
       // Construct Payload based on your API's PUT handler keys
       const formData = {
@@ -229,6 +243,7 @@ const BuildingStructureFormFillPage4 = () => {
               
               <DeductionsTable
                 unitCost={unitCost}
+                totalFloorArea={totalFloorArea}
                 selections={selections}
                 onSelectionChange={handleSelectionChange}
                 deductionChoices={deductionChoices}

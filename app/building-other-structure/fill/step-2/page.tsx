@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import { generateYears, calculateAge, calculateTotalFloorArea } from "@/utils/form-helpers";
 import { BUILDING_TYPES, STRUCTURAL_TYPES } from "@/config/form-options";
+import { getUnitConstructionCost } from "@/config/unit-construction-cost";
 import { useFormPersistence } from "@/hooks/useFormPersistence";
 import { useFormData } from "@/hooks/useFormData";
 import "@/app/styles/forms-fill.css";
@@ -61,7 +62,7 @@ const BuildingStructureFormFillPage2 = () => {
     return `₱${num.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
   // Handle input change
-const handleCostOfConstructionChange = (e) => {
+const handleCostOfConstructionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
   let value = e.target.value;
 
   // 1. Remove all non-digit characters except the decimal point
@@ -77,9 +78,12 @@ const handleCostOfConstructionChange = (e) => {
     ? parseInt(integerPart, 10).toLocaleString() 
     : "";
 
+  const rawValue = cleanValue === "" ? "" : cleanValue;
+
   // 4. Combine and update state
   // We use the string version for display so the user can type the decimal
   setCostOfConstructionDisplay(formattedInteger + decimalPart);
+  setCostOfConstruction(rawValue);
   
   // 5. If you need the raw number for calculations, save it elsewhere:
   // setRawValue(parseFloat(cleanValue) || 0);
@@ -96,6 +100,14 @@ const handleCostOfConstructionChange = (e) => {
       setCostOfConstructionDisplay(formatPeso(costOfConstruction));
     }
   }, []);
+
+  useEffect(() => {
+    const rawValue = getUnitConstructionCost(typeOfBuilding, structureType);
+    if (rawValue) {
+      setCostOfConstruction(rawValue);
+      setCostOfConstructionDisplay(formatPeso(rawValue));
+    }
+  }, [typeOfBuilding, structureType]);
   const [numberOfStoreys, setNumberOfStoreys] = useState<number | "">(1);
   const [floorAreas, setFloorAreas] = useState<(number | "")[]>([""]);
   const [totalFloorArea, setTotalFloorArea] = useState<number | "">("");
@@ -232,6 +244,7 @@ const handleNext = async () => {
 
       // 2. SAVE TO LOCALSTORAGE (This is what Step 4 looks for)
       localStorage.setItem('unit_cost_p2', rawCostValue);
+      localStorage.setItem('total_floor_area_p2', totalFloorArea.toString());
 
       // --- Prepare DB Payload ---
       const formatYearToDate = (val: string | number) => {
@@ -317,7 +330,7 @@ const handleNext = async () => {
                       >
                         <option value="">Select Type of Bldg</option>
                         {BUILDING_TYPES.map(opt => (
-                          <option key={opt} value={opt}>{opt}</option>
+                          <option key={opt.id} value={opt.label}>{opt.label}</option>
                         ))}
                       </select>
                     </div>
@@ -427,14 +440,9 @@ const handleNext = async () => {
                   <div className="rpfaas-fill-field space-y-1">
                     <Label className="rpfaas-fill-label">Unit Construction Cost</Label>
                     <div className="relative">
-                      <Input
-                        type="text"
-                        className="rpfaas-fill-input bg-gray-100 pr-4 font-medium pl-10" 
-                        value={costOfConstructionDisplay}
-                        onChange={handleCostOfConstructionChange}
-                        inputMode="decimal"
-                        placeholder="0.00"
-                      />
+                      <div className="rpfaas-fill-input bg-gray-100 pr-4 font-medium pl-10">
+                        {costOfConstructionDisplay || "0.00"}
+                      </div>
                     </div>
                   </div>
                 </div>

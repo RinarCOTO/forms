@@ -7,6 +7,7 @@ import { DynamicSelectGroup, SelectOption } from "@/components/dynamicSelectButt
 
 interface DeductionsTableProps {
   unitCost: number;
+  totalFloorArea: number;
   selections: (string | number | null)[];
   onSelectionChange: (newValues: (string | number | null)[]) => void;
   deductionChoices: SelectOption[];
@@ -18,6 +19,7 @@ interface DeductionsTableProps {
 
 export const DeductionsTable = ({
   unitCost,
+  totalFloorArea,
   selections,
   onSelectionChange,
   deductionChoices,
@@ -26,14 +28,17 @@ export const DeductionsTable = ({
   error,
 }: DeductionsTableProps) => {
   
+  // Calculate subtotal: unit cost × total floor area
+  const subtotal = unitCost * totalFloorArea;
+  
   // Logic inside the component for display
-  const totalPercentage = selections.reduce((acc, curr) => {
+  const totalPercentage = selections.reduce<number>((acc, curr) => {
     const option = deductionChoices.find((c) => String(c.id) === String(curr));
     return acc + (option?.percentage || 0);
   }, 0);
 
-  const totalDeductionValue = (unitCost * totalPercentage) / 100;
-  const netUnitCost = unitCost - totalDeductionValue;
+  const totalDeductionValue = (subtotal * totalPercentage) / 100;
+  const netUnitCost = subtotal - totalDeductionValue;
 
   const formatCurrency = (value: number) =>
     value.toLocaleString(undefined, {
@@ -46,10 +51,10 @@ export const DeductionsTable = ({
       <div className="flex justify-between items-center mb-4">
         <Label className="text-base font-semibold block">DEDUCTIONS TABLE</Label>
         <div className="text-sm text-muted-foreground">
-          Base Unit Cost:{" "}
+          Subtotal:{" "}
           <span className="font-mono font-medium text-foreground">
-            ₱{formatCurrency(unitCost)}
-          </span>
+            ₱{formatCurrency(subtotal)}
+          </span> 
         </div>
       </div>
 
@@ -61,7 +66,7 @@ export const DeductionsTable = ({
           options={deductionChoices}
           values={selections}
           onChange={onSelectionChange}
-          unitCost={unitCost}
+          unitCost={subtotal}
         />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
