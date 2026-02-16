@@ -232,7 +232,7 @@ const BuildingStructureFormFillPage4 = () => {
           </Breadcrumb>
         </header>
 
-        <div className="flex-1 p-6 overflow-y-auto">
+        <div className="flex-1 p-6 overflow-y-auto bg-stone-200">
           <div className="max-w-4xl mx-auto">
             <header className="mb-6">
               <h1 className="text-2xl font-bold tracking-tight">Fill-up Form: General Description</h1>
