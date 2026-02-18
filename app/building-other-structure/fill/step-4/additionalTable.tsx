@@ -91,6 +91,7 @@ export function AdditionalTable({
   }
 
   return (
+    <section className='bg-card rounded-lg border p-6 shadow-sm'>
     <div className="w-full space-y-4">
       <div className="overflow-hidden rounded-lg border border-border">
         <table className="w-full border-collapse text-sm">
@@ -193,7 +194,7 @@ export function AdditionalTable({
                     {selectedOption ? (
                       <div className="flex flex-col">
                         <span className="font-mono font-bold text-destructive">
-                          - ₱{deductionCost.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                           ₱{deductionCost.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                         </span>
                         <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
                           {percentage > 0 
@@ -232,7 +233,7 @@ export function AdditionalTable({
         <div className="flex justify-between items-center text-sm">
           <span className="text-muted-foreground">Market Value:</span>
           <span className="font-bold text-destructive">
-            - ₱{formatCurrency(totalDeductionValue)}
+             ₱{formatCurrency(totalDeductionValue)}
           </span>
         </div>
       </div>
@@ -247,5 +248,7 @@ export function AdditionalTable({
         Add another item
       </Button>
     </div>
+    </section>
+
   )
 }

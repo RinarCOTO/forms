@@ -69,7 +69,7 @@ export const DeductionsTable = ({
           unitCost={subtotal}
         />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+        <div className="grid grid-row gap-4 mt-6">
           <div className="space-y-2">
             <Label>Overall Comments</Label>
             <textarea

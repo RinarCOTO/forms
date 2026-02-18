@@ -1,3 +1,43 @@
+// Selections for building structure step 4 (moved from page.tsx)
+export const DEDUCTION_CHOICES = [
+  { id: "no_plumbing", name: "No Plumbing", percentage: 3 },
+  { id: "no_electrical", name: "No Electrical", percentage: 3 },
+  { id: "no_paint", name: "No Paint", percentage: 6 },
+  { id: "no_ceiling", name: "No Ceiling", percentage: 7 },
+  { id: "no_partition", name: "No Partition", percentage: 5 },
+  { id: "no_cement_plaster_inside", name: "No Cement Plaster Inside", percentage: 3 },
+  { id: "no_cement_plaster_outside", name: "No Cement Plaster Outside", percentage: 3 },
+  { id: "second_hand_material_used", name: "Second Hand Material Used", percentage: 10 },
+];
+
+export const ADDITIONAL_PERCENT_CHOICES = [
+  { id: "carport", name: "Carport", percentage: 70 },
+  { id: "mezzanine", name: "Mezzanine", percentage: 60 },
+  { id: "porch", name: "Porch", percentage: 40 },
+  { id: "balcony", name: "Balcony", percentage: 45 },
+  { id: "garage", name: "Garage", percentage: 45 },
+  { id: "terrace_covered", name: "Terrace (Covered)", percentage: 35 },
+  { id: "terrace_open", name: "Terrace (Open)", percentage: 20 },
+  { id: "roof_deck_open", name: "Roof Deck (Open)", percentage: 20 },
+  { id: "roof_deck_covered", name: "Roof Deck (Covered - No Sidings)", percentage: 30 },
+  { id: "basement_residential", name: "Basement (Residential)", percentage: 60 },
+  { id: "basement_high_rise", name: "Basement (High Rise Building Plus)", percentage: 20 },
+];
+
+export const ADDITIONAL_FLAT_RATE_CHOICES = [
+  { id: "pavement_tennis_court", name: "Pavement: Tennis Court", pricePerSqm: 450 },
+  { id: "pavement_concrete_10cm", name: "Concrete Pavement (10cm thick)", pricePerSqm: 450 },
+  { id: "pavement_concrete_15cm", name: "Concrete Pavement (15cm thick)", pricePerSqm: 600 },
+  { id: "pavement_concrete_20cm", name: "Concrete Pavement (20cm thick)", pricePerSqm: 700 },
+  { id: "floor_marble_tiles", name: "Floor: Marble Tiles", pricePerSqm: 500 },
+  { id: "floor_narra", name: "Floor: Narra", pricePerSqm: 400 },
+  { id: "floor_fancy_wood", name: "Floor: Fancy Wood Tiles", pricePerSqm: 300 },
+  { id: "floor_ordinary_wood", name: "Floor: Ordinary Wood Tiles", pricePerSqm: 200 },
+  { id: "floor_washout_pebbles", name: "Floor: Washout Pebbles", pricePerSqm: 200 },
+  { id: "floor_granite", name: "Floor: Granite", pricePerSqm: 600 },
+  { id: "floor_crazy_cut_marble", name: "Floor: Crazy Cut Marble", pricePerSqm: 400 },
+  { id: "floor_vinyl_tiles", name: "Floor: Vinyl Tiles", pricePerSqm: 100 },
+];
 // config/form-options.ts
 
 export const BUILDING_TYPES = [

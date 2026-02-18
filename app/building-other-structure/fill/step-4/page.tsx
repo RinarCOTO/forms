@@ -28,8 +28,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import React from "react";
-import { FORM_CONSTANTS } from "@/config/form-options";
+import { FORM_CONSTANTS, DEDUCTION_CHOICES, ADDITIONAL_PERCENT_CHOICES, ADDITIONAL_FLAT_RATE_CHOICES } from "@/config/form-options";
 import { useFormData } from "@/hooks/useFormData";
+import TotalDeductionTable from "./totalDeductionTable";
 
 const FormSchema = z.object({
   deductions: z.array(z.string()).min(1, {
@@ -37,45 +38,6 @@ const FormSchema = z.object({
   }),
 });
 
-const deductionChoices: SelectOption[] = [
-  { id: "no_plumbing", name: "No Plumbing", percentage: 3 },
-  { id: "no_electrical", name: "No Electrical", percentage: 3 },
-  { id: "no_paint", name: "No Paint", percentage: 6 },
-  { id: "no_ceiling", name: "No Ceiling", percentage: 7 },
-  { id: "no_partition", name: "No Partition", percentage: 5 },
-  { id: "no_cement_plaster_inside", name: "No Cement Plaster Inside", percentage: 3 },
-  { id: "no_cement_plaster_outside", name: "No Cement Plaster Outside", percentage: 3 },
-  { id: "second_hand_material_used", name: "Second Hand Material Used", percentage: 10 },
-];
-
-const additionalPercentChoices: SelectOption[] = [
-  { id: "carport", name: "Carport", percentage: 70 },
-  { id: "mezzanine", name: "Mezzanine", percentage: 60 },
-  { id: "porch", name: "Porch", percentage: 40 },
-  { id: "balcony", name: "Balcony", percentage: 45 },
-  { id: "garage", name: "Garage", percentage: 45 },
-  { id: "terrace_covered", name: "Terrace (Covered)", percentage: 35 },
-  { id: "terrace_open", name: "Terrace (Open)", percentage: 20 },
-  { id: "roof_deck_open", name: "Roof Deck (Open)", percentage: 20 },
-  { id: "roof_deck_covered", name: "Roof Deck (Covered - No Sidings)", percentage: 30 },
-  { id: "basement_residential", name: "Basement (Residential)", percentage: 60 },
-  { id: "basement_high_rise", name: "Basement (High Rise Building Plus)", percentage: 20 },
-]
-
-const additionalFlatRateChoices: SelectOption[] = [
-  { id: "pavement_tennis_court", name: "Pavement: Tennis Court", pricePerSqm: 450 },
-  { id: "pavement_concrete_10cm", name: "Concrete Pavement (10cm thick)", pricePerSqm: 450 },
-  { id: "pavement_concrete_15cm", name: "Concrete Pavement (15cm thick)", pricePerSqm: 600 },
-  { id: "pavement_concrete_20cm", name: "Concrete Pavement (20cm thick)", pricePerSqm: 700 },
-  { id: "floor_marble_tiles", name: "Floor: Marble Tiles", pricePerSqm: 500 },
-  { id: "floor_narra", name: "Floor: Narra", pricePerSqm: 400 },
-  { id: "floor_fancy_wood", name: "Floor: Fancy Wood Tiles", pricePerSqm: 300 },
-  { id: "floor_ordinary_wood", name: "Floor: Ordinary Wood Tiles", pricePerSqm: 200 },
-  { id: "floor_washout_pebbles", name: "Floor: Washout Pebbles", pricePerSqm: 200 },
-  { id: "floor_granite", name: "Floor: Granite", pricePerSqm: 600 },
-  { id: "floor_crazy_cut_marble", name: "Floor: Crazy Cut Marble", pricePerSqm: 400 },
-  { id: "floor_vinyl_tiles", name: "Floor: Vinyl Tiles", pricePerSqm: 100 },
-]
 
 const BuildingStructureFormFillPage4 = () => {
   const router = useRouter();
@@ -86,7 +48,7 @@ const BuildingStructureFormFillPage4 = () => {
   const [selections, setSelections] = useState<(string | number | null)[]>(() => [null]);
   const [additionalPercentSelections, setAdditionalPercentSelections] = useState<(string | number | null)[]>(() => [null]);
   const [additionalFlatRateSelections, setAdditionalFlatRateSelections] = useState<(string | number | null)[]>(() => [null]);
-  const [comments, setComments] = useState<string>(""); // State for comments
+  const [comments, setComments] = useState<string>(""); 
   const [unitCost, setUnitCost] = useState<number>(0);
   const [totalFloorArea, setTotalFloorArea] = useState<number>(0);
 
@@ -127,35 +89,36 @@ const BuildingStructureFormFillPage4 = () => {
     // 4. Load Selections (Check both 'selected_deductions' from API and legacy 'deductions')
     const dbDeductions = loadedData?.selected_deductions || loadedData?.deductions;
 
+    let savedDeductions: string[] = [];
     if (dbDeductions) {
-      const savedDeductions = Array.isArray(dbDeductions)
-        ? dbDeductions
-        : typeof dbDeductions === "string"
-        ? dbDeductions.split(",")
-        : [];
-
-      if (savedDeductions.length > 0) {
-        const recoveredSelections = savedDeductions
-          .map((d: string) => {
-            const match = deductionChoices.find((c) => c.id === d || c.name === d);
-            return match ? match.id : null;
-          })
-          .filter(Boolean);
-
-        setSelections(recoveredSelections);
-
-        const validNames = recoveredSelections
-          .map((id: string) => deductionChoices.find((c) => String(c.id) === String(id))?.name)
-          .filter(Boolean);
-        form.setValue("deductions", validNames as string[]);
+      if (Array.isArray(dbDeductions)) {
+        savedDeductions = dbDeductions;
+      } else if (typeof dbDeductions === "string") {
+        savedDeductions = dbDeductions.split(",");
       }
+    }
+
+    if (savedDeductions.length > 0) {
+      const recoveredSelections = savedDeductions
+        .map((d: string) => {
+          const match = DEDUCTION_CHOICES.find((c) => c.id === d || c.name === d);
+          return match ? match.id : null;
+        })
+        .filter(Boolean);
+
+      setSelections(recoveredSelections);
+
+      const validNames = recoveredSelections
+        .map((id: string) => DEDUCTION_CHOICES.find((c) => String(c.id) === String(id))?.name)
+        .filter(Boolean);
+      form.setValue("deductions", validNames as string[]);
     }
   }, [loadedData, form]);
 
   const handleSelectionChange = (newValues: (string | number | null)[]) => {
     setSelections([...newValues]);
     const validNames = newValues
-      .map((val) => deductionChoices.find((c) => String(c.id) === String(val))?.name)
+      .map((val) => DEDUCTION_CHOICES.find((c) => String(c.id) === String(val))?.name)
       .filter((v): v is string => !!v);
 
     form.setValue("deductions", validNames);
@@ -169,7 +132,7 @@ const BuildingStructureFormFillPage4 = () => {
       
       // Internal calculation for totals to send to API
       const totalPercentage = selections.reduce<number>((acc, curr) => {
-        const option = deductionChoices.find((c) => String(c.id) === String(curr));
+        const option = DEDUCTION_CHOICES.find((c) => String(c.id) === String(curr));
         return acc + (option?.percentage || 0);
       }, 0);
 
@@ -246,7 +209,7 @@ const BuildingStructureFormFillPage4 = () => {
                 totalFloorArea={totalFloorArea}
                 selections={selections}
                 onSelectionChange={handleSelectionChange}
-                deductionChoices={deductionChoices}
+                deductionChoices={DEDUCTION_CHOICES}
                 comments={comments} // Pass state
                 onCommentsChange={setComments} // Pass handler
                 error={form.formState.errors.deductions?.message as string}
@@ -256,15 +219,96 @@ const BuildingStructureFormFillPage4 = () => {
                 unitCost={unitCost}
                 values={additionalPercentSelections}
                 onChange={setAdditionalPercentSelections}
-                options={additionalPercentChoices}
+                options={ADDITIONAL_PERCENT_CHOICES}
               />
               <AdditionalTable
                 label="Additional Flat Rate Deviations"
                 unitCost={unitCost}
                 values={additionalFlatRateSelections}
                 onChange={setAdditionalFlatRateSelections}
-                options={additionalFlatRateChoices}
+                options={ADDITIONAL_FLAT_RATE_CHOICES}
               />
+              <TotalDeductionTable
+                label="Total Deductions Summary"
+                unitCost={unitCost}
+                values={additionalFlatRateSelections}
+                onChange={setAdditionalFlatRateSelections}
+                options={ADDITIONAL_FLAT_RATE_CHOICES}
+              />
+
+              <section>
+                <label htmlFor="">TOTAL DEDUCTIONS SUMMARY</label>
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  <span className="font-semibold">Sub Total:</span>
+                  <span className="font-bold text-primary">
+                    ₱{(unitCost * totalFloorArea - (unitCost * totalFloorArea * selections.reduce((acc, curr) => {
+                      const option = DEDUCTION_CHOICES.find((c) => String(c.id) === String(curr));
+                      return acc + (option?.percentage || 0);
+                    }, 0) / 100)).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+                <div> 
+                  <ul className="divide-y divide-border">
+                    {selections.filter(Boolean).map((sel, idx) => {
+                      const deduction = DEDUCTION_CHOICES.find(opt => String(opt.id) === String(sel));
+                      if (!deduction) return null;
+                      let amount = 0;
+                      if (deduction.percentage) {
+                        amount = unitCost * totalFloorArea * (deduction.percentage / 100);
+                      } else if (deduction.pricePerSqm) {
+                        amount = deduction.pricePerSqm * totalFloorArea;
+                      }
+                      return (
+                        <li key={deduction.id} className="flex justify-between py-1">
+                          <span>{deduction.name}</span>
+                          <span className="text-muted-foreground">
+                            {deduction.percentage ? `${deduction.percentage}%` : deduction.pricePerSqm ? `₱${deduction.pricePerSqm}/sqm` : ''}
+                            {" "}
+                            <span className="ml-2 font-bold text-primary">
+                              ₱{amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                            </span>
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+
+                <div className="mt-4">
+                  <label className="block font-semibold mb-1">Additional Percent-Based Items</label>
+                  <ul className="divide-y divide-border">
+                    {additionalPercentSelections.filter(Boolean).map((sel, idx) => {
+                      const add = ADDITIONAL_PERCENT_CHOICES.find(opt => String(opt.id) === String(sel));
+                      if (!add) return null;
+                      // Try to get the area for this row from AdditionalTable state if possible
+                      // Fallback: use totalFloorArea if not available (not perfect, but avoids crash)
+                      let area = 0;
+                      if (window.__additionalPercentAreas && Array.isArray(window.__additionalPercentAreas)) {
+                        area = window.__additionalPercentAreas[idx] || 0;
+                      } else {
+                        area = totalFloorArea;
+                      }
+                      let amount = 0;
+                      if (add.percentage) {
+                        amount = ((unitCost * add.percentage) / 100) * area;
+                      } else if (add.pricePerSqm) {
+                        amount = add.pricePerSqm * area;
+                      }
+                      return (
+                        <li key={add.id} className="flex justify-between py-1">
+                          <span>{add.name}</span>
+                          <span className="text-muted-foreground">
+                            {add.percentage ? `${add.percentage}%` : add.pricePerSqm ? `₱${add.pricePerSqm}/sqm` : ''}
+                            <span className="ml-2 font-bold text-primary">
+                              ₱{amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                            </span>
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              </section>
 
               <div className="flex justify-between items-center pt-6 border-t">
                 <Button
