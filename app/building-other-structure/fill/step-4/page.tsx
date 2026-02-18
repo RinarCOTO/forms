@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react"; // Added useMemo
 import "@/app/styles/forms-fill.css";
 import { Button } from "@/components/ui/button";
 import { AppSidebar } from "@/components/app-sidebar";
@@ -20,17 +20,22 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 
-import { SelectOption } from "@/components/dynamicSelectButton";
 import { DeductionsTable } from "./deductionsTable";
 import { AdditionalTable } from "./additionalTable";
+import TotalDeductionTable from "./totalDeductionTable";
+
 import { Loader2 } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import React from "react";
-import { FORM_CONSTANTS, DEDUCTION_CHOICES, ADDITIONAL_PERCENT_CHOICES, ADDITIONAL_FLAT_RATE_CHOICES } from "@/config/form-options";
+import {
+  FORM_CONSTANTS,
+  DEDUCTION_CHOICES,
+  ADDITIONAL_PERCENT_CHOICES,
+  ADDITIONAL_FLAT_RATE_CHOICES,
+} from "@/config/form-options";
 import { useFormData } from "@/hooks/useFormData";
-import TotalDeductionTable from "./totalDeductionTable";
 
 const FormSchema = z.object({
   deductions: z.array(z.string()).min(1, {
@@ -38,17 +43,25 @@ const FormSchema = z.object({
   }),
 });
 
-
 const BuildingStructureFormFillPage4 = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const draftId = searchParams.get("id");
 
   const [isSaving, setIsSaving] = useState(false);
+  
+  // State for Standard Deductions
   const [selections, setSelections] = useState<(string | number | null)[]>(() => [null]);
+
+  // State for Additional Percent (Additions)
   const [additionalPercentSelections, setAdditionalPercentSelections] = useState<(string | number | null)[]>(() => [null]);
+  const [additionalPercentAreas, setAdditionalPercentAreas] = useState<number[]>([0]);
+
+  // State for Additional Flat Rate (Additions)
   const [additionalFlatRateSelections, setAdditionalFlatRateSelections] = useState<(string | number | null)[]>(() => [null]);
-  const [comments, setComments] = useState<string>(""); 
+  const [additionalFlatRateAreas, setAdditionalFlatRateAreas] = useState<number[]>([0]);
+
+  const [comments, setComments] = useState<string>("");
   const [unitCost, setUnitCost] = useState<number>(0);
   const [totalFloorArea, setTotalFloorArea] = useState<number>(0);
 
@@ -59,43 +72,31 @@ const BuildingStructureFormFillPage4 = () => {
     defaultValues: { deductions: [] },
   });
 
-  // Load Cost and Draft Data
+  // ---------------------------------------------------------
+  // 1. DATA LOADING EFFECT
+  // ---------------------------------------------------------
   useEffect(() => {
-    // 1. Load Unit Cost
+    // Load Unit Cost
     const savedCost = localStorage.getItem("unit_cost_p2");
     const dbCost = loadedData?.cost_of_construction;
+    if (savedCost) setUnitCost(parseFloat(savedCost));
+    else if (dbCost) setUnitCost(parseFloat(dbCost));
 
-    if (savedCost) {
-      setUnitCost(parseFloat(savedCost));
-    } else if (dbCost) {
-      setUnitCost(parseFloat(dbCost));
-    }
-
-    // 2. Load Total Floor Area
+    // Load Total Floor Area
     const savedFloorArea = localStorage.getItem("total_floor_area_p2");
     const dbFloorArea = loadedData?.total_floor_area;
+    if (savedFloorArea) setTotalFloorArea(parseFloat(savedFloorArea));
+    else if (dbFloorArea) setTotalFloorArea(parseFloat(dbFloorArea));
 
-    if (savedFloorArea) {
-      setTotalFloorArea(parseFloat(savedFloorArea));
-    } else if (dbFloorArea) {
-      setTotalFloorArea(parseFloat(dbFloorArea));
-    }
+    // Load Comments
+    if (loadedData?.overall_comments) setComments(loadedData.overall_comments);
 
-    // 3. Load Comments
-    if (loadedData?.overall_comments) {
-      setComments(loadedData.overall_comments);
-    }
-
-    // 4. Load Selections (Check both 'selected_deductions' from API and legacy 'deductions')
+    // Load Selections
     const dbDeductions = loadedData?.selected_deductions || loadedData?.deductions;
-
     let savedDeductions: string[] = [];
     if (dbDeductions) {
-      if (Array.isArray(dbDeductions)) {
-        savedDeductions = dbDeductions;
-      } else if (typeof dbDeductions === "string") {
-        savedDeductions = dbDeductions.split(",");
-      }
+      if (Array.isArray(dbDeductions)) savedDeductions = dbDeductions;
+      else if (typeof dbDeductions === "string") savedDeductions = dbDeductions.split(",");
     }
 
     if (savedDeductions.length > 0) {
@@ -105,14 +106,18 @@ const BuildingStructureFormFillPage4 = () => {
           return match ? match.id : null;
         })
         .filter(Boolean);
-
       setSelections(recoveredSelections);
-
+      
+      // Update react-hook-form validation
       const validNames = recoveredSelections
         .map((id: string) => DEDUCTION_CHOICES.find((c) => String(c.id) === String(id))?.name)
         .filter(Boolean);
       form.setValue("deductions", validNames as string[]);
     }
+    
+    // Note: You may need similar loading logic here for additionalPercentSelections/Areas
+    // if you are saving them to the DB and want to reload them on edit.
+    
   }, [loadedData, form]);
 
   const handleSelectionChange = (newValues: (string | number | null)[]) => {
@@ -120,33 +125,93 @@ const BuildingStructureFormFillPage4 = () => {
     const validNames = newValues
       .map((val) => DEDUCTION_CHOICES.find((c) => String(c.id) === String(val))?.name)
       .filter((v): v is string => !!v);
-
     form.setValue("deductions", validNames);
   };
 
+  // ---------------------------------------------------------
+  // 2. CENTRALIZED CALCULATION LOGIC (useMemo)
+  // This updates live whenever any input changes.
+  // ---------------------------------------------------------
+  const financialSummary = useMemo(() => {
+    const baseCost = unitCost * totalFloorArea;
+
+    // A. Calculate Standard Deductions (SUBTRACTION)
+    const standardDeductionTotal = selections.reduce((acc, curr) => {
+      if (!curr) return acc;
+      const opt = DEDUCTION_CHOICES.find((c) => String(c.id) === String(curr));
+      if (!opt) return acc;
+      
+      let amount = 0;
+      if (opt.percentage) {
+        amount = (baseCost * opt.percentage) / 100;
+      } else if (opt.pricePerSqm) {
+        amount = opt.pricePerSqm * totalFloorArea;
+      }
+      return acc + amount;
+    }, 0);
+
+    // B. Calculate Additional Percent (ADDITION)
+    let additionalPercentTotal = 0;
+    additionalPercentSelections.forEach((id, idx) => {
+       if(!id) return;
+       const opt = ADDITIONAL_PERCENT_CHOICES.find(o => String(o.id) === String(id));
+       const area = additionalPercentAreas[idx] || 0;
+       if(opt && opt.percentage) {
+          // Formula: (Unit Cost * % / 100) * Area
+          additionalPercentTotal += ((unitCost * opt.percentage) / 100) * area;
+       }
+    });
+
+    // C. Calculate Additional Flat Rate (ADDITION)
+    let additionalFlatTotal = 0;
+    additionalFlatRateSelections.forEach((id, idx) => {
+       if(!id) return;
+       const opt = ADDITIONAL_FLAT_RATE_CHOICES.find(o => String(o.id) === String(id));
+       const area = additionalFlatRateAreas[idx] || 0;
+       if(opt && opt.pricePerSqm) {
+          // Formula: Price/sqm * Area
+          additionalFlatTotal += opt.pricePerSqm * area;
+       }
+    });
+
+    // D. Final Net Calculation
+    const totalAdditions = additionalPercentTotal + additionalFlatTotal;
+    // Market Value = Base - Deductions + Additions
+    const netMarketValue = baseCost - standardDeductionTotal + totalAdditions;
+
+    return {
+      standardDeductionTotal,
+      totalAdditions,
+      netMarketValue
+    };
+  }, [
+    unitCost, 
+    totalFloorArea, 
+    selections, 
+    additionalPercentSelections, 
+    additionalPercentAreas, 
+    additionalFlatRateSelections, 
+    additionalFlatRateAreas
+  ]);
+
+  // ---------------------------------------------------------
+  // 3. HANDLE NEXT (USING PRE-CALCULATED DATA)
+  // ---------------------------------------------------------
   const handleNext = async (data: any) => {
     setIsSaving(true);
     try {
-      // Calculate subtotal: unit cost × total floor area
-      const subtotal = unitCost * totalFloorArea;
-      
-      // Internal calculation for totals to send to API
-      const totalPercentage = selections.reduce<number>((acc, curr) => {
-        const option = DEDUCTION_CHOICES.find((c) => String(c.id) === String(curr));
-        return acc + (option?.percentage || 0);
-      }, 0);
+      // Fetch the calculated values directly from our hook
+      const { standardDeductionTotal, totalAdditions, netMarketValue } = financialSummary;
 
-      const totalDeductionAmount = (subtotal * totalPercentage) / 100;
-      const netUnitCost = subtotal - totalDeductionAmount;
-
-      // Construct Payload based on your API's PUT handler keys
       const formData = {
         status: "draft",
-        selected_deductions: selections.filter(Boolean), // Matches API key: dbData.selected_deductions
-        overall_comments: comments, // Matches API key: dbData.overall_comments
-        total_deduction_percentage: totalPercentage, // Matches API key
-        total_deduction_amount: totalDeductionAmount, // Matches API key
-        net_unit_construction_cost: netUnitCost, // Matches API key
+        selected_deductions: selections.filter(Boolean),
+        overall_comments: comments,
+        
+        // Saving the financial summary directly
+        total_deduction_amount: standardDeductionTotal,
+        total_addition_amount: totalAdditions,
+        net_unit_construction_cost: netMarketValue,
       };
 
       const currentDraftId = draftId || localStorage.getItem("draft_id");
@@ -199,7 +264,7 @@ const BuildingStructureFormFillPage4 = () => {
           <div className="max-w-4xl mx-auto">
             <header className="mb-6">
               <h1 className="text-2xl font-bold tracking-tight">Fill-up Form: General Description</h1>
-              <p className="text-sm text-muted-foreground">Manage structure deductions and percentages.</p>
+              <p className="text-sm text-muted-foreground">Manage structure deductions and deviations.</p>
             </header>
 
             <form onSubmit={form.handleSubmit(handleNext)} className="space-y-8">
@@ -210,105 +275,50 @@ const BuildingStructureFormFillPage4 = () => {
                 selections={selections}
                 onSelectionChange={handleSelectionChange}
                 deductionChoices={DEDUCTION_CHOICES}
-                comments={comments} // Pass state
-                onCommentsChange={setComments} // Pass handler
+                comments={comments}
+                onCommentsChange={setComments}
                 error={form.formState.errors.deductions?.message as string}
               />
+
               <AdditionalTable
-                label="Additional Percent Deviations"
+                label="Additional Percent Deviations (Additions)"
                 unitCost={unitCost}
                 values={additionalPercentSelections}
                 onChange={setAdditionalPercentSelections}
                 options={ADDITIONAL_PERCENT_CHOICES}
+                areas={additionalPercentAreas}
+                onAreasChange={setAdditionalPercentAreas}
               />
+
               <AdditionalTable
-                label="Additional Flat Rate Deviations"
+                label="Additional Flat Rate Deviations (Additions)"
                 unitCost={unitCost}
                 values={additionalFlatRateSelections}
                 onChange={setAdditionalFlatRateSelections}
                 options={ADDITIONAL_FLAT_RATE_CHOICES}
+                areas={additionalFlatRateAreas}
+                onAreasChange={setAdditionalFlatRateAreas}
               />
+
               <TotalDeductionTable
-                label="Total Deductions Summary"
+                label="Market Value Summary"
                 unitCost={unitCost}
-                values={additionalFlatRateSelections}
-                onChange={setAdditionalFlatRateSelections}
-                options={ADDITIONAL_FLAT_RATE_CHOICES}
+                totalFloorArea={totalFloorArea}
+                
+                // Standard
+                deductionSelections={selections}
+                deductionOptions={DEDUCTION_CHOICES}
+                
+                // Percent
+                addPercentSelections={additionalPercentSelections}
+                addPercentAreas={additionalPercentAreas}
+                addPercentOptions={ADDITIONAL_PERCENT_CHOICES}
+
+                // Flat
+                addFlatSelections={additionalFlatRateSelections}
+                addFlatAreas={additionalFlatRateAreas}
+                addFlatOptions={ADDITIONAL_FLAT_RATE_CHOICES}
               />
-
-              <section>
-                <label htmlFor="">TOTAL DEDUCTIONS SUMMARY</label>
-                <div className="grid grid-cols-2 gap-2 mt-2">
-                  <span className="font-semibold">Sub Total:</span>
-                  <span className="font-bold text-primary">
-                    ₱{(unitCost * totalFloorArea - (unitCost * totalFloorArea * selections.reduce((acc, curr) => {
-                      const option = DEDUCTION_CHOICES.find((c) => String(c.id) === String(curr));
-                      return acc + (option?.percentage || 0);
-                    }, 0) / 100)).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                  </span>
-                </div>
-                <div> 
-                  <ul className="divide-y divide-border">
-                    {selections.filter(Boolean).map((sel, idx) => {
-                      const deduction = DEDUCTION_CHOICES.find(opt => String(opt.id) === String(sel));
-                      if (!deduction) return null;
-                      let amount = 0;
-                      if (deduction.percentage) {
-                        amount = unitCost * totalFloorArea * (deduction.percentage / 100);
-                      } else if (deduction.pricePerSqm) {
-                        amount = deduction.pricePerSqm * totalFloorArea;
-                      }
-                      return (
-                        <li key={deduction.id} className="flex justify-between py-1">
-                          <span>{deduction.name}</span>
-                          <span className="text-muted-foreground">
-                            {deduction.percentage ? `${deduction.percentage}%` : deduction.pricePerSqm ? `₱${deduction.pricePerSqm}/sqm` : ''}
-                            {" "}
-                            <span className="ml-2 font-bold text-primary">
-                              ₱{amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                            </span>
-                          </span>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </div>
-
-                <div className="mt-4">
-                  <label className="block font-semibold mb-1">Additional Percent-Based Items</label>
-                  <ul className="divide-y divide-border">
-                    {additionalPercentSelections.filter(Boolean).map((sel, idx) => {
-                      const add = ADDITIONAL_PERCENT_CHOICES.find(opt => String(opt.id) === String(sel));
-                      if (!add) return null;
-                      // Try to get the area for this row from AdditionalTable state if possible
-                      // Fallback: use totalFloorArea if not available (not perfect, but avoids crash)
-                      let area = 0;
-                      if (window.__additionalPercentAreas && Array.isArray(window.__additionalPercentAreas)) {
-                        area = window.__additionalPercentAreas[idx] || 0;
-                      } else {
-                        area = totalFloorArea;
-                      }
-                      let amount = 0;
-                      if (add.percentage) {
-                        amount = ((unitCost * add.percentage) / 100) * area;
-                      } else if (add.pricePerSqm) {
-                        amount = add.pricePerSqm * area;
-                      }
-                      return (
-                        <li key={add.id} className="flex justify-between py-1">
-                          <span>{add.name}</span>
-                          <span className="text-muted-foreground">
-                            {add.percentage ? `${add.percentage}%` : add.pricePerSqm ? `₱${add.pricePerSqm}/sqm` : ''}
-                            <span className="ml-2 font-bold text-primary">
-                              ₱{amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                            </span>
-                          </span>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </div>
-              </section>
 
               <div className="flex justify-between items-center pt-6 border-t">
                 <Button

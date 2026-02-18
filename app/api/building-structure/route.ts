@@ -23,7 +23,7 @@ export interface BuildingStructureInput {
   foundation_type?: string;
   electrical_system?: string;
   plumbing_system?: string;
-  roofing_material?: any; // changed to any to support complex objects
+  roofing_material?: any; 
   wall_material?: any;
   flooring_material?: any;
   ceiling_material?: string;
@@ -36,13 +36,15 @@ export interface BuildingStructureInput {
   land_owner?: string;
   td_arp_no?: string;
   land_area?: number;
-  // --- NEW FIELDS ---
   base_unit_cost?: number;
-  selected_deductions?: string[]; // Array of strings e.g. ['no_plumbing', 'no_paint']
+  selected_deductions?: string[]; 
   total_deduction_percentage?: number;
   total_deduction_amount?: number;
   net_unit_construction_cost?: number;
   overall_comments?: string;
+  // --- NEW FIELDS ADDED HERE ---
+  additional_percentage_choice?: string;
+  additional_percentage_value?: number;
 }
 
 /**
@@ -54,7 +56,6 @@ export async function POST(request: NextRequest) {
     
     console.log('🔵 API received data:', body);
     
-    // Use service role key to bypass RLS
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -68,15 +69,17 @@ export async function POST(request: NextRequest) {
     
     // Map the input data to match the database schema
     const dbData: any = {
-      // --- NEW DEDUCTION FIELDS ---
+      // --- NEW FIELDS MAPPING ---
+      additional_percentage_choice: body.additional_percentage_choice || null,
+      additional_percentage_value: body.additional_percentage_value ? parseFloat(body.additional_percentage_value.toString()) : null,
+
+      // --- EXISTING FIELDS ---
       base_unit_cost: body.base_unit_cost ? parseFloat(body.base_unit_cost.toString()) : null,
       selected_deductions: body.selected_deductions || null,
       total_deduction_percentage: body.total_deduction_percentage ? parseFloat(body.total_deduction_percentage.toString()) : null,
       total_deduction_amount: body.total_deduction_amount ? parseFloat(body.total_deduction_amount.toString()) : null,
       net_unit_construction_cost: body.net_unit_construction_cost ? parseFloat(body.net_unit_construction_cost.toString()) : null,
       overall_comments: body.overall_comments || null,
-      
-      // --- EXISTING FIELDS ---
       arp_no: body.arp_no || null,
       pin: body.pin || null,
       owner_name: body.owner_name || null,
@@ -87,16 +90,11 @@ export async function POST(request: NextRequest) {
       type_of_building: body.type_of_building || null,
       number_of_storeys: body.number_of_storeys ? parseInt(body.number_of_storeys.toString()) : null,
       date_constructed: body.date_constructed ? (body.date_constructed.length === 4 ? `${body.date_constructed}-01-01` : body.date_constructed) : null,
-      completion_issued_on: body.completion_issued_on ? (body.completion_issued_on.length === 4 ? `${body.completion_issued_on}-01-01` : body.completion_issued_on) : null,
       date_completed: body.date_completed ? (body.date_completed.length === 4 ? `${body.date_completed}-01-01` : body.date_completed) : null,
       date_occupied: body.date_occupied ? (body.date_occupied.length === 4 ? `${body.date_occupied}-01-01` : body.date_occupied) : null,
       building_permit_no: body.building_permit_no || null,
       total_floor_area: body.total_floor_area ? parseFloat(body.total_floor_area.toString()) : null,
-      
-      // Note: For POST, we assume the frontend sends simple cleaned arrays or strings.
-      // If you need complex cleaning like in PUT, you can add helper functions here too.
       floor_areas: body.floor_areas ? JSON.stringify(body.floor_areas) : null,
-      
       construction_type: body.construction_type || null,
       structure_type: body.structure_type || null,
       foundation_type: body.foundation_type || null,
@@ -169,7 +167,6 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50');
     const offset = parseInt(searchParams.get('offset') || '0');
     
-    // Use service role key to bypass RLS
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
