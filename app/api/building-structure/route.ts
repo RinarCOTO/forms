@@ -43,9 +43,14 @@ export interface BuildingStructureInput {
   net_unit_construction_cost?: number;
   overall_comments?: string;
   // --- NEW FIELDS ADDED HERE ---
-  additional_percentage_choice?: string;
-  additional_percentage_value?: number;
-}
+additional_percentage_choice?: string;  
+additional_percentage_value?: number;   
+additional_percentage_areas?: number[];
+// ADD these two:
+additional_flat_rate_choice?: string;
+additional_flat_rate_value?: number;
+additional_flat_rate_areas?: number[];
+  }
 
 /**
  * POST - Create a new building structure record
@@ -69,10 +74,6 @@ export async function POST(request: NextRequest) {
     
     // Map the input data to match the database schema
     const dbData: any = {
-      // --- NEW FIELDS MAPPING ---
-      additional_percentage_choice: body.additional_percentage_choice || null,
-      additional_percentage_value: body.additional_percentage_value ? parseFloat(body.additional_percentage_value.toString()) : null,
-
       // --- EXISTING FIELDS ---
       base_unit_cost: body.base_unit_cost ? parseFloat(body.base_unit_cost.toString()) : null,
       selected_deductions: body.selected_deductions || null,
@@ -115,7 +116,14 @@ export async function POST(request: NextRequest) {
       td_arp_no: body.td_arp_no || null,
       land_area: body.land_area ? parseFloat(body.land_area.toString()) : null,
       cost_of_construction: body.cost_of_construction ? parseFloat(body.cost_of_construction.toString()) : null,
-    };
+      additional_percentage_areas: body.additional_percentage_areas || null,
+      additional_percentage_choice: body.additional_percentage_choice || null,
+      additional_percentage_value: body.additional_percentage_value ? parseFloat(body.additional_percentage_value.toString()) : null,
+      additional_flat_rate_areas: body.additional_flat_rate_areas || null,
+      additional_flat_rate_choice: body.additional_flat_rate_choice || null,
+      additional_flat_rate_value: body.additional_flat_rate_value ? parseFloat(body.additional_flat_rate_value.toString()) : null,
+      
+      };
     
     const { data, error } = await supabase
       .from('building_structures')

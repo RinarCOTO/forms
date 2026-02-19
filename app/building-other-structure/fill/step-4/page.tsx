@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, useEffect, useMemo } from "react"; // Added useMemo
+import { useState, useEffect, useMemo } from "react"; 
 import "@/app/styles/forms-fill.css";
 import { Button } from "@/components/ui/button";
 import { AppSidebar } from "@/components/app-sidebar";
@@ -99,6 +99,24 @@ const BuildingStructureFormFillPage4 = () => {
       else if (typeof dbDeductions === "string") savedDeductions = dbDeductions.split(",");
     }
 
+    // Load Additional Percent
+   if (loadedData?.additional_percentage_choice) {
+  const ids = loadedData.additional_percentage_choice.split(",").filter(Boolean);
+  setAdditionalPercentSelections(ids);
+}
+if (loadedData?.additional_percentage_areas?.length > 0) {
+  setAdditionalPercentAreas(loadedData.additional_percentage_areas.map(Number));  // ✅ ADD
+}
+
+if (loadedData?.additional_flat_rate_choice) {
+  const ids = loadedData.additional_flat_rate_choice.split(",").filter(Boolean);
+  setAdditionalFlatRateSelections(ids);
+}
+if (loadedData?.additional_flat_rate_areas?.length > 0) {
+  setAdditionalFlatRateAreas(loadedData.additional_flat_rate_areas.map(Number));  // ✅ ADD
+}
+
+
     if (savedDeductions.length > 0) {
       const recoveredSelections = savedDeductions
         .map((d: string) => {
@@ -112,7 +130,7 @@ const BuildingStructureFormFillPage4 = () => {
       const validNames = recoveredSelections
         .map((id: string) => DEDUCTION_CHOICES.find((c) => String(c.id) === String(id))?.name)
         .filter(Boolean);
-      form.setValue("deductions", validNames as string[]);
+      form.setValue("deductions", validNames as string[], { shouldValidate: true });
     }
     
     // Note: You may need similar loading logic here for additionalPercentSelections/Areas
@@ -125,7 +143,7 @@ const BuildingStructureFormFillPage4 = () => {
     const validNames = newValues
       .map((val) => DEDUCTION_CHOICES.find((c) => String(c.id) === String(val))?.name)
       .filter((v): v is string => !!v);
-    form.setValue("deductions", validNames);
+    form.setValue("deductions", validNames, { shouldValidate: true });
   };
 
   // ---------------------------------------------------------
@@ -136,7 +154,7 @@ const BuildingStructureFormFillPage4 = () => {
     const baseCost = unitCost * totalFloorArea;
 
     // A. Calculate Standard Deductions (SUBTRACTION)
-    const standardDeductionTotal = selections.reduce((acc, curr) => {
+    const standardDeductionTotal = selections.reduce<number>((acc, curr) => {
       if (!curr) return acc;
       const opt = DEDUCTION_CHOICES.find((c) => String(c.id) === String(curr));
       if (!opt) return acc;
@@ -176,13 +194,17 @@ const BuildingStructureFormFillPage4 = () => {
 
     // D. Final Net Calculation
     const totalAdditions = additionalPercentTotal + additionalFlatTotal;
+    const netUnitCost = baseCost - standardDeductionTotal;
     // Market Value = Base - Deductions + Additions
-    const netMarketValue = baseCost - standardDeductionTotal + totalAdditions;
+    const netMarketValue = netUnitCost + totalAdditions;
 
     return {
       standardDeductionTotal,
       totalAdditions,
-      netMarketValue
+      netUnitCost,
+      netMarketValue,
+      additionalPercentTotal,
+      additionalFlatTotal
     };
   }, [
     unitCost, 
@@ -203,15 +225,28 @@ const BuildingStructureFormFillPage4 = () => {
       // Fetch the calculated values directly from our hook
       const { standardDeductionTotal, totalAdditions, netMarketValue } = financialSummary;
 
+      // Save market value to localStorage for step 6
+      if (netMarketValue !== undefined && netMarketValue !== null) {
+        localStorage.setItem("market_value_p4", netMarketValue.toString());
+      }
+
       const formData = {
         status: "draft",
         selected_deductions: selections.filter(Boolean),
         overall_comments: comments,
         
         // Saving the financial summary directly
-        total_deduction_amount: standardDeductionTotal,
-        total_addition_amount: totalAdditions,
-        net_unit_construction_cost: netMarketValue,
+        additional_percentage_choice: additionalPercentSelections.filter(Boolean).join(","),
+        additional_percentage_value: financialSummary.totalAdditions,
+        additional_percentage_areas: additionalPercentAreas,   // ✅ ADD
+
+        // Additional Flat Rate
+        additional_flat_rate_choice: additionalFlatRateSelections.filter(Boolean).join(","),
+        additional_flat_rate_value: additionalFlatRateAreas.reduce((a, b) => a + b, 0),
+        additional_flat_rate_areas: additionalFlatRateAreas,
+
+        //Market Value
+        market_value: financialSummary.netMarketValue,
       };
 
       const currentDraftId = draftId || localStorage.getItem("draft_id");
@@ -304,7 +339,8 @@ const BuildingStructureFormFillPage4 = () => {
                 label="Market Value Summary"
                 unitCost={unitCost}
                 totalFloorArea={totalFloorArea}
-                
+                netUnitCost={financialSummary.netUnitCost}
+
                 // Standard
                 deductionSelections={selections}
                 deductionOptions={DEDUCTION_CHOICES}

@@ -79,27 +79,6 @@ export const DeductionsTable = ({
               onChange={(e) => onCommentsChange(e.target.value)} // Update parent
             />
           </div>
-
-          {/* Summary Calculation Box */}
-          <div className="flex flex-col gap-2 p-4 bg-muted/30 rounded-md border">
-            <div className="flex justify-between items-center text-sm">
-              <span className="text-muted-foreground">Total Deduction %:</span>
-              <span className="font-bold">{totalPercentage}%</span>
-            </div>
-            <div className="flex justify-between items-center text-sm">
-              <span className="text-muted-foreground">Total Deduction Value:</span>
-              <span className="font-bold text-destructive">
-                - ₱{formatCurrency(totalDeductionValue)}
-              </span>
-            </div>
-            <Separator className="my-2" />
-            <div className="flex justify-between items-center">
-              <span className="text-sm font-semibold">Cost of Deduction:</span>
-              <span className="text-xl font-bold text-primary">
-                ₱{formatCurrency(netUnitCost)}
-              </span>
-            </div>
-          </div>
         </div>
       </div>
     </section>

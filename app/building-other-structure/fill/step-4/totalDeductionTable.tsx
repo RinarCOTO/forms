@@ -124,7 +124,6 @@ export default function TotalDeductionTable({
   const renderRows = (rows: CalculatedRow[]) => {
     return rows.map((row, i) => (
       <tr key={`${row.rowType}-${i}`} className="hover:bg-muted/10">
-        <td className="px-4 py-2 text-muted-foreground">{row.rowType}</td>
         <td className="px-4 py-2 font-medium">
           {row.name}
           <span className="text-xs text-muted-foreground ml-1">
@@ -132,7 +131,7 @@ export default function TotalDeductionTable({
           </span>
         </td>
         <td className="px-4 py-2 text-center">{row.appliedArea} sqm</td>
-        <td className={`px-4 py-2 text-right font-medium ${row.isDeduction ? 'text-destructive' : 'text-emerald-600'}`}>
+        <td className={`px-4 py-2 text-right font-medium ${row.isDeduction ? 'text-destructive' : 'text-emerald-600'}`}> 
           {row.isDeduction ? '-' : '+'}₱{formatCurrency(row.amount)}
         </td>
       </tr>
@@ -143,21 +142,41 @@ export default function TotalDeductionTable({
     <section className="bg-card rounded-lg border p-6 shadow-sm mt-8 border-l-4 border-l-primary">
       <h3 className="text-lg font-bold mb-4">{label}</h3>
 
+      {/* Deductions Table */}
+      <div className="mb-1 font-semibold text-base text-muted-foreground">Deductions</div>
       <div className="overflow-hidden rounded-md border border-border mb-4">
         <table className="w-full text-sm">
           <thead className="bg-muted">
             <tr>
-              <th className="px-4 py-2 text-left">Type</th>
               <th className="px-4 py-2 text-left">Description</th>
               <th className="px-4 py-2 text-center">Applied Area</th>
               <th className="px-4 py-2 text-right">Value Impact</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border bg-background">
-            {standardRows.length === 0 && percentRows.length === 0 && flatRows.length === 0 && (
-              <tr><td colSpan={4} className="p-4 text-center text-muted-foreground">No items applied.</td></tr>
+            {standardRows.length === 0 && (
+              <tr><td colSpan={3} className="p-4 text-center text-muted-foreground">No deductions applied.</td></tr>
             )}
             {renderRows(standardRows)}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Additionals Table */}
+      <div className="mb-1 font-semibold text-base text-muted-foreground">Additionals</div>
+      <div className="overflow-hidden rounded-md border border-border mb-4">
+        <table className="w-full text-sm">
+          <thead className="bg-muted">
+            <tr>
+              <th className="px-4 py-2 text-left">Description</th>
+              <th className="px-4 py-2 text-center">Applied Area</th>
+              <th className="px-4 py-2 text-right">Value Impact</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border bg-background">
+            {percentRows.length === 0 && flatRows.length === 0 && (
+              <tr><td colSpan={3} className="p-4 text-center text-muted-foreground">No additionals applied.</td></tr>
+            )}
             {renderRows(percentRows)}
             {renderRows(flatRows)}
           </tbody>
@@ -188,7 +207,7 @@ export default function TotalDeductionTable({
         <Separator className="my-2" />
         
         <div className="flex justify-between items-center">
-          <span className="text-lg font-bold">Total Market Value:</span>
+          <span className="text-lg font-bold">Market Value:</span>
           <span className="text-2xl font-bold text-primary">
             ₱{formatCurrency(finalMarketValue)}
           </span>
