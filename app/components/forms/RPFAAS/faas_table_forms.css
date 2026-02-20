@@ -3,35 +3,37 @@ table {
   table-layout: auto;
   border-collapse: collapse;
   border: 2px solid black;
-  margin-top: 0.5rem;
-  margin-bottom: 0.5rem;
+  margin-top: 0;
+  margin-bottom: 0.25rem;
 }
 
 table th,
 table td {
   border: 1px solid black;
-  padding:0 0.5rem 0 0.5rem;
+  padding: 0 0.5rem;
 }
 
-table.no-border {
-  border: none;
-}
-
+table.no-border,
 table.no-border th,
 table.no-border td {
   border: none;
 }
+
 .sectionHeader {
-  background-color: #e6e6e6; /* neutral light gray */
+  background-color: #e6e6e6; 
 }
 
 /* =========================
-   PRINT SETTINGS (A4)
+   PRINT SETTINGS (A4 - Single Page Optimized)
 ========================= */
 
 @page {
   size: A4;
-  margin: 15mm;
+  margin-top: -8mm;
+  margin-right: 8mm;
+  margin-bottom: 8mm;
+  margin-left: 8mm;
+  /* Reduced top margin for print */
 }
 
 @media print {
@@ -42,80 +44,48 @@ table.no-border td {
   }
 
   .rpfaas-print {
-    width: 210mm;
-    min-height: 297mm;
-    font-size: 12px;
-    line-height: 1.2;
+    width: 100%;
+    font-size: 12px; /* Scaled down base font */
+    line-height: 1.15; /* Tighter line height */
     color: #000;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
-  .rpfaas-print-small{
+
+  .rpfaas-print-small {
     font-size: 9px !important;
     line-height: 1 !important;
-    margin-top: auto;
-    padding-top: 0.25rem !important; /* print:py-3 equivalent */
-    padding-bottom: 0.25rem !important; /* print:py-3 equivalent */
-
+    padding-top: 2px !important;
+    padding-bottom: 2px !important;
   }
+
   h1 {
-    font-size: 14px;
-    margin-bottom: 6mm;
+    font-size: 12px !important;
+    margin-bottom: 4mm;
   }
 
   table {
     width: 100%;
     border-collapse: collapse;
-    page-break-inside: avoid;
-    margin-bottom: 4mm;
+    margin-bottom: 2mm; /* Tighter space between tables */
     border: 2px solid #000 !important;
   }
 
   td, th {
     border: 1px solid #000 !important;
-    padding: 2px 3px;
-    vertical-align: top;
+    padding: 1px 2px !important; /* Minimized padding */
+    vertical-align: middle;
   }
   
   /* Force all border utilities to be black in print */
-  .border,
-  .border-l,
-  .border-r,
-  .border-t,
-  .border-b,
-  .border-x,
-  .border-y {
+  .border, .border-l, .border-r, .border-t, .border-b, .border-x, .border-y,
+  .border-b-2, .border-t-2, .border-black {
     border-color: #000 !important;
   }
 
-  /* Force all border utilities to be black in print */
-  .border,
-  .border-l,
-  .border-r,
-  .border-t,
-  .border-b,
-  .border-x,
-  .border-y {
-    border-color: #000 !important;
-  }
-
-  /* Allow applying no-border to any element (table, tr, td, th) */
-  .no-border,
-  .no-border td,
-  .no-border th,
-  tr.no-border td,
-  tr.no-border th {
-    border: none;
-  }
-
-  @media print {
-    .no-border,
-    .no-border td,
-    .no-border th,
-    tr.no-border td,
-    tr.no-border th {
-      border: none !important;
-    }
+  /* Allow applying no-border to any element */
+  .no-border, .no-border td, .no-border th, tr.no-border td, tr.no-border th {
+    border: none !important;
   }
 
   .bordered-table td {
@@ -123,19 +93,16 @@ table.no-border td {
   }
 
   /* Prevent ugly page breaks */
-  tr {
-    page-break-inside: avoid;
+  table, tr, td, th, tbody, thead, tfoot {
+    page-break-inside: avoid !important;
   }
 
-  /* Section spacing */
   .font-bold {
     font-weight: bold;
   }
 
   /* Hide interactive UI junk */
-  input,
-  button,
-  select {
+  input, button, select {
     appearance: none;
     -webkit-appearance: none;
     border: 1px solid #000;
@@ -143,31 +110,41 @@ table.no-border td {
     height: 10px;
   }
 
-  /* Checkboxes must print */
   input[type="checkbox"] {
     display: inline-block;
   }
 
-  /* Force page breaks if needed */
-  .page-break {
-    page-break-before: always;
-  }
-
   .underline-amount {
     border-bottom: 2px solid #000 !important;
+    padding: 2px 4px !important;
   }
 
-  .spaced-row td {
-    padding-top: 12px !important;
+  /* Override excessive Tailwind padding classes in print */
+  .py-4, .py-auto, .my-auto {
+    padding-top: 2px !important;
+    padding-bottom: 2px !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
   }
 
   .sectionHeader {
     background-color: #e6e6e6 !important; 
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
+    padding: 4px !important; /* Control header padding */
+  }
+
+  .section-divider {
+    border-bottom: 2px solid #000 !important;
+  }
+
+  .boxed {
+    border: 1px solid #000 !important;
+    padding: 2px 4px !important;
   }
 }
 
+/* Screen Utilities */
 .underline-amount {
   border-bottom: 2px solid #000;
   padding: 6px 4px;
@@ -188,24 +165,7 @@ table.no-border td {
   border-bottom: 2px solid #000;
 }
 
-@media print {
-  .section-divider {
-    border-bottom: 2px solid #000 !important;
-  }
-  
-  /* Ensure all border classes render black */
-  .border-b-2,
-  .border-t-2,
-  .border-black {
-    border-color: #000 !important;
-  }
-  
-  .boxed {
-    border: 1px solid #000 !important;
-    padding: 4px 6px !important;
-  }
-}
-
+/* Fill mode formatting (kept intact) */
 .rpfaas-fill {
   min-height: 100vh;
   display: flex;
@@ -305,4 +265,7 @@ table.no-border td {
 .rpfaas-fill-button-primary {
   background-color: #2563eb;
   color: white;
+}
+.rpfass-font-small{
+  font-size: 10px;
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { FormEvent, useState, useEffect } from "react";
+import { FormEvent, useState, useEffect, useCallback, Suspense } from "react";
 import "@/app/styles/forms-fill.css";
 import { AppSidebar } from "@/components/app-sidebar";
 import {
@@ -44,6 +44,15 @@ function collectFormData(
 
 const FORM_NAME = "building-structure-form-fill-page-5";
 const PAGE_DESCRIPTION = "Final notes and summary of the property assessment.";
+
+// Pure helpers at module scope — no state/props, so no need to recreate on render
+function formatNumberWithCommas(num: number): string {
+  return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
+function removeCommas(str: string): string {
+  return str.replace(/,/g, "");
+}
 
 // Function to convert number to words
 function numberToWords(num: number): string {
@@ -93,7 +102,7 @@ function numberToWords(num: number): string {
   return word.trim();
 }
 
-export default function BuildingStructureFormFillPage5() {
+function BuildingStructureFormFillPage5() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const draftId = searchParams.get('id');
@@ -104,16 +113,6 @@ export default function BuildingStructureFormFillPage5() {
   const [estimatedValue, setEstimatedValue] = useState<number>(0);
   const [estimatedValueDisplay, setEstimatedValueDisplay] = useState("");
   const [amountInWords, setAmountInWords] = useState("");
-
-  // Format number with commas
-  const formatNumberWithCommas = (num: number): string => {
-    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-  };
-
-  // Remove commas from string
-  const removeCommas = (str: string): string => {
-    return str.replace(/,/g, "");
-  };
 
   // Load the type of building from localStorage
   useEffect(() => {
@@ -172,13 +171,13 @@ export default function BuildingStructureFormFillPage5() {
     loadDraft();
   }, [draftId]);
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = useCallback((e: FormEvent) => {
     e.preventDefault();
     // For now, go back to main list after submit
     router.push("/building-other-structure");
-  };
+  }, [router]);
 
-  const handlePreview = async () => {
+  const handlePreview = useCallback(async () => {
     setIsSaving(true);
     try {
       const formData = collectFormData(actualUse, estimatedValue, amountInWords);
@@ -230,7 +229,7 @@ export default function BuildingStructureFormFillPage5() {
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [actualUse, estimatedValue, amountInWords, draftId, router]);
 
   return (
     <SidebarProvider>
@@ -306,5 +305,13 @@ export default function BuildingStructureFormFillPage5() {
         </div>
       </SidebarInset>
     </SidebarProvider>
+  );
+}
+
+export default function BuildingStructureFormFillPage5Wrapper() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <BuildingStructureFormFillPage5 />
+    </Suspense>
   );
 }

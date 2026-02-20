@@ -41,7 +41,7 @@ export const ADDITIONAL_FLAT_RATE_CHOICES = [
 // config/form-options.ts
 
 export const BUILDING_TYPES = [
-  { id: "building_type_1", label: "Residential Houses" },
+  { id: "building_type_1", label: "Residential" },
   { id: "building_type_2", label: "Apartment Row Houses" },
   {
     id: "building_type_3",

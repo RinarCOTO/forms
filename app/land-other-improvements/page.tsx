@@ -1,5 +1,5 @@
-import LandOtherImprovements from '@/app/components/forms/RPFAAS/land_other_improvements_form_test';
+import { redirect } from 'next/navigation';
 
 export default function LandOtherImprovementsPage() {
-  return <LandOtherImprovements />;
+  redirect('/land-other-improvements/dashboard');
 }

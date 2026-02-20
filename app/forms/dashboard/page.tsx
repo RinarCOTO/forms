@@ -239,7 +239,7 @@ export default function Page() {
                 {formsMenu.map((form) => (
                   <Card
                     key={form.id}
-                    className="cursor-pointer transition-all hover:shadow-lg hover:border-primary"
+                    className="cursor-pointer select-none transition-all hover:shadow-lg hover:border-primary"
                     onClick={() => handleFormSelect(form.id as FormType)}
                   >
                     <CardHeader>

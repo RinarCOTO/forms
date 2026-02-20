@@ -85,7 +85,7 @@ export default function PreviewFormPage() {
     }
   }, []);
 
-  const handleSaveDraft = async () => {
+  const handleSaveDraft = useCallback(async () => {
     setIsSaving(true);
     try {
       const formData = collectFormData();
@@ -131,9 +131,9 @@ export default function PreviewFormPage() {
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [router]);
 
-  const handleSubmit = async () => {
+  const handleSubmit = useCallback(async () => {
     setIsSubmitting(true);
     try {
       const formData = collectFormData();
@@ -179,7 +179,7 @@ export default function PreviewFormPage() {
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }, [router]);
 
   return (
     <SidebarProvider>

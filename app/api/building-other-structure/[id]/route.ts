@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
+import { revalidateTag } from 'next/cache';
 
 export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> | { id: string } }) {
   console.log('=== GET /api/building-other-structure/[id] - Route Hit ===');
@@ -127,8 +128,9 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
     }
 
     console.log('PUT - Successfully updated draft:', updatedRecord);
-    return NextResponse.json({ 
-      success: true, 
+    revalidateTag('building-structures');
+    return NextResponse.json({
+      success: true,
       data: updatedRecord  // Return the actual updated database record
     });
     
@@ -242,8 +244,10 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ id: 
     }
 
     console.log('DELETE - Successfully deleted record:', deletedRecord);
-    return NextResponse.json({ 
-      success: true, 
+    revalidateTag('building-structures');
+    revalidateTag('form-counts');
+    return NextResponse.json({
+      success: true,
       message: 'Record deleted successfully',
       data: deletedRecord
     });

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, FormEvent, useEffect } from "react";
+import { useState, FormEvent, useEffect, useCallback, Suspense } from "react";
 import { useFormData } from "@/hooks/useFormData";
 import { useFormPersistence } from "@/hooks/useFormPersistence";
 import "@/app/styles/forms-fill.css";
@@ -122,6 +122,10 @@ function collectFormData(
 
 const FORM_NAME = "building-structure-form-fill-page-3";
 
+// Constant label arrays at module scope — no need to recreate on every render
+const flooringLabels = ["Concrete", "Plain Cement", "Marble", "Wood", "Tiles", "Other"];
+const wallLabels = ["Concrete", "Plain Cement", "Wood", "CHB", "C.I. Sheets"];
+
 const BuildingStructureFormFillPage3 = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -146,10 +150,6 @@ const BuildingStructureFormFillPage3 = () => {
   // Grids State
   const [flooringGrid, setFlooringGrid] = useState<boolean[][]>([]);
   const [wallsGrid, setWallsGrid] = useState<boolean[][]>([]);
-
-  // Labels
-  const flooringLabels = ["Concrete", "Plain Cement", "Marble", "Wood", "Tiles", "Other"];
-  const wallLabels = ["Concrete", "Plain Cement", "Wood", "CHB", "C.I. Sheets"];
 
   // --- Load from DB if editing ---
   const { data: loadedData, isLoading: isLoadingData } = useFormData<any>("building-structure", draftId || "");
@@ -219,18 +219,18 @@ const BuildingStructureFormFillPage3 = () => {
   useFormPersistence("wall_material_json", wallsGrid);
 
   // --- Toggling Logic ---
-  const toggleFlooringCell = (row: number, col: number) => {
+  const toggleFlooringCell = useCallback((row: number, col: number) => {
     setFlooringGrid((prev) => {
       if (!prev || prev.length === 0) return prev;
-      const copy = prev.map((r) => [...r]); 
+      const copy = prev.map((r) => [...r]);
       if (copy[row] && copy[row][col] !== undefined) {
         copy[row][col] = !copy[row][col];
       }
       return copy;
     });
-  };
+  }, []);
 
-  const toggleWallsCell = (row: number, col: number) => {
+  const toggleWallsCell = useCallback((row: number, col: number) => {
     setWallsGrid((prev) => {
       if (!prev || prev.length === 0) return prev;
       const copy = prev.map((r) => [...r]);
@@ -239,15 +239,10 @@ const BuildingStructureFormFillPage3 = () => {
       }
       return copy;
     });
-  };
+  }, []);
 
   // --- Handlers ---
-  const handleSubmit = (e: FormEvent) => {
-    e.preventDefault();
-    handleNext();
-  };
-
-  const handleNext = async () => {
+  const handleNext = useCallback(async () => {
     setIsSaving(true);
     try {
       const formData = collectFormData(materials, materialsOtherText, flooringGrid, wallsGrid);
@@ -291,7 +286,12 @@ const BuildingStructureFormFillPage3 = () => {
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [materials, materialsOtherText, flooringGrid, wallsGrid, draftId, router]);
+
+  const handleSubmit = useCallback((e: FormEvent) => {
+    e.preventDefault();
+    handleNext();
+  }, [handleNext]);
 
   return (
     <SidebarProvider>
@@ -472,4 +472,10 @@ const BuildingStructureFormFillPage3 = () => {
     </SidebarProvider>
   );
 };
-export default BuildingStructureFormFillPage3;
+export default function BuildingStructureFormFillPage3Wrapper() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <BuildingStructureFormFillPage3 />
+    </Suspense>
+  );
+}

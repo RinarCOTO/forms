@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Update role error:', error);
     return NextResponse.json(
-      { error: 'An unexpected error occurred: ' + error.message },
+      { error: 'An unexpected error occurred: ' + (error instanceof Error ? error.message : String(error)) },
       { status: 500 }
     );
   }

@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { FileText, Plus, Loader2, Eye, Edit, ChevronLeft } from "lucide-react"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 
 type FormType = "building-structure" | "land-improvements" | "machinery" | "notes"
@@ -149,9 +149,9 @@ export default function Page() {
   }, [selectedForm])
 
   // UPDATED: Logic to handle dashboard redirection
-  const handleFormSelect = (formId: FormType) => {
+  const handleFormSelect = useCallback((formId: FormType) => {
     const form = formsMenu.find((f) => f.id === formId)
-    
+
     // If the form has a specific dashboard route (like Building & Structures), redirect there
     if (form?.dashboardRoute) {
       router.push(form.dashboardRoute)
@@ -161,14 +161,14 @@ export default function Page() {
     // Otherwise, default to the local table view
     setSelectedForm(formId)
     setShowForm(false)
-  }
+  }, [router])
 
-  const handleBackToMenu = () => {
+  const handleBackToMenu = useCallback(() => {
     setSelectedForm(null)
     setShowForm(false)
-  }
+  }, [])
 
-  const handleNewForm = async () => {
+  const handleNewForm = useCallback(async () => {
     const form = formsMenu.find((f) => f.id === selectedForm)
     if (form?.apiEndpoint && form?.formRoute) {
       try {
@@ -194,14 +194,14 @@ export default function Page() {
         alert('Error creating new submission.');
       }
     }
-  }
+  }, [selectedForm, router])
 
-  const handleViewSubmission = (submissionId: number) => {
+  const handleViewSubmission = useCallback((submissionId: number) => {
     const form = formsMenu.find((f) => f.id === selectedForm)
     if (form?.formRoute) {
       router.push(`${form.formRoute}?id=${submissionId}`)
     }
-  }
+  }, [selectedForm, router])
 
   const currentFormData = formsMenu.find((f) => f.id === selectedForm)
 
@@ -247,7 +247,7 @@ export default function Page() {
                 {formsMenu.map((form) => (
                   <Card
                     key={form.id}
-                    className="cursor-pointer transition-all hover:shadow-lg hover:border-primary"
+                    className="cursor-pointer select-none transition-all hover:shadow-lg hover:border-primary"
                     onClick={() => handleFormSelect(form.id as FormType)}
                   >
                     <CardHeader>

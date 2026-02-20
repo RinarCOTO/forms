@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git rm:*)",
+      "Bash(npm run build:*)",
+      "Bash(npx shadcn@latest add form:*)",
+      "Bash(Get-Content \"C:\\\\Users\\\\rinar\\\\OneDrive\\\\Documents\\\\GitHub\\\\forms\\\\app\\\\building-other-structure\\\\fill\\\\step-5\\\\page.tsx\")",
+      "Bash(Select-Object -Last 15)",
+      "Bash(powershell -Command \"Get-Content ''C:\\\\Users\\\\rinar\\\\OneDrive\\\\Documents\\\\GitHub\\\\forms\\\\app\\\\building-other-structure\\\\fill\\\\step-5\\\\page.tsx'' | Select-Object -Last 15\")",
+      "Bash(powershell -Command \"Get-Content ''C:\\\\Users\\\\rinar\\\\OneDrive\\\\Documents\\\\GitHub\\\\forms\\\\app\\\\building-other-structure\\\\fill\\\\step-6\\\\page.tsx'' | Select-Object -Last 10\")",
+      "Bash(powershell -Command:*)"
+    ]
+  }
+}

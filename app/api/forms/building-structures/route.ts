@@ -1,52 +1,63 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { unstable_cache, revalidateTag } from 'next/cache'
 
-// Helper to initialize Supabase
 const getSupabase = () => {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
   if (!supabaseUrl || !supabaseServiceKey) {
-    throw new Error('Supabase configuration missing');
+    throw new Error('Supabase configuration missing')
   }
 
   return createClient(supabaseUrl, supabaseServiceKey, {
     auth: { autoRefreshToken: false, persistSession: false },
-    db: { schema: 'public' }
-  });
+    db: { schema: 'public' },
+  })
 }
 
-export async function GET() {
-  try {
-    const supabase = getSupabase();
+const getCachedBuildingStructures = unstable_cache(
+  async () => {
+    const supabase = getSupabase()
     const { data, error } = await supabase
       .from('building_structures')
       .select('id, owner_name, updated_at, status')
-      .order('updated_at', { ascending: false });
+      .order('updated_at', { ascending: false })
+    if (error) throw new Error(error.message)
+    return data || []
+  },
+  ['building-structures-list'],
+  { tags: ['building-structures'], revalidate: 30 }
+)
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json(data || []);
+export async function GET() {
+  try {
+    const data = await getCachedBuildingStructures()
+    return NextResponse.json(data)
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
 
 export async function POST(request: Request) {
   try {
-    const supabase = getSupabase();
-    const body = await request.json();
-    
-    // Insert new record (usually happens on Step 1)
+    const supabase = getSupabase()
+    const body = await request.json()
+
     const { data, error } = await supabase
       .from('building_structures')
       .insert([body])
       .select()
-      .single();
+      .single()
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json({ data });
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+    revalidateTag('building-structures')
+    revalidateTag('form-counts')
+
+    return NextResponse.json({ data })
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
 
@@ -56,35 +67,37 @@ export async function POST(request: Request) {
  */
 export async function PUT(request: Request) {
   try {
-    const supabase = getSupabase();
-    const { searchParams } = new URL(request.url);
-    const id = searchParams.get('id');
-    const body = await request.json();
+    const supabase = getSupabase()
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get('id')
+    const body = await request.json()
 
     if (!id) {
-      return NextResponse.json({ error: 'Missing ID parameter' }, { status: 400 });
+      return NextResponse.json({ error: 'Missing ID parameter' }, { status: 400 })
     }
 
     console.log(`Updating record ${id} with materials:`, {
       flooring: body.structural_materials_flooring_p3,
-      walls: body.structural_materials_walls_p3
-    });
+      walls: body.structural_materials_walls_p3,
+    })
 
     const { data, error } = await supabase
       .from('building_structures')
-      .update(body) // Body contains the JSON strings and human-readable text
+      .update(body)
       .eq('id', id)
       .select()
-      .single();
+      .single()
 
     if (error) {
-      console.error('Update Error:', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      console.error('Update Error:', error)
+      return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    return NextResponse.json({ data });
+    revalidateTag('building-structures')
+
+    return NextResponse.json({ data })
   } catch (error: any) {
-    console.error('Server Error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('Server Error:', error)
+    return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }

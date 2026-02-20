@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState, FormEvent, Suspense } from "react";
+import { useEffect, useState, useCallback, memo, FormEvent, Suspense } from "react";
 import "@/app/styles/forms-fill.css";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -167,6 +167,34 @@ function useLocationSelect(storagePrefix: string) {
   };
 }
 
+// Memoized select component — prevents all 9 instances from re-rendering when unrelated parent state changes
+const LocationSelect = memo(({
+  label, value, onChange, options, disabled, placeholder
+}: {
+  label: string, value: string, onChange: (val: string) => void, options: LocationOption[], disabled?: boolean, placeholder: string
+}) => (
+  <div className="space-y-1">
+    <Label className="rpfaas-fill-label-sub">{label}</Label>
+    <div className="relative">
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="rpfaas-fill-input appearance-none"
+        disabled={disabled}
+      >
+        <option value="">{placeholder}</option>
+        {options.map((opt) => (
+          <option key={opt.code} value={opt.code}>{opt.name}</option>
+        ))}
+      </select>
+      {/* Chevron Icon */}
+      <svg className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M6 9l6 6 6-6" />
+      </svg>
+    </div>
+  </div>
+));
+
 const FORM_NAME = "building_other_structure_fill";
 
 function BuildingOtherStructureFillPageContent() {
@@ -231,12 +259,12 @@ function BuildingOtherStructureFillPageContent() {
   useEffect(() => safeSetLS("rpfaas_admin_careof", adminCareOf), [adminCareOf]);
   useEffect(() => safeSetLS("rpfaas_location_street", propertyStreet), [propertyStreet]);
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = useCallback((e: FormEvent) => {
     e.preventDefault();
     router.push("/building-other-structure");
-  };
+  }, [router]);
 
-  const handleNext = async () => {
+  const handleNext = useCallback(async () => {
     setIsSaving(true);
     try {
       const formData = collectFormData(ownerName, adminCareOf, propertyStreet, ownerLoc, adminLoc, propLoc);
@@ -315,35 +343,7 @@ function BuildingOtherStructureFillPageContent() {
     } finally {
       setIsSaving(false);
     }
-  };
-
-  // Reusable Select Component
-  const LocationSelect = ({ 
-    label, value, onChange, options, disabled, placeholder 
-  }: { 
-    label: string, value: string, onChange: (val: string) => void, options: LocationOption[], disabled?: boolean, placeholder: string 
-  }) => (
-    <div className="space-y-1">
-      <Label className="rpfaas-fill-label-sub">{label}</Label>
-      <div className="relative">
-        <select
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="rpfaas-fill-input appearance-none"
-          disabled={disabled}
-        >
-          <option value="">{placeholder}</option>
-          {options.map((opt) => (
-            <option key={opt.code} value={opt.code}>{opt.name}</option>
-          ))}
-        </select>
-        {/* Chevron Icon */}
-        <svg className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M6 9l6 6 6-6" />
-        </svg>
-      </div>
-    </div>
-  );
+  }, [ownerName, adminCareOf, propertyStreet, ownerLoc, adminLoc, propLoc, draftId, router]);
 
   return (
     <SidebarProvider>

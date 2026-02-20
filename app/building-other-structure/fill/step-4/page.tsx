@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, useEffect, useMemo } from "react"; 
+import { useState, useEffect, useMemo, useCallback, Suspense } from "react";
 import "@/app/styles/forms-fill.css";
 import { Button } from "@/components/ui/button";
 import { AppSidebar } from "@/components/app-sidebar";
@@ -22,7 +22,9 @@ import {
 
 import { DeductionsTable } from "./deductionsTable";
 import { AdditionalTable } from "./additionalTable";
-import TotalDeductionTable from "./totalDeductionTable";
+import TotalDeductionTableBase from "./totalDeductionTable";
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const TotalDeductionTable = TotalDeductionTableBase as any;
 
 import { Loader2 } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -128,7 +130,7 @@ if (loadedData?.additional_flat_rate_areas?.length > 0) {
       
       // Update react-hook-form validation
       const validNames = recoveredSelections
-        .map((id: string) => DEDUCTION_CHOICES.find((c) => String(c.id) === String(id))?.name)
+        .map((id) => DEDUCTION_CHOICES.find((c) => String(c.id) === String(id))?.name)
         .filter(Boolean);
       form.setValue("deductions", validNames as string[], { shouldValidate: true });
     }
@@ -138,13 +140,13 @@ if (loadedData?.additional_flat_rate_areas?.length > 0) {
     
   }, [loadedData, form]);
 
-  const handleSelectionChange = (newValues: (string | number | null)[]) => {
+  const handleSelectionChange = useCallback((newValues: (string | number | null)[]) => {
     setSelections([...newValues]);
     const validNames = newValues
       .map((val) => DEDUCTION_CHOICES.find((c) => String(c.id) === String(val))?.name)
       .filter((v): v is string => !!v);
     form.setValue("deductions", validNames, { shouldValidate: true });
-  };
+  }, [form]);
 
   // ---------------------------------------------------------
   // 2. CENTRALIZED CALCULATION LOGIC (useMemo)
@@ -156,9 +158,9 @@ if (loadedData?.additional_flat_rate_areas?.length > 0) {
     // A. Calculate Standard Deductions (SUBTRACTION)
     const standardDeductionTotal = selections.reduce<number>((acc, curr) => {
       if (!curr) return acc;
-      const opt = DEDUCTION_CHOICES.find((c) => String(c.id) === String(curr));
+      const opt = DEDUCTION_CHOICES.find((c) => String(c.id) === String(curr)) as any;
       if (!opt) return acc;
-      
+
       let amount = 0;
       if (opt.percentage) {
         amount = (baseCost * opt.percentage) / 100;
@@ -219,7 +221,7 @@ if (loadedData?.additional_flat_rate_areas?.length > 0) {
   // ---------------------------------------------------------
   // 3. HANDLE NEXT (USING PRE-CALCULATED DATA)
   // ---------------------------------------------------------
-  const handleNext = async (data: any) => {
+  const handleNext = useCallback(async (data: any) => {
     setIsSaving(true);
     try {
       // Fetch the calculated values directly from our hook
@@ -229,6 +231,18 @@ if (loadedData?.additional_flat_rate_areas?.length > 0) {
       if (netMarketValue !== undefined && netMarketValue !== null) {
         localStorage.setItem("market_value_p4", netMarketValue.toString());
       }
+
+      // Save p4 data to localStorage for the RPFAAS form
+      const p4LocalStorageData = {
+        selected_deductions: selections.filter(Boolean),
+        overall_comments: comments,
+        additional_percentage_choice: additionalPercentSelections.filter(Boolean).join(","),
+        additional_percentage_areas: additionalPercentAreas,
+        additional_flat_rate_choice: additionalFlatRateSelections.filter(Boolean).join(","),
+        additional_flat_rate_areas: additionalFlatRateAreas,
+        market_value: financialSummary.netMarketValue
+      };
+      localStorage.setItem("p4", JSON.stringify(p4LocalStorageData));
 
       const formData = {
         status: "draft",
@@ -273,7 +287,7 @@ if (loadedData?.additional_flat_rate_areas?.length > 0) {
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [financialSummary, selections, comments, additionalPercentSelections, additionalPercentAreas, additionalFlatRateSelections, additionalFlatRateAreas, draftId, router]);
 
   return (
     <SidebarProvider>
@@ -387,4 +401,10 @@ if (loadedData?.additional_flat_rate_areas?.length > 0) {
   );
 };
 
-export default BuildingStructureFormFillPage4;
+export default function BuildingStructureFormFillPage4Wrapper() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <BuildingStructureFormFillPage4 />
+    </Suspense>
+  );
+}

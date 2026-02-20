@@ -1,9 +1,9 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 
-export default function PrintPreviewPage() {
+function PrintPreviewPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [previewUrl, setPreviewUrl] = useState<string>("");
@@ -26,5 +26,13 @@ export default function PrintPreviewPage() {
         />
       ) : null}
     </div>
+  );
+}
+
+export default function PrintPreviewPageWrapper() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <PrintPreviewPage />
+    </Suspense>
   );
 }

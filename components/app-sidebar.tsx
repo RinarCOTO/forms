@@ -23,7 +23,7 @@ import {
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const [rpfaasOpen, setRpfaasOpen] = React.useState(false);
-  const [user, setUser] = React.useState(null);
+  const [user, setUser] = React.useState<{ role: string } | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
 
   const fetchUser = React.useCallback(() => {
@@ -54,11 +54,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     return () => window.removeEventListener('user-role-updated', handleStorageChange);
   }, [fetchUser]);
 
-  // Only show sidebar after user is loaded
-  if (isLoading) return null;
-
   // Helper: check role
-  const hasRole = (roles) => {
+  const hasRole = (roles: string[]) => {
     const userRole = user?.role;
     if (!user || !userRole) return false;
     return roles.includes(userRole);
@@ -74,8 +71,19 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
 
       <SidebarContent>
+        {isLoading && (
+          <SidebarGroup>
+            <SidebarGroupContent>
+              <div className="space-y-2 px-2 py-1 animate-pulse">
+                <div className="h-4 bg-muted rounded w-2/3" />
+                <div className="h-4 bg-muted rounded w-1/2" />
+                <div className="h-4 bg-muted rounded w-3/5" />
+              </div>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
         {/* Land Assessor group: visible to super_admin, admin, tax_mapper, municipal_tax_mapper */}
-        {hasRole(["super_admin", "admin", "tax_mapper", "municipal_tax_mapper"]) && (
+        {!isLoading && hasRole(["super_admin", "admin", "tax_mapper", "municipal_tax_mapper"]) && (
           <SidebarGroup>
             <SidebarGroupLabel>Land Assessor</SidebarGroupLabel>
             <SidebarGroupContent>
@@ -100,12 +108,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                       </SidebarMenuSubItem>
                       <SidebarMenuSubItem>
                         <SidebarMenuSubButton asChild>
-                          <a href="/rpfaas/land-improvements/view">Land &amp; Improvements</a>
+                          <a href="/land-other-improvements/dashboard">Land &amp; Improvements</a>
                         </SidebarMenuSubButton>
                       </SidebarMenuSubItem>
                       <SidebarMenuSubItem>
                         <SidebarMenuSubButton asChild>
-                          <a href="/rpfaas/machinery">Machinery</a>
+                          <a href="/machinery/dashboard">Machinery</a>
                         </SidebarMenuSubButton>
                       </SidebarMenuSubItem>
                     </SidebarMenuSub>
@@ -117,7 +125,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         )}
 
         {/* Accountant group: visible to accountant, super_admin, admin */}
-        {hasRole(["accountant", "super_admin", "admin"]) && (
+        {!isLoading && hasRole(["accountant", "super_admin", "admin"]) && (
           <SidebarGroup>
             <SidebarGroupLabel>Accountant</SidebarGroupLabel>
             <SidebarGroupContent>
@@ -133,7 +141,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         )}
 
         {/* Super Admin group: visible to super_admin only */}
-        {hasRole(["super_admin"]) && (
+        {!isLoading && hasRole(["super_admin"]) && (
           <SidebarGroup>
             <SidebarGroupLabel>Super Admin</SidebarGroupLabel>
             <SidebarGroupContent>
@@ -149,18 +157,20 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         )}
 
         {/* Notes: visible to all roles */}
-        <SidebarGroup>
-          <SidebarGroupLabel>Other</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <a href="/notes">Notes</a>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {!isLoading && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Other</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <a href="/notes">Notes</a>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
 
       <SidebarFooter>

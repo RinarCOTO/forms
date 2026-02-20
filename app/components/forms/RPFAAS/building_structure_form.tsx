@@ -7,6 +7,7 @@ import { Checkbox } from "./components/Checkbox";
 import { useRPFAASData } from "./hooks/useRPFAASData";
 import { STRUCTURAL_MATERIAL_ROWS, FLOOR_LEVELS } from "./constants/structuralMaterials";
 import type { RoofMaterials } from "@/app/types/rpfaas";
+import { DEDUCTION_CHOICES, ADDITIONAL_PERCENT_CHOICES, ADDITIONAL_FLAT_RATE_CHOICES } from "@/config/form-options";
 
 const BuildingStructureForm = () => {
     const {
@@ -40,7 +41,106 @@ const BuildingStructureForm = () => {
         roofMaterialsOtherText,
         flooringGrid,
         wallsGrid,
+        selectedDeductions,
+        deductionComments,
+        additionalPercentageChoice,
+        additionalPercentageValue,
+        additionalPercentageAreas,
+        additionalFlatRateChoice,
+        additionalFlatRateValue,
+        additionalFlatRateAreas,
+        unitCost,
+        baseCost,
+        standardDeductionTotal,
+        netUnitCost,
+        marketValue,
+        assessmentLevel,
+        assessedValue,
     } = useRPFAASData();
+
+    // Get the deductions with their percentages and calculated values
+    const getSelectedDeductionsWithData = () => {
+        return selectedDeductions.map(deductionId => {
+            const deduction = DEDUCTION_CHOICES.find(d => d.id === deductionId);
+            if (deduction) {
+                const deductionValue = (baseCost * deduction.percentage) / 100;
+                return { 
+                    ...deduction, 
+                    calculatedValue: deductionValue 
+                };
+            }
+            return { id: deductionId, name: deductionId, percentage: 0, calculatedValue: 0 };
+        });
+    };
+
+    // Get the selected additional percentage items with their data and calculated values
+    const getSelectedAdditionalPercentageItemsWithData = () => {
+        if (!additionalPercentageChoice) return [];
+        
+        const selectedIds = additionalPercentageChoice.split(",").filter(Boolean);
+        return selectedIds.map((itemId, index) => {
+            const item = ADDITIONAL_PERCENT_CHOICES.find(c => c.id === itemId);
+            const area = additionalPercentageAreas[index] || 0;
+            if (item) {
+                const calculatedValue = (unitCost * item.percentage / 100) * area;
+                return {
+                    ...item,
+                    area,
+                    calculatedValue
+                };
+            }
+            return { id: itemId, name: itemId, percentage: 0, area, calculatedValue: 0 };
+        });
+    };
+
+    // Get the selected additional flat rate items with their data and calculated values
+    const getSelectedAdditionalFlatRateItemsWithData = () => {
+        if (!additionalFlatRateChoice) return [];
+        
+        const selectedIds = additionalFlatRateChoice.split(",").filter(Boolean);
+        return selectedIds.map((itemId, index) => {
+            const item = ADDITIONAL_FLAT_RATE_CHOICES.find(c => c.id === itemId);
+            const area = additionalFlatRateAreas[index] || 0;
+            if (item) {
+                const calculatedValue = item.pricePerSqm * area;
+                return {
+                    ...item,
+                    area,
+                    calculatedValue
+                };
+            }
+            return { id: itemId, name: itemId, pricePerSqm: 0, area, calculatedValue: 0 };
+        });
+    };
+
+    const formatCurrency = (value: number) =>
+        value.toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        });
+
+    // Debug: Log the data to console to see what's being loaded
+    console.log('RPFAAS Data Debug:', {
+        ownerName,
+        adminCareOfName,
+        typeOfBuilding,
+        structuralType,
+        buildingPermitNo,
+        totalFloorArea,
+        landOwner,
+        landTdArpNo,
+        landArea
+    });
+
+    // Debug deductions specifically
+    console.log('Deductions Debug:', {
+        selectedDeductions,
+        deductionComments,
+        assessmentLevel,
+        p4DataRaw: localStorage.getItem("p4"),
+        selectedDeductionsWithData: getSelectedDeductionsWithData(),
+        availableDeductions: DEDUCTION_CHOICES
+    });
 
     return (
         <div className="rpfaas-print" style={{ backgroundColor: 'white' }}>
@@ -250,20 +350,21 @@ const BuildingStructureForm = () => {
 
                     <tr>
                         <td className="font-bold">Date Occupied:</td>
-                        <td>{dateOccupied || '—'}</td>
-                        <td className="text-right">
+                        <td>
                             <div className="grid grid-cols-2 items-center">
-                                <div className="text-left font-bold">
-                                    Total Floor Area
-                                </div>
-                                <div className="border-l text-center font-bold">
-                                    {totalFloorArea || '—'}
+                                <div className="font-bold">{dateOccupied || '—'}</div>
+                                <div className="grid grid-cols-3 items-center">
+                                    <div className="border-l text-left px-2 col-span-2 rpfaas-print-small font-bold">Total:</div>
+                                    <div className="border-l text-left p col-span-1 rpfaas-print-small font-bold rpfass-font-small">{totalFloorArea || '—'} sqm</div>
                                 </div>
                             </div>
                         </td>
                     </tr>
 
-                    <SectionHeader className="border-b-2">Floor Dimension</SectionHeader>
+                    <SectionHeader className="border-b-2 space-x-3">
+                        <span>Unit Construction Cost:</span>
+                        <span>₱{formatCurrency(unitCost)}</span>    
+                    </SectionHeader>
 
                     <tr>
                         <td colSpan={4}>
@@ -333,78 +434,90 @@ const BuildingStructureForm = () => {
                 </tbody>
             </table>
             <div className="flex flex-row gap-6">
-                <div>Market Value</div>
-                <div>value X value</div>
-                <div className="font-bold">TOTAL</div>
+                <div>Base Cost: ₱{formatCurrency(baseCost)}</div>
+                <div>Less Deductions: ₱{formatCurrency(standardDeductionTotal)}</div>
+                <div className="font-bold">Market Value: ₱{formatCurrency(marketValue)}</div>
             </div>
             {/* Additional Items */}
             <table>
                 <tbody>
                     <SectionHeader colSpan={7}>Deductions: (Use additional sheet if necessary)</SectionHeader>
-                    <tr>
+                    <tr className="bg-gray-100">
                         <td>
                             <div className="grid grid-cols-2">
-                                <div className="col-span-1 border-r">No Paint</div>
-                                <div className="col-span-1 pl-2">percent</div>
+                                <div className="col-span-1 border-r font-semibold">Deduction Type</div>
+                                <div className="col-span-1 pl-2 font-semibold">Percentage</div>
                             </div>
                         </td>
-                        <td rowSpan={4}>
-                            comments
-                        </td>
+                        <td className="font-semibold text-center">Comments</td>
                         <td>
                             <div className="grid grid-cols-4">
-                                <div className="col-span-1">floor sqm</div>
-                                <div className="col-span-1 border-l pl-2">value</div>
-                                <div className="col-span-1 border-l pl-2">deduction</div>
-                                <div className="col-span-1 border-l pl-2">Total</div>
+                                <div className="col-span-1 font-semibold">Floor Area</div>
+                                <div className="col-span-1 border-l pl-2 font-semibold">Unit Cost</div>
+                                <div className="col-span-1 border-l pl-2 font-semibold">Deduction</div>
+                                <div className="col-span-1 border-l pl-2 font-semibold">Amount</div>
                             </div>
                         </td>
                     </tr>
+                    {getSelectedDeductionsWithData().map((deduction, index) => (
+                        <tr key={deduction.id}>
+                            <td>
+                                <div className="grid grid-cols-2">
+                                    <div className="col-span-1 border-r">{deduction.name}</div>
+                                    <div className="col-span-1 pl-2">{deduction.percentage}%</div>
+                                </div>
+                            </td>
+                            {index === 0 && (
+                                <td rowSpan={getSelectedDeductionsWithData().length + 1}>
+                                    {deductionComments}
+                                </td>
+                            )}
+                            <td>
+                                <div className="grid grid-cols-4">
+                                    <div className="col-span-1">{totalFloorArea || '—'} sqm</div>
+                                    <div className="col-span-1 border-l pl-2">₱{formatCurrency(unitCost)}</div>
+                                    <div className="col-span-1 border-l pl-2">{deduction.percentage}%</div>
+                                    <div className="col-span-1 border-l pl-2">₱{formatCurrency(deduction.calculatedValue)}</div>
+                                </div>
+                            </td>
+                        </tr>
+                    ))}
+                    {getSelectedDeductionsWithData().length === 0 && (
+                        <tr>
+                            <td>
+                                <div className="grid grid-cols-2">
+                                    <div className="col-span-1 border-r">No deductions selected</div>
+                                    <div className="col-span-1 pl-2">—</div>
+                                </div>
+                            </td>
+                            <td>
+                                {deductionComments || '—'}
+                            </td>
+                            <td>
+                                <div className="grid grid-cols-4">
+                                    <div className="col-span-1">{totalFloorArea || '—'} sqm</div>
+                                    <div className="col-span-1 border-l pl-2">₱{formatCurrency(unitCost)}</div>
+                                    <div className="col-span-1 border-l pl-2">—</div>
+                                    <div className="col-span-1 border-l pl-2">₱0.00</div>
+                                </div>
+                            </td>
+                        </tr>
+                    )}
                     <tr>
                         <td>
                             <div className="grid grid-cols-2">
-                                <div className="col-span-1 border-r">No Partition</div>
-                                <div className="col-span-1 pl-2">percent</div>
+                                <div className="col-span-1 border-r font-bold">TOTAL</div>
+                                <div className="col-span-1 pl-2 font-bold">
+                                    {getSelectedDeductionsWithData().reduce((sum, d) => sum + d.percentage, 0)}%
+                                </div>
                             </div>
                         </td>
                         <td>
                             <div className="grid grid-cols-4">
-                                <div className="col-span-1"></div>
-                                <div className="col-span-1 border-l pl-2"></div>
-                                <div className="col-span-1 border-l pl-2"></div>
-                                <div className="col-span-1 border-l pl-2"></div>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <div className="grid grid-cols-2">
-                                <div className="col-span-1 border-r">No Ceiling</div>
-                                <div className="col-span-1 pl-2">percent</div>
-                            </div>
-                        </td>
-                        <td>
-                            <div className="grid grid-cols-4">
-                                <div className="col-span-1"></div>
-                                <div className="col-span-1 border-l pl-2"></div>
-                                <div className="col-span-1 border-l pl-2"></div>
-                                <div className="col-span-1 border-l pl-2"></div>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <div className="grid grid-cols-2">
-                                <div className="col-span-1 border-r">TOTAL</div>
-                                <div className="col-span-1 pl-2">percent</div>
-                            </div>
-                        </td>
-                        <td>
-                            <div className="grid grid-cols-4">
-                                <div className="col-span-1"></div>
-                                <div className="col-span-1 border-l pl-2"></div>
-                                <div className="col-span-1 border-l pl-2"></div>
-                                <div className="col-span-1 border-l pl-2"></div>
+                                <div className="col-span-1">—</div>
+                                <div className="col-span-1 border-l pl-2">—</div>
+                                <div className="col-span-1 border-l pl-2">—</div>
+                                <div className="col-span-1 border-l pl-2 font-bold">₱{formatCurrency(standardDeductionTotal)}</div>
                             </div>
                         </td>
                     </tr>
@@ -424,67 +537,93 @@ const BuildingStructureForm = () => {
             </table>
             <table>
                 <tbody>
-                    <SectionHeader>Additional Items:</SectionHeader>
-                    <tr>
+                    <SectionHeader colSpan={2}>Additional Items:</SectionHeader>
+                    <tr className="bg-gray-100">
+                        <td className="font-semibold">Description</td>
                         <td>
-                            <div className="grid grid-cols-3">
-                                <div className="col-span-2">value from manual input</div>
-                                    <div>value number</div>
+                            <div className="grid grid-cols-4">
+                                <div className="col-span-1 font-semibold">Area (sqm)</div>
+                                <div className="col-span-1 border-l pl-2 font-semibold">Percentage/Unit Cost</div>
+                                <div className="col-span-1 border-l pl-2 font-semibold">Rate</div>
+                                <div className="col-span-1 border-l pl-2 font-semibold">Amount</div>
+                            </div>
+                        </td>
+                    </tr>
+                    {/* Percentage-based Additional Items */}
+                    {getSelectedAdditionalPercentageItemsWithData().map((item, index) => (
+                        <tr key={`percentage-${item.id}`}>
+                            <td>{item.name}</td>
+                            <td>
+                                <div className="grid grid-cols-4">
+                                    <div className="col-span-1">{item.area} sqm</div>
+                                    <div className="col-span-1 border-l pl-2">₱{formatCurrency(unitCost)}</div>
+                                    <div className="col-span-1 border-l pl-2">{item.percentage}%</div>
+                                    <div className="col-span-1 border-l pl-2">₱{formatCurrency(item.calculatedValue)}</div>
                                 </div>
                             </td>
-                            <td></td>
                         </tr>
+                    ))}
+                    {/* Flat Rate Additional Items */}
+                    {getSelectedAdditionalFlatRateItemsWithData().map((item, index) => (
+                        <tr key={`flatrate-${item.id}`}>
+                            <td>{item.name}</td>
+                            <td>
+                                <div className="grid grid-cols-4">
+                                    <div className="col-span-1">{item.area} sqm</div>
+                                    <div className="col-span-1 border-l pl-2">₱{formatCurrency(item.pricePerSqm)}</div>
+                                    <div className="col-span-1 border-l pl-2">per sqm</div>
+                                    <div className="col-span-1 border-l pl-2">₱{formatCurrency(item.calculatedValue)}</div>
+                                </div>
+                            </td>
+                        </tr>
+                    ))}
+                    {/* Show message if no additional items selected */}
+                    {getSelectedAdditionalPercentageItemsWithData().length === 0 && getSelectedAdditionalFlatRateItemsWithData().length === 0 && (
                         <tr>
-                            <td></td>
+                            <td>No additional items selected</td>
+                            <td>
+                                <div className="grid grid-cols-4">
+                                    <div className="col-span-1">—</div>
+                                    <div className="col-span-1 border-l pl-2">—</div>
+                                    <div className="col-span-1 border-l pl-2">—</div>
+                                    <div className="col-span-1 border-l pl-2">₱0.00</div>
+                                </div>
+                            </td>
                         </tr>
-                        <tr>
-                            <td>Depreciation:</td>
-                        </tr>
-                </tbody>
-            </table>
-            {/* Additional Items */}
-            <table>
-                <tbody>
-                    <SectionHeader>PROPERTY ASSESSMENT</SectionHeader>
-                    <tr>
-                        <td>Actual Use</td>
-                        <td>Market Value</td>
-                        <td>Assessment Level</td>
-                        <td>Estimated Value</td>
+                    )}
+                    {/* Total row for additional items */}
+                    <tr className="bg-gray-50">
+                        <td className="font-bold">TOTAL ADD. ITEMS</td>
+                        <td>
+                            <div className="grid grid-cols-4">
+                                <div className="col-span-1 font-bold">
+                                    {[...getSelectedAdditionalPercentageItemsWithData(), ...getSelectedAdditionalFlatRateItemsWithData()]
+                                        .reduce((sum, item) => sum + item.area, 0)} sqm
+                                </div>
+                                <div className="col-span-1 border-l pl-2">—</div>
+                                <div className="col-span-1 border-l pl-2">—</div>
+                                <div className="col-span-1 border-l pl-2 font-bold">
+                                    ₱{formatCurrency([
+                                        ...getSelectedAdditionalPercentageItemsWithData(), 
+                                        ...getSelectedAdditionalFlatRateItemsWithData()
+                                    ].reduce((sum, item) => sum + item.calculatedValue, 0))}
+                                </div>
+                            </div>
+                        </td>
                     </tr>
                     <tr>
-                        <td>Residential</td>
-                        <td className="font-bold">value number</td>
-                        <td className="font-bold">value percentage</td>
-                        <td className="font-bold">value number</td>
-                    </tr>
-                </tbody>
-            </table>
-
-            {/* Unit Construction Cost */}
-            <table>
-                <tbody>
-                    <tr>
-                        <td colSpan={2} className="font-bold">Unit Construction Cost:</td>
-                        <td colSpan={2} className="font-bold">Cost of Deductions:</td>
-                    </tr>
-
-                    <tr>
-                        <td>Depreciation:</td>
-                        <td>in %</td>
-                        <td>Depreciation + Deduction</td>
-                        <td>Amount</td>
-                    </tr>
-
-                    <tr>
-                        <td>Depreciation Cost:</td>
-                        <td>number</td>
-                        <td>Market Value:</td>
-                        <td>Amount in numbers</td>
+                        <td>Depreciation</td>
+                        <td>
+                            <div className="grid grid-cols-4">
+                                <div className="col-span-1">—</div>
+                                <div className="col-span-1 border-l pl-2">—</div>
+                                <div className="col-span-1 border-l pl-2">—</div>
+                                <div className="col-span-1 border-l pl-2">—</div>
+                            </div>
+                        </td>
                     </tr>
                 </tbody>
             </table>
-
             {/* Property Assessment */}
             <table>
                 <tbody>
@@ -498,13 +637,38 @@ const BuildingStructureForm = () => {
                     </tr>
 
                     <tr>
-                        <td>Residential</td>
-                        <td className="font-bold">value number</td>
-                        <td className="font-bold">value percentage</td>
-                        <td className="font-bold">value number</td>
+                        <td className="font-bold">Residential</td>
+                        <td className="font-bold">₱{formatCurrency(marketValue)}</td>
+                        <td className="font-bold">{assessmentLevel}</td>
+                        <td className="font-bold">₱{formatCurrency(assessedValue)}</td>
                     </tr>
                 </tbody>
             </table>
+
+            {/* Unit Construction Cost */}
+            <table>
+                <tbody>
+                    <tr>
+                        <td colSpan={2} className="font-bold">Unit Construction Cost: ₱{formatCurrency(unitCost)}</td>
+                        <td colSpan={2} className="font-bold">Cost of Deductions: ₱{formatCurrency(standardDeductionTotal)}</td>
+                    </tr>
+
+                    <tr>
+                        <td>Depreciation:</td>
+                        <td>in %</td>
+                        <td>Depreciation + Deduction</td>
+                        <td>Amount</td>
+                    </tr>
+
+                    <tr>
+                        <td>Net Unit Cost:</td>
+                        <td>₱{formatCurrency(netUnitCost)}</td>
+                        <td>Market Value:</td>
+                        <td>₱{formatCurrency(marketValue)}</td>
+                    </tr>
+                </tbody>
+            </table>
+
             <FaasFooter />
         </div>
     );

@@ -203,4 +203,25 @@
 /* Accessibility: focus-visible outlines for keyboard users */
 :focus:not(:focus-visible) { box-shadow: none; }
 
+/* Prevent I-beam cursor on form section containers and labels.
+   The clickable area around select/input boxes is part of these divs,
+   so without this the browser shows a text cursor when clicking beside a field. */
+.rpfaas-fill-section,
+.rpfaas-fill-field,
+.rpfaas-fill-section-title,
+.rpfaas-fill-label,
+.rpfaas-fill-labe-sub {
+  -webkit-user-select: none;
+  user-select: none;
+  cursor: default;
+}
+
+/* Re-enable normal cursor and text selection inside actual inputs */
+.rpfaas-fill-section input,
+.rpfaas-fill-section textarea {
+  -webkit-user-select: text;
+  user-select: text;
+  cursor: text;
+}
+
 /* End of file ----------------------------------------------------------- */

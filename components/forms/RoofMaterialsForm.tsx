@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export function RoofMaterialsForm({ materials, setMaterials, materialsOtherText, setMaterialsOtherText }) {
+interface RoofMaterials { reinforcedConcrete: boolean; longspanRoof: boolean; tiles: boolean; giSheets: boolean; aluminum: boolean; others: boolean; }
+export function RoofMaterialsForm({ materials, setMaterials, materialsOtherText, setMaterialsOtherText }: { materials: RoofMaterials; setMaterials: React.Dispatch<React.SetStateAction<RoofMaterials>>; materialsOtherText: string; setMaterialsOtherText: (v: string) => void }) {
   return (
     <div className="flex flex-col gap-1">
       <label className="flex items-center gap-2">

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import { checkIfDataIsApplied } from "@/lib/utils";
 import "@/app/styles/form-fill.css";
 
@@ -48,10 +48,10 @@ const LandOtherImprovementFormFillPage2 = () => {
             router.push("/error-page");
         }
     }, []);
-      const handleSubmit = (e: FormEvent) => {
+      const handleSubmit = useCallback((e: React.FormEvent) => {
         e.preventDefault();
         router.push("/building-other-structure");
-      };
+      }, [router]);
 
     return (
         <SidebarProvider>
@@ -134,4 +134,10 @@ const LandOtherImprovementFormFillPage2 = () => {
     );
 };
 
-export default LandOtherImprovementFormFillPage2;
+export default function LandOtherImprovementFormFillPage2Wrapper() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <LandOtherImprovementFormFillPage2 />
+    </Suspense>
+  );
+}

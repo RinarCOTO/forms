@@ -64,4 +64,27 @@ export interface RPFAASFormData {
     roofMaterialsOtherText: string;
     flooringGrid: boolean[][];
     wallsGrid: boolean[][];
+    
+    // Deductions from Step 4
+    selectedDeductions: string[];
+    deductionComments: string;
+    
+    // Additional items from Step 4
+    additionalPercentageChoice: string;
+    additionalPercentageValue: number;
+    additionalPercentageAreas: number[];
+    additionalFlatRateChoice: string;
+    additionalFlatRateValue: number;
+    additionalFlatRateAreas: number[];
+    
+    // Financial calculations from Step 4
+    unitCost: number;
+    baseCost: number;
+    standardDeductionTotal: number;
+    netUnitCost: number;
+    marketValue: number;
+    
+    // Assessment calculations
+    assessmentLevel: string;
+    assessedValue: number;
 }

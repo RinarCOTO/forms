@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import { generateYears, calculateAge, calculateTotalFloorArea } from "@/utils/form-helpers";
 import { BUILDING_TYPES, STRUCTURAL_TYPES } from "@/config/form-options";
 import { getUnitConstructionCost } from "@/config/unit-construction-cost";
@@ -17,6 +17,14 @@ import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/s
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Separator } from "@/components/ui/separator";
 import { Loader2 } from "lucide-react";
+// Pure helper — lives at module scope so it's never recreated on render
+function formatPeso(value: string | number) {
+  if (value === "" || value === undefined) return "";
+  const num = typeof value === "string" ? Number(value.replace(/[^0-9.]/g, "")) : value;
+  if (isNaN(num) || num === 0) return "₱0.00";
+  return `₱${num.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
 // Helper function to collect form data
 function collectFormData(
   typeOfBuilding: string,
@@ -48,21 +56,14 @@ const BuildingStructureFormFillPage2 = () => {
   const [structureType, setStructureType] = useState("");
   const [buildingPermitNo, setBuildingPermitNo] = useState(""); // Added
   const [cct, setCct] = useState(""); // Added
-  const [completionIssuedOn, setCompletionIssuedOn] = useState(""); // Added
+  const [completionIssuedOn, setCompletionIssuedOn] = useState("");
   const [dateConstructed, setDateConstructed] = useState<number | "">("");
-  const [dateOccupied, setDateOccupied] = useState(""); // Added
+  const [dateOccupied, setDateOccupied] = useState("");
   const [buildingAge, setBuildingAge] = useState<number | string>("");
   const [costOfConstruction, setCostOfConstruction] = useState<string>("");
   const [costOfConstructionDisplay, setCostOfConstructionDisplay] = useState<string>("");
-  // Format number to peso string
-  const formatPeso = (value: string | number) => {
-    if (value === "" || value === undefined) return "";
-    const num = typeof value === "string" ? Number(value.replace(/[^0-9.]/g, "")) : value;
-    if (isNaN(num) || num === 0) return "₱0.00";
-    return `₱${num.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  };
   // Handle input change
-const handleCostOfConstructionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+const handleCostOfConstructionChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
   let value = e.target.value;
 
   // 1. Remove all non-digit characters except the decimal point
@@ -84,14 +85,14 @@ const handleCostOfConstructionChange = (e: React.ChangeEvent<HTMLInputElement>) 
   // We use the string version for display so the user can type the decimal
   setCostOfConstructionDisplay(formattedInteger + decimalPart);
   setCostOfConstruction(rawValue);
-  
+
   // 5. If you need the raw number for calculations, save it elsewhere:
   // setRawValue(parseFloat(cleanValue) || 0);
-};
+}, []);
   // Format on blur
-  const handleCostOfConstructionBlur = () => {
+  const handleCostOfConstructionBlur = useCallback(() => {
     setCostOfConstructionDisplay(formatPeso(costOfConstruction));
-  };
+  }, [costOfConstruction]);
   // Show formatted value if not editing
   useEffect(() => {
     if (costOfConstruction === "") {
@@ -155,14 +156,14 @@ const handleCostOfConstructionChange = (e: React.ChangeEvent<HTMLInputElement>) 
       setCct(loadedData.cct || "");
 
       // FIX: Extract Year properly
-      setCompletionIssuedOn(getYear(loadedData.completion_issued_on ));
+      setCompletionIssuedOn(String(getYear(loadedData.completion_issued_on)));
       setDateConstructed(getYear(loadedData.date_constructed));
-      setDateOccupied(getYear(loadedData.date_occupied));
+      setDateOccupied(String(getYear(loadedData.date_occupied)));
 
       if (loadedData.building_age) {
         setBuildingAge(loadedData.building_age);
       } else if (loadedData.date_constructed) {
-        setBuildingAge(calculateAge(getYear(loadedData.date_constructed)));
+        setBuildingAge(calculateAge(Number(getYear(loadedData.date_constructed))));
       } else {
         setBuildingAge("");
       }
@@ -212,12 +213,12 @@ const handleCostOfConstructionChange = (e: React.ChangeEvent<HTMLInputElement>) 
   });
 
   // --- HANDLERS ---
-  const handleDateConstructedChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const handleDateConstructedChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
     const year = e.target.value ? parseInt(e.target.value, 10) : "";
     setDateConstructed(year);
-  };
+  }, []);
 
-  const handleNumberOfStoreysChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleNumberOfStoreysChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const storeys = e.target.value ? parseInt(e.target.value, 10) : "";
     setNumberOfStoreys(storeys);
     if (typeof storeys === 'number' && storeys > 0) {
@@ -225,15 +226,15 @@ const handleCostOfConstructionChange = (e: React.ChangeEvent<HTMLInputElement>) 
     } else {
       setFloorAreas([]);
     }
-  };
+  }, []);
 
-  const handleFloorAreaChange = (index: number, value: string) => {
+  const handleFloorAreaChange = useCallback((index: number, value: string) => {
     const newFloorAreas = [...floorAreas];
     newFloorAreas[index] = value ? parseFloat(value) : "";
     setFloorAreas(newFloorAreas);
-  };
+  }, [floorAreas]);
 
-const handleNext = async () => {
+const handleNext = useCallback(async () => {
     setIsSaving(true);
     try {
       // 1. EXTRACT RAW VALUE FOR STORAGE
@@ -303,7 +304,7 @@ const handleNext = async () => {
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [draftId, router, typeOfBuilding, structureType, buildingPermitNo, cct, completionIssuedOn, dateConstructed, dateOccupied, buildingAge, numberOfStoreys, floorAreas, totalFloorArea, landOwner, tdArpNo, landArea, costOfConstructionDisplay, costOfConstruction]);
 
   // --- JSX RENDER ---
   return (
@@ -555,4 +556,10 @@ const handleNext = async () => {
   );
 };
 
-export default BuildingStructureFormFillPage2;
+export default function BuildingStructureFormFillPage2Wrapper() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <BuildingStructureFormFillPage2 />
+    </Suspense>
+  );
+}

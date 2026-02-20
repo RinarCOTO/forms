@@ -5,7 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { FileText, Plus, ArrowLeft, Loader2, Eye, Edit, Trash2 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
@@ -58,7 +58,7 @@ export default function BuildingOtherStructureDashboard() {
     fetchSubmissions();
   }, []);
 
-  const handleNewForm = async () => {
+  const handleNewForm = useCallback(async () => {
     try {
       const now = new Date().toISOString();
       const response = await fetch("/api/forms/building-structures", {
@@ -80,13 +80,13 @@ export default function BuildingOtherStructureDashboard() {
     } catch (error) {
       alert("Error creating new submission.");
     }
-  };
+  }, [router]);
 
-  const handleViewSubmission = (submissionId: number) => {
+  const handleViewSubmission = useCallback((submissionId: number) => {
     router.push(`/building-other-structure/fill/step-1?id=${submissionId}`);
-  };
+  }, [router]);
 
-  const handleDeleteSubmission = async (submissionId: number) => {
+  const handleDeleteSubmission = useCallback(async (submissionId: number) => {
     if (!confirm('Are you sure you want to delete this submission? This action cannot be undone.')) {
       return;
     }
@@ -109,14 +109,14 @@ export default function BuildingOtherStructureDashboard() {
       console.error('Delete error:', error);
       alert('Error deleting submission.');
     }
-  };
+  }, [router]);
 
   const canDelete = user && (user.role === 'admin' || user.role === 'super_admin');
 
   // Open print preview for a submission
-  const handlePrintPreview = (submissionId: number) => {
+  const handlePrintPreview = useCallback((submissionId: number) => {
     router.push(`/building-other-structure/print-preview?id=${submissionId}`);
-  };
+  }, [router]);
 
   return (
     <SidebarProvider>

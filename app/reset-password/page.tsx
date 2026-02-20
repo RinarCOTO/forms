@@ -1,12 +1,12 @@
 "use client"
-import { useState } from "react"
+import { useState, useCallback } from "react"
 
 export default function ResetPasswordPage() {
   const [email, setEmail] = useState("")
   const [message, setMessage] = useState("")
   const [loading, setLoading] = useState(false)
 
-  async function handleReset(e: React.FormEvent) {
+  const handleReset = useCallback(async function(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
     setMessage("")
@@ -18,7 +18,7 @@ export default function ResetPasswordPage() {
     const data = await res.json()
     setLoading(false)
     setMessage(data.message)
-  }
+  }, [email]);
 
   return (
     <div className="max-w-md mx-auto mt-20 p-6 border rounded">

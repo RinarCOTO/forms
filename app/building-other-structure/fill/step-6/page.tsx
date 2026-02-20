@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { FormEvent, useState, useEffect, useMemo } from "react";
+import { FormEvent, useState, useEffect, useMemo, useCallback, Suspense } from "react";
 import "@/app/styles/forms-fill.css";
 import { getAssessmentLevel } from "@/config/assessment-level";
 import { AppSidebar } from "@/components/app-sidebar";
@@ -44,6 +44,11 @@ function collectFormData(
 
 const FORM_NAME = "building-structure-form-fill-page-5";
 const PAGE_DESCRIPTION = "Final notes and summary of the property assessment.";
+
+// Pure helper at module scope — no state/props, never recreated on render
+function formatNumberWithCommas(num: number): string {
+  return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
 
 // Function to convert number to words
 function numberToWords(num: number): string {
@@ -93,7 +98,7 @@ function numberToWords(num: number): string {
   return word.trim();
 }
 
-export default function BuildingStructureFormFillPage5() {
+function BuildingStructureFormFillPage5() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const draftId = searchParams.get('id');
@@ -102,11 +107,6 @@ export default function BuildingStructureFormFillPage5() {
   const [actualUse, setActualUse] = useState("");
   const [typeOfBuildingLabel, setTypeOfBuildingLabel] = useState("");
   const [marketValue, setMarketValue] = useState<number>(0);
-
-  // Format number with commas
-  const formatNumberWithCommas = (num: number): string => {
-    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-  };
 
   const assessmentLevel = useMemo(
     () => getAssessmentLevel(typeOfBuildingLabel, actualUse, marketValue) ?? "",
@@ -168,16 +168,21 @@ export default function BuildingStructureFormFillPage5() {
     loadDraft();
   }, [draftId]);
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = useCallback((e: FormEvent) => {
     e.preventDefault();
     router.push("/building-other-structure");
-  };
+  }, [router]);
 
-  const handlePreview = async () => {
+  const handlePreview = useCallback(async () => {
     setIsSaving(true);
     try {
       const formData = collectFormData(actualUse, assessedValue, amountInWords, assessmentLevel);
       formData.status = 'draft';
+
+      // Save assessment data to localStorage for the RPFAAS form
+      localStorage.setItem("assessment_level_p5", assessmentLevel);
+      localStorage.setItem("assessed_value_p5", assessedValue.toString());
+      localStorage.setItem("actual_use_p5", actualUse);
 
       console.log('Saving Step 5 form data to Supabase:', formData);
 
@@ -216,7 +221,7 @@ export default function BuildingStructureFormFillPage5() {
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [actualUse, assessedValue, amountInWords, assessmentLevel, draftId, router]);
 
   return (
     <SidebarProvider>
@@ -356,5 +361,13 @@ export default function BuildingStructureFormFillPage5() {
         </div>
       </SidebarInset>
     </SidebarProvider>
+  );
+}
+
+export default function BuildingStructureFormFillPage6Wrapper() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <BuildingStructureFormFillPage5 />
+    </Suspense>
   );
 }
