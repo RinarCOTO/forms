@@ -26,7 +26,15 @@ export const getAssessmentLevel = (
   if (
     buildingTypeId === "building_type_1" &&
     actualUse === "Residential" &&
-    marketValue > 175000 &&
+    marketValue > 0 &&
+    marketValue <= 175000
+  ) {
+    return "0%";
+  }
+  if (
+    buildingTypeId === "building_type_1" &&
+    actualUse === "Residential" &&
+    marketValue > 175001 &&
     marketValue <= 300000
   ) {
     return "5%";

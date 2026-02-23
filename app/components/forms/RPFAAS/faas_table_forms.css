@@ -83,6 +83,18 @@ table.no-border td {
     border-color: #000 !important;
   }
 
+  /* Force divide-x borders to be black and full height in print */
+  .divide-black > * + * {
+    border-color: #000 !important;
+  }
+
+  /* Inner column grids: fill full td height, compensate for td's 1px vertical padding */
+  .rpfaas-inner-grid {
+    height: calc(100% + 3px) !important;
+    margin-top: -1px !important;
+    margin-bottom: -1px !important;
+  }
+
   /* Allow applying no-border to any element */
   .no-border, .no-border td, .no-border th, tr.no-border td, tr.no-border th {
     border: none !important;

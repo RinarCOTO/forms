@@ -87,4 +87,5 @@ export interface RPFAASFormData {
     // Assessment calculations
     assessmentLevel: string;
     assessedValue: number;
+    amountInWords: string;
 }

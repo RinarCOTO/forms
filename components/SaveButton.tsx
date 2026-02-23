@@ -22,7 +22,7 @@ export function SaveButton({
   lastSaved,
   variant = "outline",
   className = "",
-  showLastSaved = true,
+  showLastSaved = false,
 }: SaveButtonProps) {
   return (
     <div className="flex flex-col items-end gap-1">

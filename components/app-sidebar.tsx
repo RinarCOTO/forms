@@ -148,7 +148,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               <SidebarMenu>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
-                    <a href="/signup">Create New User</a>
+                    <a href="/signup">Manage Users</a>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>

@@ -315,7 +315,7 @@ function BuildingStructureFormFillPage5() {
                   <Input
                     id="amount_in_words_p5"
                     name="amount_in_words_p5"
-                    value={amountInWords}
+                    value={amountInWords ? `${amountInWords} Pesos Only` : ''}
                     readOnly
                     disabled
                     aria-disabled="true"

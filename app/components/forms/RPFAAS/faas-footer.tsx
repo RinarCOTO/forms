@@ -8,12 +8,12 @@ const SectionHeader = ({ children, colSpan = 3, className = "" }: SectionHeaderP
   </tr>
 );
 
-const FaasFooter = () => {
+const FaasFooter = ({ amountInWords }: { amountInWords: string }) => {
   return (
     <div>
         <div className="w-full flex gap-12">
             <div>Amount in Words:</div>
-            <div className="uppercase border-b border-black">Amount Amount Amount</div>
+            <div className="uppercase border-b border-black">{amountInWords ? `${amountInWords} Pesos Only` : '—'}</div>
         </div>
         <div className="grid grid-cols-4 items-center">
           <label className="flex items-center gap-2">

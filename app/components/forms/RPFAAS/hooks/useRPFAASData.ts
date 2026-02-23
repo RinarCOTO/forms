@@ -62,6 +62,7 @@ export const useRPFAASData = () => {
         // Assessment calculations
         assessmentLevel: "20%",
         assessedValue: 0,
+        amountInWords: "",
     });
 
     const loadDataFromStorage = useCallback(() => {
@@ -217,6 +218,8 @@ export const useRPFAASData = () => {
             if (assessedValueStorageItem) {
                 assessedValueFromStorage = parseFloat(assessedValueStorageItem);
             }
+
+            const amountInWords = localStorage.getItem("amount_in_words_p5") || "";
             
             // Calculate financial summary similar to step-4
             const baseCost = unitCostFromStorage && step2Data.total_floor_area 
@@ -284,6 +287,7 @@ export const useRPFAASData = () => {
                 // Assessment calculations
                 assessmentLevel: assessmentLevelValue,
                 assessedValue: assessedValueFromStorage,
+                amountInWords,
             });
         } catch (e) {
             console.error("Error loading RPFAAS data", e);

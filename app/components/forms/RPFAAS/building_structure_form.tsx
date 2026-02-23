@@ -56,6 +56,7 @@ const BuildingStructureForm = () => {
         marketValue,
         assessmentLevel,
         assessedValue,
+        amountInWords,
     } = useRPFAASData();
 
     // Get the deductions with their percentages and calculated values
@@ -240,12 +241,10 @@ const BuildingStructureForm = () => {
                     <tr className="border-t-2">
                         <td>Type of Bldg:</td>
                         <td>
-                            <div className="grid grid-cols-2 items-center">
-                                <div className="font-bold">{typeOfBuilding || '—'}</div>
-                                <div className="grid grid-cols-3 items-center">
-                                    <div className="border-l text-left px-2 col-span-2 rpfaas-print-small">Bldg. Age:</div>
-                                    <div className="border-l text-left px-2 col-span-1 rpfaas-print-small">{buildingAge ? `${buildingAge} years` : '—'}</div>
-                                </div>
+                            <div className="rpfaas-inner-grid grid grid-cols-3 divide-x divide-black items-stretch h-full">
+                                <div className="font-bold flex items-center">{typeOfBuilding || '—'}</div>
+                                <div className="flex items-center px-2 text-xs font-medium rpfaas-print-small whitespace-nowrap">Bldg. Age:</div>
+                                <div className="flex items-center px-2 text-xs font-bold rpfaas-print-small whitespace-nowrap">{buildingAge ? `${buildingAge} years` : '—'}</div>
                             </div>
                         </td>
                     </tr>
@@ -253,22 +252,16 @@ const BuildingStructureForm = () => {
                     <tr className="py-auto my-auto">
                         <td>Structural Type:</td>
                         <td>
-                            <div className="grid grid-cols-2 items-center">
-                                <div className="font-bold">{structuralType || '—'}</div>
-                                <div className="grid grid-cols-3 items-center">
-                                    <div className="border-l text-left px-2 col-span-2 rpfaas-print-small">No. of Storey:</div>
-                                    <div className="border-l text-left px-2 col-span-1 rpfaas-print-small">{numberOfStoreys || '—'}</div>
-                                </div>
+                            <div className="rpfaas-inner-grid grid grid-cols-3 divide-x divide-black items-stretch h-full">
+                                <div className="font-bold flex items-center">{structuralType || '—'}</div>
+                                <div className="flex items-center px-2 text-xs font-medium rpfaas-print-small whitespace-nowrap">No. of Storey:</div>
+                                <div className="flex items-center px-2 text-xs font-bold rpfaas-print-small whitespace-nowrap">{numberOfStoreys || '—'}</div>
                             </div>
                         </td>
                         <td className="land-reference">
-                            <div className="grid grid-cols-3 items-center">
-                                <div className="font-bold col-span-1">
-                                    Land Owner:
-                                </div>
-                                <div className="text-left border-l col-span-2 pl-2 print:py-0.5">
-                                    {landOwner || '—'}
-                                </div>
+                            <div className="rpfaas-inner-grid grid grid-cols-3 divide-x divide-black items-stretch h-full">
+                                <div className="flex items-center text-xs font-bold col-span-1">Land Owner:</div>
+                                <div className="flex items-center col-span-2 pl-2 text-xs print:py-0.5">{landOwner || '—'}</div>
                             </div>
                         </td>
                     </tr>
@@ -276,24 +269,16 @@ const BuildingStructureForm = () => {
                     <tr>
                         <td>Building Permit No.</td>
                         <td>
-                            <div className="grid grid-cols-2 items-center">
-                                <div className="font-bold">{buildingPermitNo || '—'}</div>
-                                <div className="grid grid-cols-3 items-center">
-                                    <div className="border-l text-left px-2 col-span-2 rpfaas-print-small">
-                                        1<sup>st</sup> Floor Area:
-                                    </div>
-                                    <div className="border-l text-left px-2 col-span-1 rpfaas-print-small">{floorAreas[0] || '—'}</div>
-                                </div>
+                            <div className="rpfaas-inner-grid grid grid-cols-3 divide-x divide-black items-stretch h-full">
+                                <div className="font-bold flex items-center">{buildingPermitNo || '—'}</div>
+                                <div className="flex items-center px-2 text-xs font-medium rpfaas-print-small whitespace-nowrap">1<sup>st</sup> Floor Area:</div>
+                                <div className="flex items-center px-2 text-xs font-bold rpfaas-print-small whitespace-nowrap">{floorAreas[0] || '—'}</div>
                             </div>
                         </td>
                         <td className="land-reference">
-                            <div className="grid grid-cols-3 items-center">
-                                <div className="font-bold col-span-1">
-                                    TD/ARP No.:
-                                </div>
-                                <div className="text-left border-l col-span-2 pl-2 print:py-0.5">
-                                    {landTdArpNo || '—'}
-                                </div>
+                            <div className="rpfaas-inner-grid grid grid-cols-3 divide-x divide-black items-stretch h-full">
+                                <div className="flex items-center text-xs font-bold col-span-1">TD/ARP No.:</div>
+                                <div className="flex items-center col-span-2 pl-2 text-xs print:py-0.5">{landTdArpNo || '—'}</div>
                             </div>
                         </td>
                     </tr>
@@ -301,23 +286,16 @@ const BuildingStructureForm = () => {
                     <tr>
                         <td>Condominium Certificate of Title (CCT):</td>
                         <td>
-                            <div className="grid grid-cols-2 items-center">
-                                <div className="font-bold">{cct || '—'}</div>
-                                <div className="grid grid-cols-3 items-center">
-                                    <div className="border-l text-left px-2 col-span-2 rpfaas-print-small">2<sup>nd</sup> Floor Area:</div>
-                                    <div className="border-l text-left px-2 col-span-1 rpfaas-print-small">{floorAreas[1] || '—'}</div>
-                                </div>
+                            <div className="rpfaas-inner-grid grid grid-cols-3 divide-x divide-black items-stretch h-full">
+                                <div className="font-bold flex items-center">{cct || '—'}</div>
+                                <div className="flex items-center px-2 text-xs font-medium rpfaas-print-small whitespace-nowrap">2<sup>nd</sup> Floor Area:</div>
+                                <div className="flex items-center px-2 text-xs font-bold rpfaas-print-small whitespace-nowrap">{floorAreas[1] || '—'}</div>
                             </div>
                         </td>
                         <td className="land-reference">
-                            <div className="grid grid-cols-3 items-center">
-                                <div className="font-bold col-span-1">
-                                    Area:
-                                </div>
-                                <div className="text-left border-l col-span-2 pl-2 print:py-0.5">
-                                    {landArea || '—'}
-									<span> sqm</span>
-                                </div>
+                            <div className="rpfaas-inner-grid grid grid-cols-3 divide-x divide-black items-stretch h-full">
+                                <div className="flex items-center text-xs font-bold col-span-1">Area:</div>
+                                <div className="flex items-center col-span-2 pl-2 text-xs print:py-0.5">{landArea || '—'}<span> sqm</span></div>
                             </div>
                         </td>
                     </tr>
@@ -325,12 +303,10 @@ const BuildingStructureForm = () => {
                     <tr>
                         <td>Certificate of Completion Issued on:</td>
                         <td>
-                            <div className="grid grid-cols-2 items-center">
-                                <div className="font-bold">{completionIssuedOn || '—'}</div>
-                                <div className="grid grid-cols-3 items-center">
-                                    <div className="border-l text-left px-2 col-span-2 rpfaas-print-small">3<sup>rd</sup> Floor Area:</div>
-                                    <div className="border-l text-left px-2 col-span-1 rpfaas-print-small ">{floorAreas[2] || '—'}</div>
-                                </div>
+                            <div className="rpfaas-inner-grid grid grid-cols-3 divide-x divide-black items-stretch h-full">
+                                <div className="font-bold flex items-center">{completionIssuedOn || '—'}</div>
+                                <div className="flex items-center px-2 text-xs font-medium rpfaas-print-small whitespace-nowrap">3<sup>rd</sup> Floor Area:</div>
+                                <div className="flex items-center px-2 text-xs font-bold rpfaas-print-small whitespace-nowrap">{floorAreas[2] || '—'}</div>
                             </div>
                         </td>
                     </tr>
@@ -338,12 +314,10 @@ const BuildingStructureForm = () => {
                     <tr>
                         <td>Date Constructed/Completed:</td>
                         <td>
-                            <div className="grid grid-cols-2 items-center">
-                                <div className="font-bold">{dateConstructed || '—'}</div>
-                                <div className="grid grid-cols-3 items-center">
-                                    <div className="border-l text-left px-2 col-span-2 rpfaas-print-small">4<sup>th</sup> Floor Area:</div>
-                                    <div className="border-l text-left px-2 col-span-1 rpfaas-print-small">{floorAreas[3] || '—'}</div>
-                                </div>
+                            <div className="rpfaas-inner-grid grid grid-cols-3 divide-x divide-black items-stretch h-full">
+                                <div className="font-bold flex items-center">{dateConstructed || '—'}</div>
+                                <div className="flex items-center px-2 text-xs font-medium rpfaas-print-small whitespace-nowrap">4<sup>th</sup> Floor Area:</div>
+                                <div className="flex items-center px-2 text-xs font-bold rpfaas-print-small whitespace-nowrap">{floorAreas[3] || '—'}</div>
                             </div>
                         </td>
                     </tr>
@@ -351,12 +325,10 @@ const BuildingStructureForm = () => {
                     <tr>
                         <td className="font-bold">Date Occupied:</td>
                         <td>
-                            <div className="grid grid-cols-2 items-center">
-                                <div className="font-bold">{dateOccupied || '—'}</div>
-                                <div className="grid grid-cols-3 items-center">
-                                    <div className="border-l text-left px-2 col-span-2 rpfaas-print-small font-bold">Total:</div>
-                                    <div className="border-l text-left p col-span-1 rpfaas-print-small font-bold rpfass-font-small">{totalFloorArea || '—'} sqm</div>
-                                </div>
+                            <div className="rpfaas-inner-grid grid grid-cols-3 divide-x divide-black items-stretch h-full">
+                                <div className="font-bold flex items-center">{dateOccupied || '—'}</div>
+                                <div className="flex items-center px-2 text-xs font-bold rpfaas-print-small whitespace-nowrap">Total:</div>
+                                <div className="flex items-center px-2 text-xs font-bold rpfaas-print-small whitespace-nowrap">{totalFloorArea || '—'} sqm</div>
                             </div>
                         </td>
                     </tr>
@@ -669,7 +641,7 @@ const BuildingStructureForm = () => {
                 </tbody>
             </table>
 
-            <FaasFooter />
+            <FaasFooter amountInWords={amountInWords} />
         </div>
     );
 };
