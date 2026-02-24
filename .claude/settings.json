@@ -2,7 +2,19 @@
   "permissions": {
     "allow": [
       "Bash(npm install)",
-      "Bash(node -e \"const t = require\\(''/Users/rinar/Documents/forms/node_modules/next/dist/server/web/spec-extension/revalidate.js''\\); console.log\\(t.toString\\(\\)\\)\")"
+      "Bash(node -e \"const t = require\\(''/Users/rinar/Documents/forms/node_modules/next/dist/server/web/spec-extension/revalidate.js''\\); console.log\\(t.toString\\(\\)\\)\")",
+      "Bash(npx vercel ls)",
+      "Bash(npx vercel inspect https://forms-r86xtuw0z-rinarcotos-projects.vercel.app --logs)",
+      "Bash(git add app/components/forms/RPFAAS/hooks/useRPFAASData.ts)",
+      "Bash(git commit:*)",
+      "Bash(git push)",
+      "Bash(npx vercel inspect https://forms-a97po2icy-rinarcotos-projects.vercel.app --logs)",
+      "Bash(npx vercel inspect https://forms-ck7i6nffk-rinarcotos-projects.vercel.app --logs)",
+      "Bash(git add app/components/forms/RPFAAS/building_structure_form.tsx)",
+      "Bash(npx vercel alias ls)",
+      "Bash(npx vercel --prod)",
+      "Bash(npx vercel env ls)",
+      "Bash(npx vercel env add SUPABASE_SERVICE_ROLE_KEY production)"
     ]
   }
 }
