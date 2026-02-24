@@ -1,0 +1,43 @@
+/* building_structure_form_dark.css: Dark theme for Building Structure Form */
+
+.rpfaas-dark {
+  background: #18181b !important;
+  color: #f4f4f5 !important;
+}
+.rpfaas-dark table,
+.rpfaas-dark th,
+.rpfaas-dark td {
+  background: #232326 !important;
+  color: #f4f4f5 !important;
+  border-color: #333 !important;
+}
+.rpfaas-dark .section-divider,
+.rpfaas-dark .border-b-2,
+.rpfaas-dark .bordered-table {
+  border-color: #333 !important;
+}
+.rpfaas-dark input,
+.rpfaas-dark select,
+.rpfaas-dark textarea {
+  background: #232326 !important;
+  color: #f4f4f5 !important;
+  border-color: #444 !important;
+}
+.rpfaas-dark .bg-gray-100 {
+  background: #232326 !important;
+}
+.rpfaas-dark .bg-gray-50 {
+  background: #232326 !important;
+}
+.rpfaas-dark .font-bold {
+  color: #fafafa !important;
+}
+.rpfaas-dark .text-center {
+  color: #f4f4f5 !important;
+}
+.rpfaas-dark .text-xs {
+  color: #d4d4d8 !important;
+}
+.rpfaas-dark .border-black {
+  border-color: #333 !important;
+}

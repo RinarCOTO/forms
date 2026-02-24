@@ -1,5 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createClient as createAdminClient } from '@supabase/supabase-js';
+
+function getAdminClient() {
+  return createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  );
+}
 
 export async function POST(req: NextRequest) {
   console.log('POST /api/building-other-structure - Starting request');
@@ -70,7 +79,25 @@ export async function POST(req: NextRequest) {
     }
     
     console.log('POST - Inserting into building_structures table...');
-    
+
+    // Stamp municipality from the authenticated user's profile
+    try {
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (authUser) {
+        const admin = getAdminClient();
+        const { data: profile } = await admin
+          .from('users')
+          .select('municipality, role')
+          .eq('id', authUser.id)
+          .single();
+        if (profile?.municipality && !['admin', 'super_admin'].includes(profile.role)) {
+          data.municipality = profile.municipality;
+        }
+      }
+    } catch {
+      // Non-fatal: proceed without municipality if lookup fails
+    }
+
     // Insert into building_structures table
     const { data: newRecord, error } = await supabase
       .from('building_structures')

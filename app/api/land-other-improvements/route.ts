@@ -1,5 +1,6 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { createClient as createServerClient } from '@/lib/supabase/server';
 
 // GET: Fetch all land improvement records
 export async function GET() {
@@ -40,7 +41,7 @@ export async function GET() {
 }
 
 // POST: Create new land improvement record
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     // Use service role key to bypass RLS
     const supabase = createClient(
@@ -53,8 +54,27 @@ export async function POST(request: Request) {
         }
       }
     );
-    
+
     const body = await request.json();
+
+    // Stamp municipality from the authenticated user's profile
+    try {
+      const serverClient = await createServerClient();
+      const { data: { user: authUser } } = await serverClient.auth.getUser();
+      if (authUser) {
+        const { data: profile } = await supabase
+          .from('users')
+          .select('municipality, role')
+          .eq('id', authUser.id)
+          .single();
+        if (profile?.municipality && !['admin', 'super_admin'].includes(profile.role)) {
+          body.municipality = profile.municipality;
+        }
+      }
+    } catch {
+      // Non-fatal
+    }
+
     const { data, error } = await supabase
       .from('land_improvements')
       .insert([body])

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState, useCallback, memo, FormEvent, Suspense } from "react";
+import { useEffect, useState, useCallback, memo, FormEvent, Suspense, useRef } from "react";
 import "@/app/styles/forms-fill.css";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -22,6 +22,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { Loader2 } from "lucide-react";
+import { DUMMY_PROVINCES, DUMMY_MUNICIPALITIES, DUMMY_BARANGAYS } from "@/app/components/forms/RPFAAS/constants/locations";
 
 // Helper function to collect form data from ONLY this step (step 1)
 function collectFormData(
@@ -63,42 +64,17 @@ function collectFormData(
   if (adminProvince || adminMunicipality || adminBarangay) {
     data.admin_address = [adminBarangay, adminMunicipality, adminProvince].filter(Boolean).join(', ');
   }
-  
+
+  // Resolve property location names from PSGC codes for database storage
+  data.location_province = DUMMY_PROVINCES[0].name;
+  const propMunicipality = DUMMY_MUNICIPALITIES.find(m => m.code === propLoc.municipalityCode)?.name || '';
+  const propBarangay = DUMMY_BARANGAYS.find(b => b.code === propLoc.barangayCode)?.name || '';
+  if (propMunicipality) data.location_municipality = propMunicipality;
+  if (propBarangay) data.location_barangay = propBarangay;
+
   // Only include fields from this step - don't collect from other steps
   return data;
 }
-
-// --- DUMMY DATA ---
-// We add "parent" codes (provinceCode/municipalityCode) to create the relationships
-
-const DUMMY_PROVINCES = [
-  { code: "P-01", name: "Metro Manila" },
-  { code: "P-02", name: "Cebu" },
-  { code: "P-03", name: "Davao del Sur" },
-];
-
-const DUMMY_MUNICIPALITIES = [
-  // Metro Manila Cities
-  { code: "M-01-A", provinceCode: "P-01", name: "Makati City" },
-  { code: "M-01-B", provinceCode: "P-01", name: "Taguig City" },
-  // Cebu Cities
-  { code: "M-02-A", provinceCode: "P-02", name: "Cebu City" },
-  { code: "M-02-B", provinceCode: "P-02", name: "Mandaue City" },
-  // Davao Cities
-  { code: "M-03-A", provinceCode: "P-03", name: "Davao City" },
-];
-
-const DUMMY_BARANGAYS = [
-  // Makati
-  { code: "B-01-A-1", municipalityCode: "M-01-A", name: "Bel-Air" },
-  { code: "B-01-A-2", municipalityCode: "M-01-A", name: "Poblacion" },
-  // Taguig
-  { code: "B-01-B-1", municipalityCode: "M-01-B", name: "Fort Bonifacio" },
-  // Cebu City
-  { code: "B-02-A-1", municipalityCode: "M-02-A", name: "Lahug" },
-  // Davao City
-  { code: "B-03-A-1", municipalityCode: "M-03-A", name: "Buhangin" },
-];
 
 // --- Utility Types ---
 type LocationOption = { code: string; name: string };
@@ -110,8 +86,12 @@ function safeSetLS(key: string, value: string) {
 }
 
 // --- Custom Hook for Cascading Locations (Using Dummy Data) ---
-function useLocationSelect(storagePrefix: string) {
-  const [provinceCode, setProvinceCode] = useState("");
+function useLocationSelect(storagePrefix: string, initialProvinceCode = "") {
+  // Refs hold values that should be applied after cascading effects settle (used during draft load)
+  const pendingMunicipalityRef = useRef("");
+  const pendingBarangayRef = useRef("");
+
+  const [provinceCode, setProvinceCode] = useState(initialProvinceCode);
   const [municipalityCode, setMunicipalityCode] = useState("");
   const [barangayCode, setBarangayCode] = useState("");
 
@@ -120,35 +100,42 @@ function useLocationSelect(storagePrefix: string) {
 
   // 1. Filter Municipalities when Province changes
   useEffect(() => {
-    // Reset child selections
-    setMunicipalityCode("");
-    setBarangayCode("");
-    
+    if (!pendingMunicipalityRef.current) {
+      setMunicipalityCode("");
+      setBarangayCode("");
+    }
+
     if (!provinceCode) {
       setMunicipalities([]);
       return;
     }
 
-    // SIMULATE API CALL: Filter the dummy list based on provinceCode
     const filtered = DUMMY_MUNICIPALITIES.filter(m => m.provinceCode === provinceCode);
     setMunicipalities(filtered);
 
+    if (pendingMunicipalityRef.current) {
+      setMunicipalityCode(pendingMunicipalityRef.current);
+      pendingMunicipalityRef.current = "";
+    }
   }, [provinceCode]);
 
   // 2. Filter Barangays when Municipality changes
   useEffect(() => {
-    // Reset child selection
-    setBarangayCode("");
-
     if (!municipalityCode) {
       setBarangays([]);
+      if (!pendingBarangayRef.current) setBarangayCode("");
       return;
     }
 
-    // SIMULATE API CALL: Filter the dummy list based on municipalityCode
     const filtered = DUMMY_BARANGAYS.filter(b => b.municipalityCode === municipalityCode);
     setBarangays(filtered);
 
+    if (pendingBarangayRef.current) {
+      setBarangayCode(pendingBarangayRef.current);
+      pendingBarangayRef.current = "";
+    } else {
+      setBarangayCode("");
+    }
   }, [municipalityCode]);
 
   // 3. Persist to Local Storage
@@ -158,10 +145,22 @@ function useLocationSelect(storagePrefix: string) {
     safeSetLS(`${storagePrefix}_barangay_code`, barangayCode);
   }, [provinceCode, municipalityCode, barangayCode, storagePrefix]);
 
+  // Atomically load all three levels — prevents effect-chain race conditions during draft restore
+  function loadLocation(provCode: string, munCode: string, barCode: string) {
+    pendingBarangayRef.current = barCode;
+    if (provCode !== provinceCode) {
+      pendingMunicipalityRef.current = munCode;
+      setProvinceCode(provCode);
+    } else {
+      setMunicipalityCode(munCode);
+    }
+  }
+
   return {
     provinceCode, setProvinceCode,
     municipalityCode, setMunicipalityCode,
     barangayCode, setBarangayCode,
+    loadLocation,
     municipalities,
     barangays
   };
@@ -213,7 +212,7 @@ function BuildingOtherStructureFillPageContent() {
   // --- Use Custom Hooks for the 3 Address Sections ---
   const ownerLoc = useLocationSelect("rpfaas_owner_address");
   const adminLoc = useLocationSelect("rpfaas_admin");
-  const propLoc  = useLocationSelect("rpfaas_location");
+  const propLoc  = useLocationSelect("rpfaas_location", DUMMY_PROVINCES[0].code);
   
   // Load draft data if editing
   useEffect(() => {
@@ -229,16 +228,10 @@ function BuildingOtherStructureFillPageContent() {
             if (data.owner_name) setOwnerName(data.owner_name);
             if (data.admin_care_of) setAdminCareOf(data.admin_care_of);
             if (data.property_address) setPropertyStreet(data.property_address);
-            // Restore location selects if data exists
-            if (data.owner_province_code) ownerLoc.setProvinceCode(data.owner_province_code);
-            if (data.owner_municipality_code) ownerLoc.setMunicipalityCode(data.owner_municipality_code);
-            if (data.owner_barangay_code) ownerLoc.setBarangayCode(data.owner_barangay_code);
-            if (data.admin_province_code) adminLoc.setProvinceCode(data.admin_province_code);
-            if (data.admin_municipality_code) adminLoc.setMunicipalityCode(data.admin_municipality_code);
-            if (data.admin_barangay_code) adminLoc.setBarangayCode(data.admin_barangay_code);
-            if (data.property_province_code) propLoc.setProvinceCode(data.property_province_code);
-            if (data.property_municipality_code) propLoc.setMunicipalityCode(data.property_municipality_code);
-            if (data.property_barangay_code) propLoc.setBarangayCode(data.property_barangay_code);
+            // Restore location selects — use loadLocation to avoid effect-chain race conditions
+            ownerLoc.loadLocation(data.owner_province_code || "", data.owner_municipality_code || "", data.owner_barangay_code || "");
+            adminLoc.loadLocation(data.admin_province_code || "", data.admin_municipality_code || "", data.admin_barangay_code || "");
+            propLoc.loadLocation(data.property_province_code || DUMMY_PROVINCES[0].code, data.property_municipality_code || "", data.property_barangay_code || "");
             // Save to localStorage for consistency with other steps
             Object.entries(data).forEach(([key, value]) => {
               if (value !== null && value !== undefined) {
@@ -387,28 +380,28 @@ function BuildingOtherStructureFillPageContent() {
                 <div className="rpfaas-fill-field">
                   <Label className="rpfaas-fill-label">Address</Label>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <LocationSelect 
-                      label="Province" 
-                      value={ownerLoc.provinceCode} 
-                      onChange={ownerLoc.setProvinceCode} 
-                      options={DUMMY_PROVINCES} // Use dummy data directly
-                      placeholder="Select Province" 
+                    <LocationSelect
+                      label="Province"
+                      value={ownerLoc.provinceCode}
+                      onChange={ownerLoc.setProvinceCode}
+                      options={DUMMY_PROVINCES}
+                      placeholder="Select Province"
                     />
-                    <LocationSelect 
-                      label="Municipality" 
-                      value={ownerLoc.municipalityCode} 
-                      onChange={ownerLoc.setMunicipalityCode} 
-                      options={ownerLoc.municipalities} 
+                    <LocationSelect
+                      label="Municipality"
+                      value={ownerLoc.municipalityCode}
+                      onChange={ownerLoc.setMunicipalityCode}
+                      options={ownerLoc.municipalities}
                       disabled={!ownerLoc.provinceCode}
-                      placeholder="Select Municipality" 
+                      placeholder="Select Municipality"
                     />
-                    <LocationSelect 
-                      label="Barangay" 
-                      value={ownerLoc.barangayCode} 
-                      onChange={ownerLoc.setBarangayCode} 
-                      options={ownerLoc.barangays} 
+                    <LocationSelect
+                      label="Barangay"
+                      value={ownerLoc.barangayCode}
+                      onChange={ownerLoc.setBarangayCode}
+                      options={ownerLoc.barangays}
                       disabled={!ownerLoc.municipalityCode}
-                      placeholder="Select Barangay" 
+                      placeholder="Select Barangay"
                     />
                   </div>
                 </div>
@@ -421,28 +414,28 @@ function BuildingOtherStructureFillPageContent() {
                 {/* ADMIN ADDRESS */}
                 <div className="rpfaas-fill-field mt-4">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <LocationSelect 
-                      label="Province" 
-                      value={adminLoc.provinceCode} 
-                      onChange={adminLoc.setProvinceCode} 
-                      options={DUMMY_PROVINCES} 
-                      placeholder="Select Province" 
+                    <LocationSelect
+                      label="Province"
+                      value={adminLoc.provinceCode}
+                      onChange={adminLoc.setProvinceCode}
+                      options={DUMMY_PROVINCES}
+                      placeholder="Select Province"
                     />
-                    <LocationSelect 
-                      label="Municipality" 
-                      value={adminLoc.municipalityCode} 
-                      onChange={adminLoc.setMunicipalityCode} 
-                      options={adminLoc.municipalities} 
+                    <LocationSelect
+                      label="Municipality"
+                      value={adminLoc.municipalityCode}
+                      onChange={adminLoc.setMunicipalityCode}
+                      options={adminLoc.municipalities}
                       disabled={!adminLoc.provinceCode}
-                      placeholder="Select Municipality" 
+                      placeholder="Select Municipality"
                     />
-                    <LocationSelect 
-                      label="Barangay" 
-                      value={adminLoc.barangayCode} 
-                      onChange={adminLoc.setBarangayCode} 
-                      options={adminLoc.barangays} 
+                    <LocationSelect
+                      label="Barangay"
+                      value={adminLoc.barangayCode}
+                      onChange={adminLoc.setBarangayCode}
+                      options={adminLoc.barangays}
                       disabled={!adminLoc.municipalityCode}
-                      placeholder="Select Barangay" 
+                      placeholder="Select Barangay"
                     />
                   </div>
                 </div>
@@ -456,28 +449,24 @@ function BuildingOtherStructureFillPageContent() {
                     <Label className="rpfaas-fill-label">No/Street/Sitio</Label>
                     <Input value={propertyStreet} onChange={(e) => setPropertyStreet(e.target.value)} className="rpfaas-fill-input" />
                   </div>
-                  <LocationSelect 
-                      label="Province" 
-                      value={propLoc.provinceCode} 
-                      onChange={propLoc.setProvinceCode} 
-                      options={DUMMY_PROVINCES} 
-                      placeholder="Select Province" 
+                  <div className="space-y-1">
+                      <Label className="rpfaas-fill-label-sub">Province</Label>
+                      <Input value={DUMMY_PROVINCES[0].name} className="rpfaas-fill-input" readOnly disabled />
+                    </div>
+                    <LocationSelect
+                      label="Municipality"
+                      value={propLoc.municipalityCode}
+                      onChange={propLoc.setMunicipalityCode}
+                      options={propLoc.municipalities}
+                      placeholder="Select Municipality"
                     />
-                    <LocationSelect 
-                      label="Municipality" 
-                      value={propLoc.municipalityCode} 
-                      onChange={propLoc.setMunicipalityCode} 
-                      options={propLoc.municipalities} 
-                      disabled={!propLoc.provinceCode}
-                      placeholder="Select Municipality" 
-                    />
-                    <LocationSelect 
-                      label="Barangay" 
-                      value={propLoc.barangayCode} 
-                      onChange={propLoc.setBarangayCode} 
-                      options={propLoc.barangays} 
+                    <LocationSelect
+                      label="Barangay"
+                      value={propLoc.barangayCode}
+                      onChange={propLoc.setBarangayCode}
+                      options={propLoc.barangays}
                       disabled={!propLoc.municipalityCode}
-                      placeholder="Select Barangay" 
+                      placeholder="Select Barangay"
                     />
                 </div>
               </section>

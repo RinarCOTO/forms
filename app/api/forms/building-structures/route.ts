@@ -1,50 +1,81 @@
-import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-import { unstable_cache, revalidateTag } from 'next/cache'
+import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
+import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { revalidateTag } from 'next/cache'
 
-const getSupabase = () => {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-  if (!supabaseUrl || !supabaseServiceKey) {
-    throw new Error('Supabase configuration missing')
-  }
-
-  return createClient(supabaseUrl, supabaseServiceKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-    db: { schema: 'public' },
-  })
+function getAdminClient() {
+  return createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false }, db: { schema: 'public' } }
+  )
 }
 
-const getCachedBuildingStructures = unstable_cache(
-  async () => {
-    const supabase = getSupabase()
-    const { data, error } = await supabase
-      .from('building_structures')
-      .select('id, owner_name, updated_at, status')
-      .order('updated_at', { ascending: false })
-    if (error) throw new Error(error.message)
-    return data || []
-  },
-  ['building-structures-list'],
-  { tags: ['building-structures'], revalidate: 30 }
-)
-
-export async function GET() {
+async function getCurrentUserMunicipality(): Promise<{ municipality: string | null; isAdmin: boolean } | null> {
   try {
-    const data = await getCachedBuildingStructures()
-    return NextResponse.json(data)
+    const supabase = await createClient()
+    const { data: { user: authUser } } = await supabase.auth.getUser()
+    if (!authUser) return null
+
+    const admin = getAdminClient()
+    const { data: profile } = await admin
+      .from('users')
+      .select('role, municipality')
+      .eq('id', authUser.id)
+      .single()
+
+    if (!profile) return null
+
+    const isAdmin = ['admin', 'super_admin'].includes(profile.role)
+    return { municipality: profile.municipality ?? null, isAdmin }
+  } catch {
+    return null
+  }
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    const userCtx = await getCurrentUserMunicipality()
+    if (!userCtx) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const admin = getAdminClient()
+    let query = admin
+      .from('building_structures')
+      .select('id, owner_name, updated_at, status, municipality, location_municipality')
+      .order('updated_at', { ascending: false })
+
+    // Restrict to municipality if user is not admin and has a municipality assigned
+    if (!userCtx.isAdmin && userCtx.municipality) {
+      query = query.eq('municipality', userCtx.municipality)
+    }
+
+    const { data, error } = await query
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+    return NextResponse.json(data || [])
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    const supabase = getSupabase()
+    const userCtx = await getCurrentUserMunicipality()
+    if (!userCtx) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const admin = getAdminClient()
     const body = await request.json()
 
-    const { data, error } = await supabase
+    // Stamp municipality from the user's profile (non-admins cannot override)
+    if (!userCtx.isAdmin && userCtx.municipality) {
+      body.municipality = userCtx.municipality
+    }
+
+    const { data, error } = await admin
       .from('building_structures')
       .insert([body])
       .select()
@@ -61,13 +92,14 @@ export async function POST(request: Request) {
   }
 }
 
-/**
- * UPDATED: Added PUT method to handle updates for Step 2, Step 3, etc.
- * This is used when the frontend sends a request to /api/building-structure?id=...
- */
-export async function PUT(request: Request) {
+export async function PUT(request: NextRequest) {
   try {
-    const supabase = getSupabase()
+    const userCtx = await getCurrentUserMunicipality()
+    if (!userCtx) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const admin = getAdminClient()
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
     const body = await request.json()
@@ -76,12 +108,7 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: 'Missing ID parameter' }, { status: 400 })
     }
 
-    console.log(`Updating record ${id} with materials:`, {
-      flooring: body.structural_materials_flooring_p3,
-      walls: body.structural_materials_walls_p3,
-    })
-
-    const { data, error } = await supabase
+    const { data, error } = await admin
       .from('building_structures')
       .update(body)
       .eq('id', id)
@@ -89,7 +116,6 @@ export async function PUT(request: Request) {
       .single()
 
     if (error) {
-      console.error('Update Error:', error)
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
@@ -97,7 +123,6 @@ export async function PUT(request: Request) {
 
     return NextResponse.json({ data })
   } catch (error: any) {
-    console.error('Server Error:', error)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }

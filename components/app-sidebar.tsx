@@ -1,6 +1,8 @@
 "use client"
 
 import * as React from "react"
+import { usePathname } from "next/navigation";
+import "./sidebar-active.css";
 import { UserProfile } from "@/components/user-profile"
 import { ChevronRight, ChevronDown } from "lucide-react"
 
@@ -22,7 +24,8 @@ import {
 } from "@/components/ui/sidebar"
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const [rpfaasOpen, setRpfaasOpen] = React.useState(false);
+  const pathname = typeof window !== "undefined" ? window.location.pathname : "";
+  const [rpfaasOpen, setRpfaasOpen] = React.useState(true);
   const [user, setUser] = React.useState<{ role: string } | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
 
@@ -103,17 +106,17 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     <SidebarMenuSub>
                       <SidebarMenuSubItem>
                         <SidebarMenuSubButton asChild>
-                          <a href="/building-other-structure/dashboard">Building &amp; Structures</a>
+                          <a href="/building-other-structure/dashboard" className={pathname === "/building-other-structure/dashboard" ? "sidebar-active" : ""}>Building &amp; Structures</a>
                         </SidebarMenuSubButton>
                       </SidebarMenuSubItem>
                       <SidebarMenuSubItem>
                         <SidebarMenuSubButton asChild>
-                          <a href="/land-other-improvements/dashboard">Land &amp; Improvements</a>
+                          <a href="/land-other-improvements/dashboard" className={pathname === "/land-other-improvements/dashboard" ? "sidebar-active" : ""}>Land &amp; Improvements</a>
                         </SidebarMenuSubButton>
                       </SidebarMenuSubItem>
                       <SidebarMenuSubItem>
                         <SidebarMenuSubButton asChild>
-                          <a href="/machinery/dashboard">Machinery</a>
+                          <a href="/machinery/dashboard" className={pathname === "/machinery/dashboard" ? "sidebar-active" : ""}>Machinery</a>
                         </SidebarMenuSubButton>
                       </SidebarMenuSubItem>
                     </SidebarMenuSub>
@@ -132,7 +135,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               <SidebarMenu>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
-                    <a href="/accounting">Accounting</a>
+                    <a href="/accounting" className={pathname === "/accounting" ? "sidebar-active" : ""}>Accounting</a>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>
@@ -148,7 +151,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               <SidebarMenu>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
-                    <a href="/signup">Manage Users</a>
+                    <a href="/manage-users" className={pathname === "/manage-users" ? "sidebar-active" : ""}>Manage Users</a>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>
@@ -164,7 +167,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               <SidebarMenu>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
-                    <a href="/notes">Notes</a>
+                    <a href="/notes" className={pathname === "/notes" ? "sidebar-active" : ""}>Notes</a>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>

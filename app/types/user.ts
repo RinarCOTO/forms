@@ -8,11 +8,50 @@ export type UserRole =
   | 'accountant'
   | 'user';
 
+export type Municipality =
+  | 'barlig'
+  | 'bauko'
+  | 'besao'
+  | 'bontoc'
+  | 'natonin'
+  | 'paracellis'
+  | 'sabangan'
+  | 'sagada'
+  | 'sadanga'
+  | 'tadian';
+
+export const MUNICIPALITIES: Municipality[] = [
+  'barlig',
+  'bauko',
+  'besao',
+  'bontoc',
+  'natonin',
+  'paracellis',
+  'sabangan',
+  'sagada',
+  'sadanga',
+  'tadian',
+];
+
+export const MUNICIPALITY_LABELS: Record<Municipality, string> = {
+  barlig:     'Barlig',
+  bauko:      'Bauko',
+  besao:      'Besao',
+  bontoc:     'Bontoc',
+  natonin:    'Natonin',
+  paracellis: 'Paracellis',
+  sabangan:   'Sabangan',
+  sagada:     'Sagada',
+  sadanga:    'Sadanga',
+  tadian:     'Tadian',
+};
+
 export interface User {
   id: string; // UUID from Supabase Auth
   email: string;
   full_name?: string | null;
   role: UserRole;
+  municipality?: Municipality | null;
   department?: string | null;
   position?: string | null;
   phone?: string | null;
@@ -27,6 +66,7 @@ export interface CreateUserData {
   password: string;
   full_name?: string;
   role?: UserRole;
+  municipality?: Municipality | null;
   department?: string;
   position?: string;
   phone?: string;
@@ -35,6 +75,7 @@ export interface CreateUserData {
 export interface UpdateUserData {
   full_name?: string;
   role?: UserRole;
+  municipality?: Municipality | null;
   department?: string;
   position?: string;
   phone?: string;
@@ -46,6 +87,7 @@ export interface UserProfile {
   email: string;
   full_name?: string | null;
   role: UserRole;
+  municipality?: Municipality | null;
   department?: string | null;
   position?: string | null;
 }

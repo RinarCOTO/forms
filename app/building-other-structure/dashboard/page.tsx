@@ -172,6 +172,7 @@ export default function BuildingOtherStructureDashboard() {
                       <TableRow>
                         <TableHead>ID</TableHead>
                         <TableHead>Owner Name</TableHead>
+                        <TableHead>Municipality</TableHead>
                         <TableHead>Last Updated</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Actions</TableHead>
@@ -182,6 +183,7 @@ export default function BuildingOtherStructureDashboard() {
                         <TableRow key={submission.id}>
                           <TableCell className="font-medium">#{submission.id}</TableCell>
                           <TableCell>{submission.owner_name || submission.title || 'N/A'}</TableCell>
+                          <TableCell>{submission.location_municipality || 'N/A'}</TableCell>
                           <TableCell>{new Date(submission.updated_at).toLocaleDateString()}</TableCell>
                           <TableCell>
                             <Badge variant={submission.status === 'approved' ? 'success' : submission.status === 'pending' ? 'warning' : submission.status === 'draft' ? 'secondary' : submission.status === 'rejected' ? 'destructive' : 'default'}>
@@ -226,6 +228,8 @@ export default function BuildingOtherStructureDashboard() {
 interface FormSubmission {
   id: number;
   owner_name?: string;
+  municipality?: string;
+  location_municipality?: string;
   title?: string;
   updated_at: string;
   status: string;
