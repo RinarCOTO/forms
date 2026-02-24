@@ -27,6 +27,7 @@ import TotalDeductionTableBase from "./totalDeductionTable";
 const TotalDeductionTable = TotalDeductionTableBase as any;
 
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -51,6 +52,7 @@ const BuildingStructureFormFillPage4 = () => {
   const draftId = searchParams.get("id");
 
   const [isSaving, setIsSaving] = useState(false);
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
   
   // State for Standard Deductions
   const [selections, setSelections] = useState<(string | number | null)[]>(() => [null]);
@@ -289,6 +291,54 @@ if (loadedData?.additional_flat_rate_areas?.length > 0) {
     }
   }, [financialSummary, selections, comments, additionalPercentSelections, additionalPercentAreas, additionalFlatRateSelections, additionalFlatRateAreas, draftId, router]);
 
+  const handleSaveDraft = useCallback(async (data: any) => {
+    setIsSavingDraft(true);
+    try {
+      const { netMarketValue } = financialSummary;
+      if (netMarketValue !== undefined && netMarketValue !== null) {
+        localStorage.setItem('market_value_p4', netMarketValue.toString());
+      }
+      localStorage.setItem('p4', JSON.stringify({
+        selected_deductions: selections.filter(Boolean),
+        overall_comments: comments,
+        additional_percentage_choice: additionalPercentSelections.filter(Boolean).join(','),
+        additional_percentage_areas: additionalPercentAreas,
+        additional_flat_rate_choice: additionalFlatRateSelections.filter(Boolean).join(','),
+        additional_flat_rate_areas: additionalFlatRateAreas,
+        market_value: financialSummary.netMarketValue,
+      }));
+      const formData = {
+        status: 'draft',
+        selected_deductions: selections.filter(Boolean),
+        overall_comments: comments,
+        additional_percentage_choice: additionalPercentSelections.filter(Boolean).join(','),
+        additional_percentage_value: financialSummary.totalAdditions,
+        additional_percentage_areas: additionalPercentAreas,
+        additional_flat_rate_choice: additionalFlatRateSelections.filter(Boolean).join(','),
+        additional_flat_rate_value: additionalFlatRateAreas.reduce((a: number, b: number) => a + b, 0),
+        additional_flat_rate_areas: additionalFlatRateAreas,
+        market_value: financialSummary.netMarketValue,
+      };
+      const currentDraftId = draftId || localStorage.getItem('draft_id');
+      const method = currentDraftId ? 'PUT' : 'POST';
+      const url = currentDraftId
+        ? `${FORM_CONSTANTS.API_ENDPOINTS.BUILDING_STRUCTURE}/${currentDraftId}`
+        : FORM_CONSTANTS.API_ENDPOINTS.BUILDING_STRUCTURE;
+      const response = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(formData) });
+      if (response.ok) {
+        const result = await response.json();
+        if (result.data?.id) localStorage.setItem('draft_id', result.data.id.toString());
+        toast.success('Draft saved successfully.');
+      } else {
+        toast.error('Failed to save draft.');
+      }
+    } catch {
+      toast.error('Error saving draft.');
+    } finally {
+      setIsSavingDraft(false);
+    }
+  }, [financialSummary, selections, comments, additionalPercentSelections, additionalPercentAreas, additionalFlatRateSelections, additionalFlatRateAreas, draftId]);
+
   return (
     <SidebarProvider>
       <AppSidebar />
@@ -383,15 +433,25 @@ if (loadedData?.additional_flat_rate_areas?.length > 0) {
                   Previous
                 </Button>
 
-                <Button type="submit" disabled={isSaving}>
-                  {isSaving ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...
-                    </>
-                  ) : (
-                    "Next"
-                  )}
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => form.handleSubmit(handleSaveDraft)()}
+                    disabled={isSavingDraft || isSaving}
+                  >
+                    {isSavingDraft ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving...</> : 'Save Draft'}
+                  </Button>
+                  <Button type="submit" disabled={isSaving || isSavingDraft}>
+                    {isSaving ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...
+                      </>
+                    ) : (
+                      'Next'
+                    )}
+                  </Button>
+                </div>
               </div>
             </form>
           </div>

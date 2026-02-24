@@ -23,6 +23,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { RoofMaterialsForm } from "@/components/forms/RoofMaterialsForm";
 
 // --- HELPER: Parse JSON Safely ---
@@ -132,6 +133,7 @@ const BuildingStructureFormFillPage3 = () => {
   const draftId = searchParams.get('id');
   
   const [isSaving, setIsSaving] = useState(false);
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
 
   // --- State ---
   const [numberOfStoreys, setNumberOfStoreys] = useState(0);
@@ -278,15 +280,47 @@ const BuildingStructureFormFillPage3 = () => {
       } else {
         const error = await response.json();
         console.error('Save error:', error);
-        alert('Failed to save: ' + (error.message || 'Unknown error'));
+        toast.error('Failed to save: ' + (error.message || 'Unknown error'));
       }
     } catch (error) {
       console.error('Error saving:', error);
-      alert('Error saving. Please try again.');
+      toast.error('Error saving. Please try again.');
     } finally {
       setIsSaving(false);
     }
   }, [materials, materialsOtherText, flooringGrid, wallsGrid, draftId, router]);
+
+  const handleSaveDraft = useCallback(async () => {
+    setIsSavingDraft(true);
+    try {
+      const formData = collectFormData(materials, materialsOtherText, flooringGrid, wallsGrid);
+      formData.status = 'draft';
+      const currentDraftId = draftId || localStorage.getItem('draft_id');
+      let response;
+      if (currentDraftId) {
+        response = await fetch(`/api/building-structure/${currentDraftId}`, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(formData),
+        });
+      } else {
+        response = await fetch('/api/building-structure', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(formData),
+        });
+      }
+      if (response.ok) {
+        const result = await response.json();
+        const finalId = result.data?.id || currentDraftId;
+        if (finalId) localStorage.setItem('draft_id', finalId.toString());
+        toast.success('Draft saved successfully.');
+      } else {
+        const error = await response.json();
+        toast.error('Failed to save draft: ' + (error.message || 'Unknown error'));
+      }
+    } catch {
+      toast.error('Error saving draft.');
+    } finally {
+      setIsSavingDraft(false);
+    }
+  }, [materials, materialsOtherText, flooringGrid, wallsGrid, draftId]);
 
   const handleSubmit = useCallback((e: FormEvent) => {
     e.preventDefault();
@@ -449,8 +483,16 @@ const BuildingStructureFormFillPage3 = () => {
                   <div className="flex gap-2">
                     <Button
                       type="button"
+                      variant="outline"
+                      onClick={handleSaveDraft}
+                      disabled={isSavingDraft || isSaving}
+                    >
+                      {isSavingDraft ? <><Loader2 className="h-4 w-4 animate-spin mr-1" />Saving...</> : 'Save Draft'}
+                    </Button>
+                    <Button
+                      type="button"
                       onClick={handleNext}
-                      disabled={isSaving}
+                      disabled={isSaving || isSavingDraft}
                       className="rpfaas-fill-button rpfaas-fill-button-primary"
                     >
                       {isSaving ? (

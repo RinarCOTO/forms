@@ -23,6 +23,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 // Helper function to collect form data from ONLY this step (step 5)
 function collectFormData(
@@ -213,11 +214,11 @@ function BuildingStructureFormFillPage5() {
       } else {
         const error = await response.json();
         console.error('Save error:', error);
-        alert('Failed to save: ' + (error.message || 'Unknown error'));
+        toast.error('Failed to save: ' + (error.message || 'Unknown error'));
       }
     } catch (error) {
       console.error('Error saving:', error);
-      alert('Error saving. Please try again.');
+      toast.error('Error saving. Please try again.');
     } finally {
       setIsSaving(false);
     }

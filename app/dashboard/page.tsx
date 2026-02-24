@@ -26,7 +26,13 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { FileText, Plus, Loader2, Eye, Edit, ChevronLeft } from "lucide-react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { FileText, Plus, Loader2, Eye, Edit, MoreHorizontal, ChevronLeft, ChevronRight } from "lucide-react"
 import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 
@@ -100,6 +106,8 @@ export default function Page() {
   const [submissions, setSubmissions] = useState<FormSubmission[]>([])
   const [loading, setLoading] = useState(false)
   const [submissionCounts, setSubmissionCounts] = useState<Record<string, number>>({})
+  const [currentPage, setCurrentPage] = useState(1)
+  const PAGE_SIZE = 10
 
   // Fetch submission counts for all forms
   useEffect(() => {
@@ -161,6 +169,7 @@ export default function Page() {
     // Otherwise, default to the local table view
     setSelectedForm(formId)
     setShowForm(false)
+    setCurrentPage(1)
   }, [router])
 
   const handleBackToMenu = useCallback(() => {
@@ -204,6 +213,8 @@ export default function Page() {
   }, [selectedForm, router])
 
   const currentFormData = formsMenu.find((f) => f.id === selectedForm)
+  const totalPages = Math.max(1, Math.ceil(submissions.length / PAGE_SIZE))
+  const paginatedSubmissions = submissions.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
 
   return (
     <SidebarProvider>
@@ -306,6 +317,7 @@ export default function Page() {
                       </Button>
                     </div>
                   ) : (
+                    <>
                     <Table>
                       <TableHeader>
                         <TableRow>
@@ -317,7 +329,7 @@ export default function Page() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {submissions.map((submission) => (
+                        {paginatedSubmissions.map((submission) => (
                           <TableRow key={submission.id}>
                             <TableCell className="font-medium">
                               #{submission.id}
@@ -332,29 +344,44 @@ export default function Page() {
                               </Badge>
                             </TableCell>
                             <TableCell>
-                              <div className="flex gap-2">
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm"
-                                  onClick={() => handleViewSubmission(submission.id)}
-                                >
-                                  <Eye className="h-4 w-4 mr-1" />
-                                  View
-                                </Button>
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm"
-                                  onClick={() => handleViewSubmission(submission.id)}
-                                >
-                                  <Edit className="h-4 w-4 mr-1" />
-                                  Edit
-                                </Button>
-                              </div>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => handleViewSubmission(submission.id)}>
+                                    <Eye className="h-4 w-4 mr-2" />
+                                    View
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleViewSubmission(submission.id)}>
+                                    <Edit className="h-4 w-4 mr-2" />
+                                    Edit
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
                             </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
                     </Table>
+                    <div className="flex items-center justify-between px-2 py-4 border-t">
+                      <p className="text-sm text-muted-foreground">
+                        {submissions.length === 0
+                          ? "0 row(s)"
+                          : `${(currentPage - 1) * PAGE_SIZE + 1}–${Math.min(currentPage * PAGE_SIZE, submissions.length)} of ${submissions.length} row(s)`}
+                      </p>
+                      <div className="flex items-center gap-1">
+                        <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
+                          <ChevronLeft className="h-4 w-4" /> Previous
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>
+                          Next <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    </>
                   )}
                 </CardContent>
               </Card>

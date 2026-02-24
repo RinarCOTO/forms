@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState, useCallback, memo, FormEvent, Suspense, useRef } from "react";
+import { useEffect, useState, useCallback, memo, Suspense, useRef } from "react";
 import "@/app/styles/forms-fill.css";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -22,7 +22,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { Loader2 } from "lucide-react";
-import { DUMMY_PROVINCES, DUMMY_MUNICIPALITIES, DUMMY_BARANGAYS } from "@/app/components/forms/RPFAAS/constants/locations";
+import { PH_PROVINCES, MOUNTAIN_PROVINCE_CODE } from "@/app/components/forms/RPFAAS/constants/philippineLocations";
 
 // Helper function to collect form data from ONLY this step (step 1)
 function collectFormData(
@@ -31,13 +31,12 @@ function collectFormData(
   propertyStreet: string,
   ownerLoc: any,
   adminLoc: any,
-  propLoc: any
+  propLoc: any,
 ) {
   const data: any = {
     owner_name: ownerName,
     admin_care_of: adminCareOf,
     property_address: propertyStreet,
-    // Save the codes for restoring selects
     owner_province_code: ownerLoc.provinceCode,
     owner_municipality_code: ownerLoc.municipalityCode,
     owner_barangay_code: ownerLoc.barangayCode,
@@ -48,31 +47,30 @@ function collectFormData(
     property_municipality_code: propLoc.municipalityCode,
     property_barangay_code: propLoc.barangayCode,
   };
-  
-  // Build owner address from location selections
-  const ownerProvince = DUMMY_PROVINCES.find(p => p.code === ownerLoc.provinceCode)?.name || '';
+
+  // Build owner address
+  const ownerProvince = PH_PROVINCES.find(p => p.code === ownerLoc.provinceCode)?.name || '';
   const ownerMunicipality = ownerLoc.municipalities.find((m: any) => m.code === ownerLoc.municipalityCode)?.name || '';
   const ownerBarangay = ownerLoc.barangays.find((b: any) => b.code === ownerLoc.barangayCode)?.name || '';
   if (ownerProvince || ownerMunicipality || ownerBarangay) {
     data.owner_address = [ownerBarangay, ownerMunicipality, ownerProvince].filter(Boolean).join(', ');
   }
-  
-  // Build admin address from location selections
-  const adminProvince = DUMMY_PROVINCES.find(p => p.code === adminLoc.provinceCode)?.name || '';
+
+  // Build admin address
+  const adminProvince = PH_PROVINCES.find(p => p.code === adminLoc.provinceCode)?.name || '';
   const adminMunicipality = adminLoc.municipalities.find((m: any) => m.code === adminLoc.municipalityCode)?.name || '';
   const adminBarangay = adminLoc.barangays.find((b: any) => b.code === adminLoc.barangayCode)?.name || '';
   if (adminProvince || adminMunicipality || adminBarangay) {
     data.admin_address = [adminBarangay, adminMunicipality, adminProvince].filter(Boolean).join(', ');
   }
 
-  // Resolve property location names from PSGC codes for database storage
-  data.location_province = DUMMY_PROVINCES[0].name;
-  const propMunicipality = DUMMY_MUNICIPALITIES.find(m => m.code === propLoc.municipalityCode)?.name || '';
-  const propBarangay = DUMMY_BARANGAYS.find(b => b.code === propLoc.barangayCode)?.name || '';
+  // Property location names
+  data.location_province = "Mountain Province";
+  const propMunicipality = propLoc.municipalities.find((m: any) => m.code === propLoc.municipalityCode)?.name || '';
+  const propBarangay = propLoc.barangays.find((b: any) => b.code === propLoc.barangayCode)?.name || '';
   if (propMunicipality) data.location_municipality = propMunicipality;
   if (propBarangay) data.location_barangay = propBarangay;
 
-  // Only include fields from this step - don't collect from other steps
   return data;
 }
 
@@ -80,14 +78,26 @@ function collectFormData(
 type LocationOption = { code: string; name: string };
 
 function safeSetLS(key: string, value: string) {
-  try {
-    localStorage.setItem(key, value);
-  } catch { /* ignore */ }
+  try { localStorage.setItem(key, value); } catch { /* ignore */ }
 }
 
-// --- Custom Hook for Cascading Locations (Using Dummy Data) ---
+async function fetchLocations(type: string, parent: string): Promise<LocationOption[]> {
+  try {
+    const res = await fetch(`/api/locations?type=${type}&parent=${encodeURIComponent(parent)}`);
+    const json = await res.json();
+    if (json.success) {
+      return (json.data as { psgc_code: string; name: string }[]).map(d => ({
+        code: d.psgc_code,
+        name: d.name,
+      }));
+    }
+  } catch { /* network error */ }
+  return [];
+}
+
+// --- Custom Hook for Cascading Locations ---
+// Always fetches municipalities and barangays from /api/locations.
 function useLocationSelect(storagePrefix: string, initialProvinceCode = "") {
-  // Refs hold values that should be applied after cascading effects settle (used during draft load)
   const pendingMunicipalityRef = useRef("");
   const pendingBarangayRef = useRef("");
 
@@ -97,8 +107,10 @@ function useLocationSelect(storagePrefix: string, initialProvinceCode = "") {
 
   const [municipalities, setMunicipalities] = useState<LocationOption[]>([]);
   const [barangays, setBarangays] = useState<LocationOption[]>([]);
+  const [isLoadingMun, setIsLoadingMun] = useState(false);
+  const [isLoadingBar, setIsLoadingBar] = useState(false);
 
-  // 1. Filter Municipalities when Province changes
+  // 1. Province changes → load municipalities from API
   useEffect(() => {
     if (!pendingMunicipalityRef.current) {
       setMunicipalityCode("");
@@ -107,19 +119,23 @@ function useLocationSelect(storagePrefix: string, initialProvinceCode = "") {
 
     if (!provinceCode) {
       setMunicipalities([]);
+      pendingMunicipalityRef.current = "";
       return;
     }
 
-    const filtered = DUMMY_MUNICIPALITIES.filter(m => m.provinceCode === provinceCode);
-    setMunicipalities(filtered);
-
-    if (pendingMunicipalityRef.current) {
-      setMunicipalityCode(pendingMunicipalityRef.current);
-      pendingMunicipalityRef.current = "";
-    }
+    const pending = pendingMunicipalityRef.current;
+    setIsLoadingMun(true);
+    fetchLocations('municipality', provinceCode).then(items => {
+      setMunicipalities(items);
+      if (pending) {
+        setMunicipalityCode(pending);
+        pendingMunicipalityRef.current = "";
+      }
+      setIsLoadingMun(false);
+    });
   }, [provinceCode]);
 
-  // 2. Filter Barangays when Municipality changes
+  // 2. Municipality changes → load barangays from API
   useEffect(() => {
     if (!municipalityCode) {
       setBarangays([]);
@@ -127,25 +143,27 @@ function useLocationSelect(storagePrefix: string, initialProvinceCode = "") {
       return;
     }
 
-    const filtered = DUMMY_BARANGAYS.filter(b => b.municipalityCode === municipalityCode);
-    setBarangays(filtered);
-
-    if (pendingBarangayRef.current) {
-      setBarangayCode(pendingBarangayRef.current);
-      pendingBarangayRef.current = "";
-    } else {
-      setBarangayCode("");
-    }
+    const pending = pendingBarangayRef.current;
+    setIsLoadingBar(true);
+    fetchLocations('barangay', municipalityCode).then(items => {
+      setBarangays(items);
+      if (pending) {
+        setBarangayCode(pending);
+        pendingBarangayRef.current = "";
+      } else {
+        setBarangayCode("");
+      }
+      setIsLoadingBar(false);
+    });
   }, [municipalityCode]);
 
-  // 3. Persist to Local Storage
+  // 3. Persist to localStorage
   useEffect(() => {
     safeSetLS(`${storagePrefix}_province_code`, provinceCode);
     safeSetLS(`${storagePrefix}_municipality_code`, municipalityCode);
     safeSetLS(`${storagePrefix}_barangay_code`, barangayCode);
   }, [provinceCode, municipalityCode, barangayCode, storagePrefix]);
 
-  // Atomically load all three levels — prevents effect-chain race conditions during draft restore
   function loadLocation(provCode: string, munCode: string, barCode: string) {
     pendingBarangayRef.current = barCode;
     if (provCode !== provinceCode) {
@@ -162,15 +180,18 @@ function useLocationSelect(storagePrefix: string, initialProvinceCode = "") {
     barangayCode, setBarangayCode,
     loadLocation,
     municipalities,
-    barangays
+    barangays,
+    isLoadingMun,
+    isLoadingBar,
   };
 }
 
-// Memoized select component — prevents all 9 instances from re-rendering when unrelated parent state changes
+// Memoized select component
 const LocationSelect = memo(({
-  label, value, onChange, options, disabled, placeholder
+  label, value, onChange, options, disabled, placeholder, loading
 }: {
-  label: string, value: string, onChange: (val: string) => void, options: LocationOption[], disabled?: boolean, placeholder: string
+  label: string, value: string, onChange: (val: string) => void,
+  options: LocationOption[], disabled?: boolean, placeholder: string, loading?: boolean
 }) => (
   <div className="space-y-1">
     <Label className="rpfaas-fill-label-sub">{label}</Label>
@@ -179,47 +200,66 @@ const LocationSelect = memo(({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className="rpfaas-fill-input appearance-none"
-        disabled={disabled}
+        disabled={disabled || loading}
       >
-        <option value="">{placeholder}</option>
+        <option value="">{loading ? 'Loading…' : placeholder}</option>
         {options.map((opt) => (
           <option key={opt.code} value={opt.code}>{opt.name}</option>
         ))}
       </select>
-      {/* Chevron Icon */}
-      <svg className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M6 9l6 6 6-6" />
-      </svg>
+      <span className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground">
+        {loading
+          ? <Loader2 className="w-4 h-4 animate-spin" />
+          : <svg className="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M6 9l6 6 6-6" />
+            </svg>
+        }
+      </span>
     </div>
   </div>
 ));
 
-const FORM_NAME = "building_other_structure_fill";
+const FORM_NAME = "land_other_improvements_fill";
 
-function BuildingOtherStructureFillPageContent() {
+function LandOtherImprovementsFillPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const draftId = searchParams.get('id');
-  
-  const [isLoadingDraft, setIsLoadingDraft] = useState(false);
+
   const [isSaving, setIsSaving] = useState(false);
 
-  // Basic Fields
   const [ownerName, setOwnerName] = useState("");
   const [adminCareOf, setAdminCareOf] = useState("");
   const [propertyStreet, setPropertyStreet] = useState("");
 
-  // --- Use Custom Hooks for the 3 Address Sections ---
+  // Assigned municipality from the logged-in user's profile
+  const [userMunicipality, setUserMunicipality] = useState("");
+
   const ownerLoc = useLocationSelect("rpfaas_owner_address");
   const adminLoc = useLocationSelect("rpfaas_admin");
-  const propLoc  = useLocationSelect("rpfaas_location", DUMMY_PROVINCES[0].code);
-  
-  // Load draft data if editing
+  const propLoc  = useLocationSelect("rpfaas_location", MOUNTAIN_PROVINCE_CODE);
+
+  // Fetch user profile to get assigned municipality
+  useEffect(() => {
+    fetch('/api/auth/user')
+      .then(r => r.json())
+      .then(data => { if (data.user?.municipality) setUserMunicipality(data.user.municipality); })
+      .catch(() => {});
+  }, []);
+
+  // Auto-select property municipality from user's assigned municipality (new forms only)
+  useEffect(() => {
+    if (!propLoc.municipalities.length || propLoc.municipalityCode || !userMunicipality) return;
+    const match = propLoc.municipalities.find(
+      m => m.name.toLowerCase() === userMunicipality.toLowerCase()
+    );
+    if (match) propLoc.setMunicipalityCode(match.code);
+  }, [propLoc.municipalities, propLoc.municipalityCode, userMunicipality]);
+
   useEffect(() => {
     if (!draftId) return;
     const loadDraft = async () => {
       try {
-        // Use standardized API endpoint for land-other-improvements
         const response = await fetch(`/api/forms/land-other-improvements/${draftId}`);
         if (response.ok) {
           const result = await response.json();
@@ -228,11 +268,10 @@ function BuildingOtherStructureFillPageContent() {
             if (data.owner_name) setOwnerName(data.owner_name);
             if (data.admin_care_of) setAdminCareOf(data.admin_care_of);
             if (data.property_address) setPropertyStreet(data.property_address);
-            // Restore location selects — use loadLocation to avoid effect-chain race conditions
             ownerLoc.loadLocation(data.owner_province_code || "", data.owner_municipality_code || "", data.owner_barangay_code || "");
             adminLoc.loadLocation(data.admin_province_code || "", data.admin_municipality_code || "", data.admin_barangay_code || "");
-            propLoc.loadLocation(data.property_province_code || DUMMY_PROVINCES[0].code, data.property_municipality_code || "", data.property_barangay_code || "");
-            // Save to localStorage for consistency with other steps
+            // Always use current MOUNTAIN_PROVINCE_CODE (old drafts may have stale 9-digit codes)
+            propLoc.loadLocation(MOUNTAIN_PROVINCE_CODE, data.property_municipality_code || "", data.property_barangay_code || "");
             Object.entries(data).forEach(([key, value]) => {
               if (value !== null && value !== undefined) {
                 localStorage.setItem(`${key}_p1`, String(value));
@@ -247,88 +286,50 @@ function BuildingOtherStructureFillPageContent() {
     loadDraft();
   }, [draftId]);
 
-  // Simple string persistence
   useEffect(() => safeSetLS("rpfaas_owner_name", ownerName), [ownerName]);
   useEffect(() => safeSetLS("rpfaas_admin_careof", adminCareOf), [adminCareOf]);
   useEffect(() => safeSetLS("rpfaas_location_street", propertyStreet), [propertyStreet]);
-
-  const handleSubmit = useCallback((e: FormEvent) => {
-    e.preventDefault();
-    router.push("/land-other-improvements/fill/step-2");
-  }, [router]);
 
   const handleNext = useCallback(async () => {
     setIsSaving(true);
     try {
       const formData = collectFormData(ownerName, adminCareOf, propertyStreet, ownerLoc, adminLoc, propLoc);
       formData.status = 'draft';
-      
-      console.log('Saving form data to Supabase:', formData);
-      
+
       let response;
       const currentDraftId = draftId || localStorage.getItem('draft_id');
-      
+
       if (currentDraftId) {
-        // Update existing draft
         response = await fetch(`/api/forms/land-other-improvements/${currentDraftId}`, {
           method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(formData),
         });
       } else {
-        // Create new draft
         response = await fetch('/api/forms/land-other-improvements', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(formData),
         });
       }
 
       if (response.ok) {
         const result = await response.json();
-        console.log('Save result:', result);
-        // Store the draft ID for future updates
         if (result.data?.id) {
           localStorage.setItem('draft_id', result.data.id.toString());
-          const savedDraftId = result.data.id;
-          // Navigate to step 2 with the draft ID
-          router.push(`/land-other-improvements/fill/step-2?id=${savedDraftId}`);
+          router.push(`/land-other-improvements/fill/step-2?id=${result.data.id}`);
         } else {
-          console.error('No draft ID returned:', result);
           alert('Save completed but no ID returned. Please try again.');
         }
       } else {
-        let errorMessage = 'Unknown error';
-        let errorDetails = '';
-        console.log('Response not OK. Status:', response.status, 'StatusText:', response.statusText);
-        
         try {
           const error = await response.json();
-          console.error('Save error response:', JSON.stringify(error, null, 2));
-          console.log('Error object keys:', Object.keys(error));
-          console.log('Error object values:', Object.values(error));
-          
-          if (error && typeof error === 'object') {
-            errorMessage = error.message || error.error || error.details?.message || `Server error (${response.status})`;
-            if (error.details) {
-              errorDetails = ` Details: ${JSON.stringify(error.details)}`;
-            }
-          } else {
-            errorMessage = `Server error (${response.status}): Unexpected response format`;
-          }
-        } catch (parseError) {
-          console.error('Failed to parse error response:', parseError);
-          console.log('Raw response status:', response.status, response.statusText);
-          errorMessage = `Server error (${response.status}): ${response.statusText}`;
+          const msg = error.message || error.error || `Server error (${response.status})`;
+          const details = error.details ? ` Details: ${JSON.stringify(error.details)}` : '';
+          alert('Failed to save: ' + msg + details);
+        } catch {
+          alert(`Failed to save: Server error (${response.status})`);
         }
-        
-        const fullErrorMessage = errorMessage + errorDetails;
-        console.error('Final error message to show user:', fullErrorMessage);
-        alert('Failed to save: ' + fullErrorMessage);
       }
     } catch (error) {
       console.error('Error saving:', error);
@@ -348,7 +349,7 @@ function BuildingOtherStructureFillPageContent() {
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem className="hidden md:block">
-                <BreadcrumbLink href="#">Building Your Application</BreadcrumbLink>
+                <BreadcrumbLink href="#">Land &amp; Other Improvements</BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator className="hidden md:block" />
               <BreadcrumbItem>
@@ -362,13 +363,13 @@ function BuildingOtherStructureFillPageContent() {
           <div className="rpfaas-fill max-w-3xl mx-auto">
             <header className="rpfaas-fill-header flex items-center justify-between gap-4 mb-6">
               <div>
-                <h1 className="rpfaas-fill-title">Fill-up Form: RPFAAS - Building &amp; Other Structures</h1>
+                <h1 className="rpfaas-fill-title">Fill-up Form: RPFAAS - Land &amp; Other Improvements</h1>
                 <p className="text-sm text-muted-foreground">Enter the details below. You can generate the printable version afterwards.</p>
               </div>
             </header>
 
-            <form id={`form_${FORM_NAME}_main`} onSubmit={handleSubmit} className="rpfaas-fill-form rpfaas-fill-form-single space-y-6">
-              
+            <form id={`form_${FORM_NAME}_main`} className="rpfaas-fill-form rpfaas-fill-form-single space-y-6">
+
               {/* OWNER SECTION */}
               <section className="rpfaas-fill-section">
                 <h2 className="rpfaas-fill-section-title mb-4">Owner Information</h2>
@@ -376,7 +377,8 @@ function BuildingOtherStructureFillPageContent() {
                   <Label className="rpfaas-fill-label">Owner</Label>
                   <Input value={ownerName} onChange={(e) => setOwnerName(e.target.value)} className="rpfaas-fill-input" />
                 </div>
-                
+
+                {/* Owner Address */}
                 <div className="rpfaas-fill-field">
                   <Label className="rpfaas-fill-label">Address</Label>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -384,16 +386,17 @@ function BuildingOtherStructureFillPageContent() {
                       label="Province"
                       value={ownerLoc.provinceCode}
                       onChange={ownerLoc.setProvinceCode}
-                      options={DUMMY_PROVINCES}
+                      options={PH_PROVINCES}
                       placeholder="Select Province"
                     />
                     <LocationSelect
-                      label="Municipality"
+                      label="Municipality/City"
                       value={ownerLoc.municipalityCode}
                       onChange={ownerLoc.setMunicipalityCode}
                       options={ownerLoc.municipalities}
                       disabled={!ownerLoc.provinceCode}
                       placeholder="Select Municipality"
+                      loading={ownerLoc.isLoadingMun}
                     />
                     <LocationSelect
                       label="Barangay"
@@ -402,6 +405,7 @@ function BuildingOtherStructureFillPageContent() {
                       options={ownerLoc.barangays}
                       disabled={!ownerLoc.municipalityCode}
                       placeholder="Select Barangay"
+                      loading={ownerLoc.isLoadingBar}
                     />
                   </div>
                 </div>
@@ -411,23 +415,24 @@ function BuildingOtherStructureFillPageContent() {
                   <Input value={adminCareOf} onChange={(e) => setAdminCareOf(e.target.value)} className="rpfaas-fill-input" />
                 </div>
 
-                {/* ADMIN ADDRESS */}
+                {/* Admin Address */}
                 <div className="rpfaas-fill-field mt-4">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <LocationSelect
                       label="Province"
                       value={adminLoc.provinceCode}
                       onChange={adminLoc.setProvinceCode}
-                      options={DUMMY_PROVINCES}
+                      options={PH_PROVINCES}
                       placeholder="Select Province"
                     />
                     <LocationSelect
-                      label="Municipality"
+                      label="Municipality/City"
                       value={adminLoc.municipalityCode}
                       onChange={adminLoc.setMunicipalityCode}
                       options={adminLoc.municipalities}
                       disabled={!adminLoc.provinceCode}
                       placeholder="Select Municipality"
+                      loading={adminLoc.isLoadingMun}
                     />
                     <LocationSelect
                       label="Barangay"
@@ -436,12 +441,13 @@ function BuildingOtherStructureFillPageContent() {
                       options={adminLoc.barangays}
                       disabled={!adminLoc.municipalityCode}
                       placeholder="Select Barangay"
+                      loading={adminLoc.isLoadingBar}
                     />
                   </div>
                 </div>
               </section>
 
-              {/* PROPERTY LOCATION SECTION */}
+              {/* PROPERTY LOCATION SECTION — Mountain Province only (static, no API) */}
               <section className="rpfaas-fill-section">
                 <h2 className="rpfaas-fill-section-title mb-4">Location Property</h2>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
@@ -449,52 +455,45 @@ function BuildingOtherStructureFillPageContent() {
                     <Label className="rpfaas-fill-label">No/Street/Sitio</Label>
                     <Input value={propertyStreet} onChange={(e) => setPropertyStreet(e.target.value)} className="rpfaas-fill-input" />
                   </div>
-                  <div className="space-y-1">
-                      <Label className="rpfaas-fill-label-sub">Province</Label>
-                      <Input value={DUMMY_PROVINCES[0].name} className="rpfaas-fill-input" readOnly disabled />
-                    </div>
-                    <LocationSelect
-                      label="Municipality"
-                      value={propLoc.municipalityCode}
-                      onChange={propLoc.setMunicipalityCode}
-                      options={propLoc.municipalities}
-                      placeholder="Select Municipality"
-                    />
-                    <LocationSelect
-                      label="Barangay"
-                      value={propLoc.barangayCode}
-                      onChange={propLoc.setBarangayCode}
-                      options={propLoc.barangays}
-                      disabled={!propLoc.municipalityCode}
-                      placeholder="Select Barangay"
-                    />
+                  <LocationSelect
+                    label="Province"
+                    value={MOUNTAIN_PROVINCE_CODE}
+                    onChange={() => {}}
+                    options={[{ code: MOUNTAIN_PROVINCE_CODE, name: "Mountain Province" }]}
+                    disabled={true}
+                    placeholder="Mountain Province"
+                  />
+                  <LocationSelect
+                    label="Municipality"
+                    value={propLoc.municipalityCode}
+                    onChange={propLoc.setMunicipalityCode}
+                    options={propLoc.municipalities}
+                    placeholder="Select Municipality"
+                    loading={propLoc.isLoadingMun}
+                    disabled={!!userMunicipality}
+                  />
+                  <LocationSelect
+                    label="Barangay"
+                    value={propLoc.barangayCode}
+                    onChange={propLoc.setBarangayCode}
+                    options={propLoc.barangays}
+                    disabled={!propLoc.municipalityCode}
+                    placeholder="Select Barangay"
+                    loading={propLoc.isLoadingBar}
+                  />
                 </div>
               </section>
 
               <div className="rpfaas-fill-footer border-t border-border pt-4 mt-4">
                 <div className="rpfaas-fill-actions flex gap-2 justify-end">
-                  {isLoadingDraft ? (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Loading draft...
-                    </div>
-                  ) : (
-                    <Button 
-                      type="button" 
-                      onClick={handleNext}
-                      disabled={isSaving}
-                      className="rpfaas-fill-button rpfaas-fill-button-primary"
-                    >
-                      {isSaving ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          Saving...
-                        </>
-                      ) : (
-                        'Next'
-                      )}
-                    </Button>
-                  )}
+                  <Button
+                    type="button"
+                    onClick={handleNext}
+                    disabled={isSaving}
+                    className="rpfaas-fill-button rpfaas-fill-button-primary"
+                  >
+                    {isSaving ? <><Loader2 className="h-4 w-4 animate-spin" />Saving...</> : 'Next'}
+                  </Button>
                 </div>
               </div>
             </form>
@@ -505,10 +504,10 @@ function BuildingOtherStructureFillPageContent() {
   );
 }
 
-export default function BuildingOtherStructureFillPage() {
+export default function LandOtherImprovementsFillPage() {
   return (
     <Suspense fallback={<div>Loading...</div>}>
-      <BuildingOtherStructureFillPageContent />
+      <LandOtherImprovementsFillPageContent />
     </Suspense>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { FormEvent, useState, useEffect, useCallback, Suspense } from "react";
+import { useState, useEffect, useCallback, useRef, Suspense } from "react";
 import "@/app/styles/forms-fill.css";
 import { AppSidebar } from "@/components/app-sidebar";
 import {
@@ -13,294 +13,473 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Separator } from "@/components/ui/separator";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { Loader2 } from "lucide-react";
+import { Loader2, Upload, X, ImageIcon, AlertTriangle } from "lucide-react";
+import { toast } from "sonner";
 
-// Helper function to collect form data from ONLY this step (step 5)
-function collectFormData(
-  actualUse: string,
-  estimatedValue: number,
-  amountInWords: string
-) {
-  const data: any = {};
-  
-  // Save assessment data
-  if (actualUse) data.actual_use = actualUse;
-  if (estimatedValue) data.estimated_value = estimatedValue.toString();
-  if (amountInWords) data.amount_in_words = amountInWords;
-  
-  // Note: If you have market_value and assessment_level fields in the form,
-  // add them as parameters and map them here
-  
-  return data;
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+type PhotoType =
+  | "sketch_plan"
+  | "perspective_view"
+  | "barangay_certificate"
+  | "other_certificate";
+
+interface PhotoRecord {
+  id: string;
+  photo_type: PhotoType;
+  storage_path: string;
+  original_name: string;
+  signedUrl: string | null;
 }
 
-const FORM_NAME = "building-structure-form-fill-page-5";
-const PAGE_DESCRIPTION = "Final notes and summary of the property assessment.";
+// ---------------------------------------------------------------------------
+// Config
+// ---------------------------------------------------------------------------
 
-// Pure helpers at module scope — no state/props, so no need to recreate on render
-function formatNumberWithCommas(num: number): string {
-  return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+const PHOTO_CONFIG: { type: PhotoType; label: string; description: string }[] =
+  [
+    {
+      type: "sketch_plan",
+      label: "Sketch Plan",
+      description:
+        "Architectural or engineering sketch plan of the property.",
+    },
+    {
+      type: "perspective_view",
+      label: "Perspective View",
+      description:
+        "Visual perspective drawing or photograph of the building.",
+    },
+    {
+      type: "barangay_certificate",
+      label: "Barangay Certificate",
+      description:
+        "Official barangay certificate issued for the property.",
+    },
+    {
+      type: "other_certificate",
+      label: "Another Certificate",
+      description: "Any other supporting certificate or document.",
+    },
+  ];
+
+// ---------------------------------------------------------------------------
+// PhotoUploadCard
+// ---------------------------------------------------------------------------
+
+interface PhotoUploadCardProps {
+  type: PhotoType;
+  label: string;
+  description: string;
+  photo?: PhotoRecord;
+  isUploading: boolean;
+  isRemoving: boolean;
+  onFileSelect: (file: File) => void;
+  onRemove: () => void;
+  inputRef: (el: HTMLInputElement | null) => void;
+  disabled: boolean;
 }
 
-function removeCommas(str: string): string {
-  return str.replace(/,/g, "");
-}
+function PhotoUploadCard({
+  label,
+  description,
+  photo,
+  isUploading,
+  isRemoving,
+  onFileSelect,
+  onRemove,
+  inputRef,
+  disabled,
+}: PhotoUploadCardProps) {
+  const localRef = useRef<HTMLInputElement | null>(null);
 
-// Function to convert number to words
-function numberToWords(num: number): string {
-  if (num === 0) return "Zero";
+  const handleInputRef = (el: HTMLInputElement | null) => {
+    localRef.current = el;
+    inputRef(el);
+  };
 
-  const ones = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine"];
-  const teens = ["Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"];
-  const tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
-  const thousands = ["", "Thousand", "Million", "Billion"];
-
-  function convertHundreds(n: number): string {
-    let result = "";
-    
-    if (n >= 100) {
-      result += ones[Math.floor(n / 100)] + " Hundred ";
-      n %= 100;
+  const triggerInput = () => {
+    if (!disabled && !isUploading) {
+      localRef.current?.click();
     }
-    
-    if (n >= 10 && n < 20) {
-      result += teens[n - 10] + " ";
-    } else {
-      if (n >= 20) {
-        result += tens[Math.floor(n / 10)] + " ";
-        n %= 10;
-      }
-      if (n > 0) {
-        result += ones[n] + " ";
-      }
-    }
-    
-    return result.trim();
-  }
+  };
 
-  let word = "";
-  let scale = 0;
+  return (
+    <div className="border rounded-lg p-4 space-y-3">
+      <div>
+        <h3 className="font-medium text-sm">{label}</h3>
+        <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
+      </div>
 
-  while (num > 0) {
-    const chunk = num % 1000;
-    if (chunk !== 0) {
-      const chunkWord = convertHundreds(chunk);
-      word = chunkWord + (thousands[scale] ? " " + thousands[scale] : "") + (word ? " " + word : "");
-    }
-    num = Math.floor(num / 1000);
-    scale++;
-  }
-
-  return word.trim();
+      {photo?.signedUrl ? (
+        /* ── Uploaded state ── */
+        <div className="space-y-2">
+          <div className="border rounded-md overflow-hidden bg-muted/30">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={photo.signedUrl}
+              alt={label}
+              className="w-full max-h-56 object-contain"
+            />
+          </div>
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-xs text-muted-foreground truncate max-w-[60%]">
+              {photo.original_name}
+            </span>
+            <div className="flex gap-2">
+              {/* Replace: allow swapping to a different file */}
+              <input
+                type="file"
+                accept="image/*,.pdf"
+                className="hidden"
+                ref={handleInputRef}
+                disabled={disabled || isUploading}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) onFileSelect(file);
+                }}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={triggerInput}
+                disabled={disabled || isUploading || isRemoving}
+              >
+                {isUploading ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <Upload className="h-3 w-3" />
+                )}
+                <span className="ml-1">Replace</span>
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={onRemove}
+                disabled={disabled || isUploading || isRemoving}
+              >
+                {isRemoving ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <X className="h-3 w-3" />
+                )}
+                <span className="ml-1">Remove</span>
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        /* ── Empty state ── */
+        <div
+          onClick={triggerInput}
+          className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+            disabled || isUploading
+              ? "opacity-50 cursor-not-allowed border-border"
+              : "cursor-pointer border-border hover:border-primary hover:bg-muted/20"
+          }`}
+        >
+          <ImageIcon className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+          <p className="text-sm text-muted-foreground mb-3">No image uploaded</p>
+          <input
+            type="file"
+            accept="image/*,.pdf"
+            className="hidden"
+            ref={handleInputRef}
+            disabled={disabled || isUploading}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) onFileSelect(file);
+            }}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={disabled || isUploading}
+            onClick={(e) => {
+              e.stopPropagation();
+              triggerInput();
+            }}
+          >
+            {isUploading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                Uploading…
+              </>
+            ) : (
+              <>
+                <Upload className="h-4 w-4 mr-2" />
+                Choose File
+              </>
+            )}
+          </Button>
+          <p className="text-xs text-muted-foreground mt-2">
+            JPG, PNG, WebP, or PDF — max 10 MB
+          </p>
+        </div>
+      )}
+    </div>
+  );
 }
+
+// ---------------------------------------------------------------------------
+// Main page component
+// ---------------------------------------------------------------------------
 
 function BuildingStructureFormFillPage5() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const draftId = searchParams.get('id');
-  
-  const [isSaving, setIsSaving] = useState(false);
-  const [notes, setNotes] = useState("");
-  const [actualUse, setActualUse] = useState("");
-  const [estimatedValue, setEstimatedValue] = useState<number>(0);
-  const [estimatedValueDisplay, setEstimatedValueDisplay] = useState("");
-  const [amountInWords, setAmountInWords] = useState("");
 
-  // Load the type of building from localStorage
+  // Resolve draftId from URL param first, then fall back to localStorage
+  const urlId = searchParams.get("id");
+  const [draftId, setDraftId] = useState<string | null>(urlId);
+
   useEffect(() => {
-    try {
-      const typeOfBuilding = localStorage.getItem("type_of_building_p2") || "";
-      // Capitalize first letter for display
-      const formattedType = typeOfBuilding.charAt(0).toUpperCase() + typeOfBuilding.slice(1);
-      setActualUse(formattedType || "Residential");
+    if (!urlId) {
+      const stored = localStorage.getItem("draft_id");
+      if (stored) setDraftId(stored);
+    }
+  }, [urlId]);
 
-      // Load estimated value and convert to words
-      const savedEstimatedValue = localStorage.getItem("estimated_value_p5") || "0";
-      const value = parseFloat(savedEstimatedValue) || 0;
-      setEstimatedValue(value);
-      setEstimatedValueDisplay(value > 0 ? formatNumberWithCommas(value) : "");
-      
-      if (value > 0) {
-        setAmountInWords(numberToWords(value));
-      } else {
-        setAmountInWords("");
+  const [photos, setPhotos] = useState<
+    Partial<Record<PhotoType, PhotoRecord>>
+  >({});
+  const [uploading, setUploading] = useState<
+    Partial<Record<PhotoType, boolean>>
+  >({});
+  const [removing, setRemoving] = useState<
+    Partial<Record<PhotoType, boolean>>
+  >({});
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Ref bag for each hidden file input
+  const fileInputRefs = useRef<Partial<Record<PhotoType, HTMLInputElement | null>>>({});
+
+  // ── Load existing photos when draftId is known ──
+  const loadPhotos = useCallback(async (id: string) => {
+    try {
+      const res = await fetch(
+        `/api/building-other-structure/photos?buildingStructureId=${id}`
+      );
+      if (!res.ok) return;
+      const result = await res.json();
+      if (result.success) {
+        const map: Partial<Record<PhotoType, PhotoRecord>> = {};
+        for (const p of result.data as PhotoRecord[]) {
+          map[p.photo_type] = p;
+        }
+        setPhotos(map);
       }
-    } catch (error) {
-      console.error("Failed to load data from localStorage", error);
-      setActualUse("Residential");
-      setEstimatedValue(0);
-      setEstimatedValueDisplay("");
-      setAmountInWords("");
+    } catch {
+      // Non-fatal: photos simply won't pre-populate
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
-  // Load draft data if editing
   useEffect(() => {
-    if (!draftId) return;
-    const loadDraft = async () => {
-      try {
-        const response = await fetch(`/api/building-structure/${draftId}`);
-        if (response.ok) {
-          const result = await response.json();
-          if (result.success && result.data) {
-            const data = result.data;
-            // Populate form fields
-            if (data.actual_use) setActualUse(data.actual_use);
-            if (data.estimated_value) setEstimatedValue(Number(data.estimated_value));
-            if (data.amount_in_words) setAmountInWords(data.amount_in_words);
-            // Save to localStorage for consistency with other steps
-            Object.entries(data).forEach(([key, value]) => {
-              if (value !== null && value !== undefined) {
-                localStorage.setItem(`${key}_p5`, String(value));
-              }
-            });
-          }
-        }
-      } catch (error) {
-        console.error('Failed to load draft data for step 5', error);
-      }
-    };
-    loadDraft();
-  }, [draftId]);
-
-  const handleSubmit = useCallback((e: FormEvent) => {
-    e.preventDefault();
-    // For now, go back to main list after submit
-    router.push("/building-other-structure");
-  }, [router]);
-
-  const handlePreview = useCallback(async () => {
-    setIsSaving(true);
-    try {
-      const formData = collectFormData(actualUse, estimatedValue, amountInWords);
-      formData.status = 'draft';
-      
-      console.log('Saving Step 5 form data to Supabase:', formData);
-      
-      let response;
-      const currentDraftId = draftId || localStorage.getItem('draft_id');
-      
-      if (currentDraftId) {
-        // Update existing draft
-        response = await fetch(`/api/building-structure/${currentDraftId}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(formData),
-        });
-      } else {
-        // Create new draft
-        response = await fetch('/api/building-structure', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(formData),
-        });
-      }
-
-      if (response.ok) {
-        const result = await response.json();
-        console.log('Save result:', result);
-        // Store the draft ID for future updates
-        if (result.data?.id) {
-          localStorage.setItem('draft_id', result.data.id.toString());
-          const savedDraftId = result.data.id;
-          // Navigate to preview with the draft ID
-          router.push(`/building-other-structure/fill/preview-form?id=${savedDraftId}`);
-        }
-      } else {
-        const error = await response.json();
-        console.error('Save error:', error);
-        alert('Failed to save: ' + (error.message || 'Unknown error'));
-      }
-    } catch (error) {
-      console.error('Error saving:', error);
-      alert('Error saving. Please try again.');
-    } finally {
-      setIsSaving(false);
+    if (draftId) {
+      loadPhotos(draftId);
+    } else {
+      setIsLoading(false);
     }
-  }, [actualUse, estimatedValue, amountInWords, draftId, router]);
+  }, [draftId, loadPhotos]);
+
+  // ── Upload handler ──
+  const handleFileSelect = useCallback(
+    async (photoType: PhotoType, file: File) => {
+      if (!draftId) {
+        toast.error(
+          "Please save the form in a previous step before uploading images."
+        );
+        return;
+      }
+
+      setUploading((prev) => ({ ...prev, [photoType]: true }));
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("buildingStructureId", draftId);
+        formData.append("photoType", photoType);
+
+        const res = await fetch("/api/building-other-structure/photos", {
+          method: "POST",
+          body: formData,
+        });
+        const result = await res.json();
+
+        if (result.success) {
+          toast.success("Image uploaded successfully.");
+          // Refresh the photo list to get the new signed URL
+          await loadPhotos(draftId);
+        } else {
+          toast.error("Upload failed: " + (result.error ?? "Unknown error"));
+        }
+      } catch {
+        toast.error("Error uploading image. Please try again.");
+      } finally {
+        setUploading((prev) => ({ ...prev, [photoType]: false }));
+        // Reset the file input so the same file can be re-selected if needed
+        const input = fileInputRefs.current[photoType];
+        if (input) input.value = "";
+      }
+    },
+    [draftId, loadPhotos]
+  );
+
+  // ── Remove handler ──
+  const handleRemove = useCallback(
+    async (photoType: PhotoType) => {
+      const photo = photos[photoType];
+      if (!photo) return;
+
+      setRemoving((prev) => ({ ...prev, [photoType]: true }));
+      try {
+        const res = await fetch(
+          `/api/building-other-structure/photos/${photo.id}`,
+          { method: "DELETE" }
+        );
+        const result = await res.json();
+
+        if (result.success) {
+          setPhotos((prev) => {
+            const next = { ...prev };
+            delete next[photoType];
+            return next;
+          });
+          toast.success("Image removed.");
+        } else {
+          toast.error(
+            "Failed to remove image: " + (result.error ?? "Unknown error")
+          );
+        }
+      } catch {
+        toast.error("Error removing image. Please try again.");
+      } finally {
+        setRemoving((prev) => ({ ...prev, [photoType]: false }));
+      }
+    },
+    [photos]
+  );
+
+  const navParams = draftId ? `?id=${draftId}` : "";
 
   return (
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
+        {/* ── Header ── */}
         <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
           <SidebarTrigger className="-ml-1" />
-          <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4" />
+          <Separator
+            orientation="vertical"
+            className="mr-2 data-[orientation=vertical]:h-4"
+          />
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem className="hidden md:block">
-                <BreadcrumbLink href="/building-other-structure">Building & Other Structures</BreadcrumbLink>
+                <BreadcrumbLink href="/building-other-structure">
+                  Building &amp; Other Structures
+                </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator className="hidden md:block" />
               <BreadcrumbItem>
-                <BreadcrumbPage>{PAGE_DESCRIPTION}</BreadcrumbPage>
+                <BreadcrumbPage>Supporting Documents</BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
         </header>
+
+        {/* ── Body ── */}
         <div className="flex-1 p-6 overflow-y-auto">
           <div className="rpfaas-fill max-w-3xl mx-auto">
-            <header className="rpfaas-fill-header flex items-center justify-between gap-4 mb-6">
-              <div>
-                <h1 className="rpfaas-fill-title">Fill-up Form: Property Assessment</h1>
-                <p className="text-sm text-muted-foreground">
-                  {PAGE_DESCRIPTION}
+            {/* Title */}
+            <header className="rpfaas-fill-header mb-6">
+              <h1 className="rpfaas-fill-title">
+                Fill-up Form: Supporting Documents
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                Upload the required supporting documents for this property
+                assessment. Images are stored securely and will be included in
+                the preview and print.
+              </p>
+            </header>
+
+            {/* No-draft warning */}
+            {!draftId && (
+              <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-md p-4 mb-6">
+                <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+                <p className="text-sm text-amber-800">
+                  A saved draft is required before you can upload images. Go
+                  back to a previous step and save your draft first.
                 </p>
               </div>
-            </header>
-            <form id={`form_${FORM_NAME}`} data-form-name={FORM_NAME} onSubmit={async (e) => {
-  e.preventDefault();
-  const formData = new FormData(e.currentTarget);
-  setIsSaving(true);
-  try {
-    const response = await fetch('/api/submit-user-form', {
-      method: 'POST',
-      body: formData,
-    });
-    const result = await response.json();
-    if (result.success) {
-      // handle success (e.g., redirect, show message)
-      router.push(`/building-other-structure/fill/preview-form`);
-    } else {
-      alert(result.error || 'Upload failed');
-    }
-  } catch (error) {
-    alert('Error submitting form');
-  } finally {
-    setIsSaving(false);
-  }
-}} className="rpfaas-fill-form rpfaas-fill-form-single space-y-6">
-  <div>
-    <Label htmlFor="description">Description</Label>
-    <Input id="description" name="description" type="text" />
-  </div>
-  <div>
-    <Label htmlFor="photo">Attach Image</Label>
-    <Input id="photo" name="photo" type="file" accept="image/*" />
-  </div>
-  <div className="rpfaas-fill-footer border-t border-border pt-4 mt-4">
-    <div className="rpfaas-fill-actions flex gap-2 justify-between items-center">
-      <div className="flex gap-2">
-        <Button type="button" variant="outline" onClick={() => router.push(`/building-other-structure/fill/step-4${draftId ? `?id=${draftId}` : ''}`)} className="rpfaas-fill-button rpfaas-fill-button-secondary">Previous</Button>
-      </div>
-      <div className="flex gap-2">
-        <Button type="button" variant="outline" className="rpfaas-fill-button rpfaas-fill-button-primary" onClick={() => router.push(`/building-other-structure/fill/step-6${draftId ? `?id=${draftId}` : ''}`)}>Next</Button>
-      </div>
-    </div>
-  </div>
-</form>
+            )}
+
+            {/* Upload cards */}
+            {isLoading ? (
+              <div className="flex justify-center py-16">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {PHOTO_CONFIG.map(({ type, label, description }) => (
+                  <PhotoUploadCard
+                    key={type}
+                    type={type}
+                    label={label}
+                    description={description}
+                    photo={photos[type]}
+                    isUploading={!!uploading[type]}
+                    isRemoving={!!removing[type]}
+                    onFileSelect={(file) => handleFileSelect(type, file)}
+                    onRemove={() => handleRemove(type)}
+                    inputRef={(el) => {
+                      fileInputRefs.current[type] = el;
+                    }}
+                    disabled={!draftId}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Footer navigation */}
+            <div className="rpfaas-fill-footer border-t border-border pt-4 mt-6">
+              <div className="rpfaas-fill-actions flex gap-2 justify-between items-center">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() =>
+                    router.push(
+                      `/building-other-structure/fill/step-4${navParams}`
+                    )
+                  }
+                >
+                  Previous
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() =>
+                    router.push(
+                      `/building-other-structure/fill/step-6${navParams}`
+                    )
+                  }
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       </SidebarInset>
@@ -308,9 +487,10 @@ function BuildingStructureFormFillPage5() {
   );
 }
 
+// Suspense wrapper is required because useSearchParams needs it
 export default function BuildingStructureFormFillPage5Wrapper() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<div>Loading…</div>}>
       <BuildingStructureFormFillPage5 />
     </Suspense>
   );

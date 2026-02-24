@@ -17,6 +17,7 @@ import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/s
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Separator } from "@/components/ui/separator";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 // Pure helper — lives at module scope so it's never recreated on render
 function formatPeso(value: string | number) {
   if (value === "" || value === undefined) return "";
@@ -49,6 +50,7 @@ const BuildingStructureFormFillPage2 = () => {
   const searchParams = useSearchParams();
   const draftId = searchParams.get('id');
   const [isSaving, setIsSaving] = useState(false);
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
   const FORM_NAME = "building_other_structure_fill_p2";
 
   // --- 1. DEFINE ALL STATES (So the Hook can save them) ---
@@ -296,15 +298,55 @@ const handleNext = useCallback(async () => {
         }
       } else {
         const error = await response.json();
-        alert('Failed to save: ' + (error.message || 'Unknown error'));
+        toast.error('Failed to save: ' + (error.message || 'Unknown error'));
       }
     } catch (error) {
       console.error('Error saving:', error);
-      alert('Error saving. Please try again.');
+      toast.error('Error saving. Please try again.');
     } finally {
       setIsSaving(false);
     }
   }, [draftId, router, typeOfBuilding, structureType, buildingPermitNo, cct, completionIssuedOn, dateConstructed, dateOccupied, buildingAge, numberOfStoreys, floorAreas, totalFloorArea, landOwner, tdArpNo, landArea, costOfConstructionDisplay, costOfConstruction]);
+
+  const handleSaveDraft = useCallback(async () => {
+    setIsSavingDraft(true);
+    try {
+      const rawCostValue = costOfConstructionDisplay ? costOfConstructionDisplay.replace(/[^0-9.]/g, '') : '0';
+      const formatYearToDate = (val: string | number) => {
+        if (!val) return null;
+        const str = val.toString();
+        return str.length === 4 ? `${str}-01-01` : str;
+      };
+      const formData = {
+        type_of_building: typeOfBuilding, structure_type: structureType,
+        building_permit_no: buildingPermitNo, cct,
+        completion_issued_on: formatYearToDate(completionIssuedOn),
+        date_constructed: formatYearToDate(dateConstructed),
+        date_occupied: formatYearToDate(dateOccupied),
+        building_age: buildingAge, number_of_storeys: numberOfStoreys,
+        floor_areas: floorAreas, total_floor_area: totalFloorArea,
+        land_owner: landOwner, td_arp_no: tdArpNo, land_area: landArea,
+        cost_of_construction: rawCostValue === '0' ? null : rawCostValue,
+        status: 'draft',
+      };
+      const currentDraftId = draftId || localStorage.getItem('draft_id');
+      const method = currentDraftId ? 'PUT' : 'POST';
+      const endpoint = currentDraftId ? `/api/building-structure/${currentDraftId}` : '/api/building-structure';
+      const response = await fetch(endpoint, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(formData) });
+      if (response.ok) {
+        const result = await response.json();
+        if (result.data?.id) localStorage.setItem('draft_id', result.data.id.toString());
+        toast.success('Draft saved successfully.');
+      } else {
+        const error = await response.json();
+        toast.error('Failed to save draft: ' + (error.message || 'Unknown error'));
+      }
+    } catch {
+      toast.error('Error saving draft.');
+    } finally {
+      setIsSavingDraft(false);
+    }
+  }, [draftId, typeOfBuilding, structureType, buildingPermitNo, cct, completionIssuedOn, dateConstructed, dateOccupied, buildingAge, numberOfStoreys, floorAreas, totalFloorArea, landOwner, tdArpNo, landArea, costOfConstructionDisplay]);
 
   // --- JSX RENDER ---
   return (
@@ -541,11 +583,16 @@ const handleNext = useCallback(async () => {
 
               {/* Footer Actions */}
               <div className="rpfaas-fill-footer border-t border-border pt-4 mt-4">
-                <div className="rpfaas-fill-actions flex gap-2 justify-end">
+                <div className="rpfaas-fill-actions flex gap-2 justify-between items-center">
                   <Button type="button" variant="outline" onClick={() => router.back()}>Previous</Button>
-                  <Button type="button" onClick={handleNext} disabled={isSaving}>
-                    {isSaving ? <><Loader2 className="h-4 w-4 animate-spin" /> Saving...</> : 'Next'}
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button type="button" variant="outline" onClick={handleSaveDraft} disabled={isSavingDraft || isSaving}>
+                      {isSavingDraft ? <><Loader2 className="h-4 w-4 animate-spin mr-1" />Saving...</> : 'Save Draft'}
+                    </Button>
+                    <Button type="button" onClick={handleNext} disabled={isSaving || isSavingDraft}>
+                      {isSaving ? <><Loader2 className="h-4 w-4 animate-spin" /> Saving...</> : 'Next'}
+                    </Button>
+                  </div>
                 </div>
               </div>
             </form>

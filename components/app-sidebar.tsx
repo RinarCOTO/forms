@@ -24,45 +24,45 @@ import {
 } from "@/components/ui/sidebar"
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const pathname = typeof window !== "undefined" ? window.location.pathname : "";
+  const pathname = usePathname();
   const [rpfaasOpen, setRpfaasOpen] = React.useState(true);
-  const [user, setUser] = React.useState<{ role: string } | null>(null);
+  const [role, setRole] = React.useState<string | null>(null);
+  const [perms, setPerms] = React.useState<Record<string, boolean>>({});
   const [isLoading, setIsLoading] = React.useState(true);
 
-  const fetchUser = React.useCallback(() => {
+  const fetchPerms = React.useCallback(() => {
     setIsLoading(true);
-    fetch("/api/auth/user")
+    fetch("/api/my-permissions")
       .then((res) => res.json())
       .then((data) => {
-        setUser(data.user);
+        setRole(data.role ?? null);
+        setPerms(data.permissions ?? {});
         setIsLoading(false);
       })
       .catch((error) => {
-        console.error("Error fetching user:", error);
+        console.error("Error fetching permissions:", error);
         setIsLoading(false);
       });
   }, []);
 
   React.useEffect(() => {
-    fetchUser();
-  }, [fetchUser]);
+    fetchPerms();
+  }, [fetchPerms]);
 
-  // Listen for storage events to refresh user data
+  // Refresh when role changes elsewhere in the app
   React.useEffect(() => {
-    const handleStorageChange = () => {
-      fetchUser();
-    };
-    
-    window.addEventListener('user-role-updated', handleStorageChange);
-    return () => window.removeEventListener('user-role-updated', handleStorageChange);
-  }, [fetchUser]);
+    const handleRoleUpdate = () => fetchPerms();
+    window.addEventListener('user-role-updated', handleRoleUpdate);
+    return () => window.removeEventListener('user-role-updated', handleRoleUpdate);
+  }, [fetchPerms]);
 
-  // Helper: check role
-  const hasRole = (roles: string[]) => {
-    const userRole = user?.role;
-    if (!user || !userRole) return false;
-    return roles.includes(userRole);
-  };
+  const can = (feature: string) => perms[feature] === true;
+
+  // Land Assessor section is shown if the user can view any RPFAAS form
+  const showLandAssessor =
+    can('building_structures.view') ||
+    can('land_improvements.view') ||
+    can('machinery.view');
 
   return (
     <Sidebar {...props}>
@@ -85,8 +85,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             </SidebarGroupContent>
           </SidebarGroup>
         )}
-        {/* Land Assessor group: visible to super_admin, admin, tax_mapper, municipal_tax_mapper */}
-        {!isLoading && hasRole(["super_admin", "admin", "tax_mapper", "municipal_tax_mapper"]) && (
+
+        {/* Land Assessor group */}
+        {!isLoading && showLandAssessor && (
           <SidebarGroup>
             <SidebarGroupLabel>Land Assessor</SidebarGroupLabel>
             <SidebarGroupContent>
@@ -104,21 +105,27 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   </SidebarMenuButton>
                   {rpfaasOpen && (
                     <SidebarMenuSub>
-                      <SidebarMenuSubItem>
-                        <SidebarMenuSubButton asChild>
-                          <a href="/building-other-structure/dashboard" className={pathname === "/building-other-structure/dashboard" ? "sidebar-active" : ""}>Building &amp; Structures</a>
-                        </SidebarMenuSubButton>
-                      </SidebarMenuSubItem>
-                      <SidebarMenuSubItem>
-                        <SidebarMenuSubButton asChild>
-                          <a href="/land-other-improvements/dashboard" className={pathname === "/land-other-improvements/dashboard" ? "sidebar-active" : ""}>Land &amp; Improvements</a>
-                        </SidebarMenuSubButton>
-                      </SidebarMenuSubItem>
-                      <SidebarMenuSubItem>
-                        <SidebarMenuSubButton asChild>
-                          <a href="/machinery/dashboard" className={pathname === "/machinery/dashboard" ? "sidebar-active" : ""}>Machinery</a>
-                        </SidebarMenuSubButton>
-                      </SidebarMenuSubItem>
+                      {can('building_structures.view') && (
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton asChild>
+                            <a href="/building-other-structure/dashboard" className={pathname.startsWith("/building-other-structure") ? "sidebar-active" : ""}>Building &amp; Structures</a>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      )}
+                      {can('land_improvements.view') && (
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton asChild>
+                            <a href="/land-other-improvements/dashboard" className={pathname.startsWith("/land-other-improvements") ? "sidebar-active" : ""}>Land &amp; Improvements</a>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      )}
+                      {can('machinery.view') && (
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton asChild>
+                            <a href="/machinery/dashboard" className={pathname.startsWith("/machinery") ? "sidebar-active" : ""}>Machinery</a>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      )}
                     </SidebarMenuSub>
                   )}
                 </SidebarMenuItem>
@@ -127,15 +134,15 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </SidebarGroup>
         )}
 
-        {/* Accountant group: visible to accountant, super_admin, admin */}
-        {!isLoading && hasRole(["accountant", "super_admin", "admin"]) && (
+        {/* Accountant group */}
+        {!isLoading && can('accounting.view') && (
           <SidebarGroup>
             <SidebarGroupLabel>Accountant</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
-                    <a href="/accounting" className={pathname === "/accounting" ? "sidebar-active" : ""}>Accounting</a>
+                    <a href="/accounting" className={pathname.startsWith("/accounting") ? "sidebar-active" : ""}>Accounting</a>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>
@@ -143,17 +150,26 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </SidebarGroup>
         )}
 
-        {/* Super Admin group: visible to super_admin only */}
-        {!isLoading && hasRole(["super_admin"]) && (
+        {/* Super Admin group — role hard-check keeps this locked to super_admin */}
+        {!isLoading && role === 'super_admin' && (
           <SidebarGroup>
             <SidebarGroupLabel>Super Admin</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild>
-                    <a href="/manage-users" className={pathname === "/manage-users" ? "sidebar-active" : ""}>Manage Users</a>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+                {can('user_management.view') && (
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <a href="/manage-users" className={pathname.startsWith("/manage-users") ? "sidebar-active" : ""}>Manage Users</a>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )}
+                {can('role_management.view') && (
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <a href="/manage-roles" className={pathname.startsWith("/manage-roles") ? "sidebar-active" : ""}>Manage Roles</a>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
@@ -167,7 +183,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               <SidebarMenu>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
-                    <a href="/notes" className={pathname === "/notes" ? "sidebar-active" : ""}>Notes</a>
+                    <a href="/notes" className={pathname.startsWith("/notes") ? "sidebar-active" : ""}>Notes</a>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>
