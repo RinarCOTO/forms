@@ -227,7 +227,7 @@ export const useRPFAASData = () => {
                 : 0;
 
             // Calculate deduction total
-            const standardDeductionTotal = selectedDeductions.reduce<number>((acc, deductionId) => {
+            const standardDeductionTotal = selectedDeductions.reduce((acc: number, deductionId) => {
                 const deduction = DEDUCTION_CHOICES.find(d => d.id === deductionId);
                 if (deduction && deduction.percentage) {
                     return acc + (baseCost * deduction.percentage) / 100;
