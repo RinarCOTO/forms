@@ -138,7 +138,7 @@ const BuildingStructureForm = () => {
         selectedDeductions,
         deductionComments,
         assessmentLevel,
-        p4DataRaw: localStorage.getItem("p4"),
+        p4DataRaw: typeof window !== 'undefined' ? localStorage.getItem("p4") : null,
         selectedDeductionsWithData: getSelectedDeductionsWithData(),
         availableDeductions: DEDUCTION_CHOICES
     });
