@@ -88,7 +88,7 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
       );
     }
 
-    revalidateTag('land-improvements');
+    revalidateTag('land-improvements', 'max');
     return NextResponse.json({ success: true, data: updatedRecord });
   } catch (error) {
     console.error('PUT - Error:', error);
@@ -168,8 +168,8 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ id: 
       );
     }
 
-    revalidateTag('land-improvements');
-    revalidateTag('form-counts');
+    revalidateTag('land-improvements', 'max');
+    revalidateTag('form-counts', 'max');
     return NextResponse.json({ success: true, message: 'Record deleted successfully', data: deletedRecord });
   } catch (error) {
     console.error('DELETE - Error:', error);

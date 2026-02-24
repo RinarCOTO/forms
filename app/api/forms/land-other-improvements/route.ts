@@ -102,8 +102,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: error.message }, { status: 400 })
     }
 
-    revalidateTag('land-improvements')
-    revalidateTag('form-counts')
+    revalidateTag('land-improvements', 'max')
+    revalidateTag('form-counts', 'max')
 
     return NextResponse.json({ success: true, data })
   } catch (error: any) {

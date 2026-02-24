@@ -83,8 +83,8 @@ export async function POST(request: NextRequest) {
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-    revalidateTag('building-structures')
-    revalidateTag('form-counts')
+    revalidateTag('building-structures', 'max')
+    revalidateTag('form-counts', 'max')
 
     return NextResponse.json({ data })
   } catch (error: any) {
@@ -119,7 +119,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    revalidateTag('building-structures')
+    revalidateTag('building-structures', 'max')
 
     return NextResponse.json({ data })
   } catch (error: any) {

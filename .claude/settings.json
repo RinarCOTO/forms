@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install)",
+      "Bash(node -e \"const t = require\\(''/Users/rinar/Documents/forms/node_modules/next/dist/server/web/spec-extension/revalidate.js''\\); console.log\\(t.toString\\(\\)\\)\")"
+    ]
+  }
+}

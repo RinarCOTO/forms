@@ -128,7 +128,7 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
     }
 
     console.log('PUT - Successfully updated draft:', updatedRecord);
-    revalidateTag('building-structures');
+    revalidateTag('building-structures', 'max');
     return NextResponse.json({
       success: true,
       data: updatedRecord  // Return the actual updated database record
@@ -244,8 +244,8 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ id: 
     }
 
     console.log('DELETE - Successfully deleted record:', deletedRecord);
-    revalidateTag('building-structures');
-    revalidateTag('form-counts');
+    revalidateTag('building-structures', 'max');
+    revalidateTag('form-counts', 'max');
     return NextResponse.json({
       success: true,
       message: 'Record deleted successfully',
