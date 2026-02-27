@@ -12,7 +12,7 @@ export const SectionHeader = ({
     className = ""
 }: SectionHeaderProps) => (
     <tr>
-        <td colSpan={colSpan} className={`font-bold ${className}`}>
+        <td colSpan={colSpan} className={`font-bold sectionHeader ${className}`}>
             {children}
         </td>
     </tr>

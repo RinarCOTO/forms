@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, useEffect, useCallback, Suspense } from "react";
+import { useState, useEffect, useCallback, Suspense, useRef } from "react";
+import { StepPagination } from "@/components/ui/step-pagination";
 import { generateYears, calculateAge, calculateTotalFloorArea } from "@/utils/form-helpers";
 import { BUILDING_TYPES, STRUCTURAL_TYPES } from "@/config/form-options";
 import { getUnitConstructionCost } from "@/config/unit-construction-cost";
@@ -51,6 +52,11 @@ const BuildingStructureFormFillPage2 = () => {
   const draftId = searchParams.get('id');
   const [isSaving, setIsSaving] = useState(false);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
+  const isInitializedRef = useRef(false);
+  const markDirty = useCallback(() => {
+    if (isInitializedRef.current) setIsDirty(true);
+  }, []);
   const FORM_NAME = "building_other_structure_fill_p2";
 
   // --- 1. DEFINE ALL STATES (So the Hook can save them) ---
@@ -134,6 +140,11 @@ const handleCostOfConstructionChange = useCallback((e: React.ChangeEvent<HTMLInp
     setTotalFloorArea(total > 0 ? total : "");
   }, [floorAreas]);
 
+  // Mark initialized immediately for new forms (no draftId)
+  useEffect(() => {
+    if (!draftId) isInitializedRef.current = true;
+  }, [draftId]);
+
   // --- 2.1. LOAD EXISTING DATA (if editing) ---
 // --- 2.1. LOAD EXISTING DATA (if editing) ---
   const { data: loadedData, isLoading: isLoadingData } = useFormData<any>("building-structure", draftId || "");
@@ -193,6 +204,7 @@ const handleCostOfConstructionChange = useCallback((e: React.ChangeEvent<HTMLInp
         setCostOfConstruction("");
         setCostOfConstructionDisplay("");
       }
+      setTimeout(() => { isInitializedRef.current = true; }, 100);
     }
   }, [loadedData]);
 
@@ -293,6 +305,7 @@ const handleNext = useCallback(async () => {
       if (response.ok) {
         const result = await response.json();
         if (result.data?.id) {
+          setIsDirty(false);
           localStorage.setItem('draft_id', result.data.id.toString());
           router.push(`/building-other-structure/fill/step-3?id=${result.data.id}`);
         }
@@ -336,6 +349,7 @@ const handleNext = useCallback(async () => {
       if (response.ok) {
         const result = await response.json();
         if (result.data?.id) localStorage.setItem('draft_id', result.data.id.toString());
+        setIsDirty(false);
         toast.success('Draft saved successfully.');
       } else {
         const error = await response.json();
@@ -356,8 +370,23 @@ const handleNext = useCallback(async () => {
         {/* Header omitted for brevity */}
         <div className="flex-1 p-6 overflow-y-auto">
           <div className="rpfaas-fill max-w-3xl mx-auto">
-            {/* Header omitted for brevity */}
-            <form className="rpfaas-fill-form rpfaas-fill-form-single space-y-6">
+            <header className="rpfaas-fill-header flex items-center justify-between gap-4 mb-6">
+              <div>
+                <h1 className="rpfaas-fill-title">Fill-up Form: Building Details</h1>
+                <p className="text-sm text-muted-foreground">Enter building specifications and land reference details.</p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleSaveDraft}
+                disabled={isSavingDraft || isSaving}
+                className="shrink-0"
+              >
+                {isSavingDraft ? <><Loader2 className="h-4 w-4 animate-spin mr-1" />Saving...</> : 'Save Draft'}
+              </Button>
+            </header>
+            <form className="rpfaas-fill-form rpfaas-fill-form-single space-y-6" onChange={markDirty}>
               
               <section className="rpfaas-fill-section">
                 <h2 className="rpfaas-fill-section-title mb-4">General Description</h2>
@@ -581,20 +610,14 @@ const handleNext = useCallback(async () => {
                 
               </section>
 
-              {/* Footer Actions */}
-              <div className="rpfaas-fill-footer border-t border-border pt-4 mt-4">
-                <div className="rpfaas-fill-actions flex gap-2 justify-between items-center">
-                  <Button type="button" variant="outline" onClick={() => router.back()}>Previous</Button>
-                  <div className="flex gap-2">
-                    <Button type="button" variant="outline" onClick={handleSaveDraft} disabled={isSavingDraft || isSaving}>
-                      {isSavingDraft ? <><Loader2 className="h-4 w-4 animate-spin mr-1" />Saving...</> : 'Save Draft'}
-                    </Button>
-                    <Button type="button" onClick={handleNext} disabled={isSaving || isSavingDraft}>
-                      {isSaving ? <><Loader2 className="h-4 w-4 animate-spin" /> Saving...</> : 'Next'}
-                    </Button>
-                  </div>
-                </div>
-              </div>
+              <StepPagination
+                currentStep={2}
+                draftId={draftId}
+                isDirty={isDirty}
+                onNext={handleNext}
+                isNextLoading={isSaving}
+                isNextDisabled={isSaving || isSavingDraft}
+              />
             </form>
           </div>
         </div>

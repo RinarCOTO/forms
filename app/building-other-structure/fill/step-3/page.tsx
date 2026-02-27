@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, FormEvent, useEffect, useCallback, Suspense } from "react";
+import { useState, FormEvent, useEffect, useCallback, Suspense, useRef } from "react";
+import { StepPagination } from "@/components/ui/step-pagination";
 import { useFormData } from "@/hooks/useFormData";
 import { useFormPersistence } from "@/hooks/useFormPersistence";
 import "@/app/styles/forms-fill.css";
@@ -134,6 +135,11 @@ const BuildingStructureFormFillPage3 = () => {
   
   const [isSaving, setIsSaving] = useState(false);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
+  const isInitializedRef = useRef(false);
+  const markDirty = useCallback(() => {
+    if (isInitializedRef.current) setIsDirty(true);
+  }, []);
 
   // --- State ---
   const [numberOfStoreys, setNumberOfStoreys] = useState(0);
@@ -152,6 +158,11 @@ const BuildingStructureFormFillPage3 = () => {
   // Grids State
   const [flooringGrid, setFlooringGrid] = useState<boolean[][]>([]);
   const [wallsGrid, setWallsGrid] = useState<boolean[][]>([]);
+
+  // Mark initialized immediately for new forms
+  useEffect(() => {
+    if (!draftId) isInitializedRef.current = true;
+  }, [draftId]);
 
   // --- Load from DB if editing ---
   const { data: loadedData, isLoading: isLoadingData } = useFormData<any>("building-structure", draftId || "");
@@ -211,6 +222,7 @@ const BuildingStructureFormFillPage3 = () => {
            setMaterials(prev => ({...prev, ...parsedRoof}));
         }
       }
+      setTimeout(() => { isInitializedRef.current = true; }, 100);
     }
   }, [loadedData]);
 
@@ -222,6 +234,7 @@ const BuildingStructureFormFillPage3 = () => {
 
   // --- Toggling Logic ---
   const toggleFlooringCell = useCallback((row: number, col: number) => {
+    markDirty();
     setFlooringGrid((prev) => {
       if (!prev || prev.length === 0) return prev;
       const copy = prev.map((r) => [...r]);
@@ -230,9 +243,10 @@ const BuildingStructureFormFillPage3 = () => {
       }
       return copy;
     });
-  }, []);
+  }, [markDirty]);
 
   const toggleWallsCell = useCallback((row: number, col: number) => {
+    markDirty();
     setWallsGrid((prev) => {
       if (!prev || prev.length === 0) return prev;
       const copy = prev.map((r) => [...r]);
@@ -241,7 +255,7 @@ const BuildingStructureFormFillPage3 = () => {
       }
       return copy;
     });
-  }, []);
+  }, [markDirty]);
 
   // --- Handlers ---
   const handleNext = useCallback(async () => {
@@ -274,6 +288,7 @@ const BuildingStructureFormFillPage3 = () => {
         const finalId = result.data?.id || currentDraftId;
         
         if (finalId) {
+          setIsDirty(false);
           localStorage.setItem('draft_id', finalId.toString());
           router.push(`/building-other-structure/fill/step-4?id=${finalId}`);
         }
@@ -310,6 +325,7 @@ const BuildingStructureFormFillPage3 = () => {
         const result = await response.json();
         const finalId = result.data?.id || currentDraftId;
         if (finalId) localStorage.setItem('draft_id', finalId.toString());
+        setIsDirty(false);
         toast.success('Draft saved successfully.');
       } else {
         const error = await response.json();
@@ -356,13 +372,24 @@ const BuildingStructureFormFillPage3 = () => {
                   Enter the additional details for the building/structure.
                 </p>
               </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleSaveDraft}
+                disabled={isSavingDraft || isSaving}
+                className="shrink-0"
+              >
+                {isSavingDraft ? <><Loader2 className="h-4 w-4 animate-spin mr-1" />Saving...</> : 'Save Draft'}
+              </Button>
             </header>
 
             <form
               id={`form_${FORM_NAME}`}
               data-form-name={FORM_NAME}
               onSubmit={handleSubmit}
-              className="rpfaas-fill-form rpfaas-fill-form-single space-y-6"  
+              onChange={markDirty}
+              className="rpfaas-fill-form rpfaas-fill-form-single space-y-6"
             >
               {/* ROOF SECTION */}
               <section className="rpfaas-fill-section">
@@ -467,46 +494,14 @@ const BuildingStructureFormFillPage3 = () => {
                 </div>
               </section>
 
-              {/* FOOTER ACTIONS */}
-              <div className="rpfaas-fill-footer border-t border-border pt-4 mt-4">
-                <div className="rpfaas-fill-actions flex gap-2 justify-between items-center">
-                  <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => router.push(`/building-other-structure/fill/step-2${draftId ? `?id=${draftId}` : ''}`)}
-                      className="rpfaas-fill-button rpfaas-fill-button-secondary"
-                    >
-                      Previous
-                    </Button>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={handleSaveDraft}
-                      disabled={isSavingDraft || isSaving}
-                    >
-                      {isSavingDraft ? <><Loader2 className="h-4 w-4 animate-spin mr-1" />Saving...</> : 'Save Draft'}
-                    </Button>
-                    <Button
-                      type="button"
-                      onClick={handleNext}
-                      disabled={isSaving || isSavingDraft}
-                      className="rpfaas-fill-button rpfaas-fill-button-primary"
-                    >
-                      {isSaving ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                          Saving...
-                        </>
-                      ) : (
-                        'Next'
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              </div>
+              <StepPagination
+                currentStep={3}
+                draftId={draftId}
+                isDirty={isDirty}
+                onNext={handleNext}
+                isNextLoading={isSaving}
+                isNextDisabled={isSaving || isSavingDraft}
+              />
             </form>
           </div>
         </div>

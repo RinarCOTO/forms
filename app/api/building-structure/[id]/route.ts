@@ -205,9 +205,7 @@ export async function PUT(
     if (body.amount_in_words !== undefined) dbData.amount_in_words = body.amount_in_words || null;
     if (body.status !== undefined) dbData.status = body.status || 'draft';
 
-    // --- DEBUG LOGS ---
-    console.log('🔵 Attempting update for ID:', id);
-    console.log('🔵 dbData:', JSON.stringify(dbData, null, 2));
+    // --- END FIELD MAPPING ---
 
     const { data, error } = await supabase
       .from('building_structures')
@@ -217,18 +215,9 @@ export async function PUT(
       .single();
 
     if (error) {
-      console.error('🔴 Supabase error code:', error.code);
-      console.error('🔴 Supabase error message:', error.message);
-      console.error('🔴 Supabase error details:', error.details);
-      console.error('🔴 Supabase error hint:', error.hint);
+      console.error('Update building structure error:', error.code);
       return NextResponse.json(
-        {
-          success: false,
-          error: 'Failed to update building structure',
-          details: error.message,
-          code: error.code,
-          hint: error.hint
-        },
+        { success: false, error: 'Failed to update building structure' },
         { status: 500 }
       );
     }

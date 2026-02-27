@@ -1,80 +1,90 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidateTag } from 'next/cache';
 import { createClient } from '@supabase/supabase-js';
+import { createClient as createServerClient } from '@/lib/supabase/server';
 
+function getAdminClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  );
+}
+
+/**
+ * PATCH /api/update-role
+ * Body: { userId: string; role: string }
+ * Requires the caller to already be a super_admin.
+ */
 export async function POST(request: NextRequest) {
   try {
-    // Use service role to bypass RLS for admin operations
-    const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
-    );
-
-    // First, get the current user from regular client to verify identity
-    const supabase = await import('@/lib/supabase/server').then(m => m.createClient());
-    const {
-      data: { user: authUser },
-      error: authError,
-    } = await supabase.auth.getUser();
+    // 1. Verify the caller is authenticated
+    const supabase = await createServerClient();
+    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // 2. Verify the caller is already a super_admin
+    const admin = getAdminClient();
+    const { data: callerProfile } = await admin
+      .from('users')
+      .select('role')
+      .eq('id', authUser.id)
+      .single();
+
+    if (!callerProfile || callerProfile.role !== 'super_admin') {
       return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
+        { error: 'Forbidden: super_admin role required' },
+        { status: 403 }
       );
     }
 
-    console.log('Updating role for user:', authUser.email);
+    // 3. Parse and validate the request body
+    const body = await request.json();
+    const { userId, role } = body as { userId?: string; role?: string };
 
-    // Update the current user's role to super_admin using admin client
-    const { data: updatedUser, error: updateError } = await supabaseAdmin
+    const ALLOWED_ROLES = ['super_admin', 'admin', 'tax_mapper', 'municipal_tax_mapper', 'accountant', 'user'];
+
+    if (!userId || typeof userId !== 'string') {
+      return NextResponse.json({ error: 'userId is required' }, { status: 400 });
+    }
+    if (!role || !ALLOWED_ROLES.includes(role)) {
+      return NextResponse.json(
+        { error: `role must be one of: ${ALLOWED_ROLES.join(', ')}` },
+        { status: 400 }
+      );
+    }
+
+    // 4. Apply the role update
+    const { data: updatedUser, error: updateError } = await admin
       .from('users')
-      .update({ 
-        role: 'super_admin',
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', authUser.id)
-      .select()
+      .update({ role, updated_at: new Date().toISOString() })
+      .eq('id', userId)
+      .select('id, email, role')
       .single();
 
     if (updateError) {
-      console.error('Failed to update role:', updateError);
-      return NextResponse.json(
-        { error: 'Failed to update role: ' + updateError.message },
-        { status: 500 }
-      );
+      console.error('Update role error:', updateError);
+      return NextResponse.json({ error: 'Failed to update role' }, { status: 500 });
     }
 
-    console.log('User role updated to super_admin:', updatedUser);
+    revalidateTag(`permissions-${userId}`, 'max');
 
     return NextResponse.json(
-      { 
-        success: true, 
-        message: 'Role updated to super_admin successfully',
-        user: updatedUser,
-        // Add a timestamp to help with cache busting
-        timestamp: Date.now()
-      },
-      { 
+      { success: true, message: 'Role updated successfully', user: updatedUser, timestamp: Date.now() },
+      {
         status: 200,
         headers: {
-          // Prevent caching of this response
           'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
           'Pragma': 'no-cache',
-          'Expires': '0'
-        }
+          'Expires': '0',
+        },
       }
     );
   } catch (error) {
     console.error('Update role error:', error);
-    return NextResponse.json(
-      { error: 'An unexpected error occurred: ' + (error instanceof Error ? error.message : String(error)) },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'An unexpected error occurred' }, { status: 500 });
   }
 }

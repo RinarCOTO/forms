@@ -4,7 +4,8 @@ import * as React from "react"
 import { usePathname } from "next/navigation";
 import "./sidebar-active.css";
 import { UserProfile } from "@/components/user-profile"
-import { ChevronRight, ChevronDown } from "lucide-react"
+import { ChevronRight, ChevronDown, ClipboardList, ListChecks, PenLine, Calculator, Users, ShieldCheck, StickyNote } from "lucide-react"
+import { usePermissions } from "@/app/contexts/permissions-context"
 
 import {
   Sidebar,
@@ -26,35 +27,7 @@ import {
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
   const [rpfaasOpen, setRpfaasOpen] = React.useState(true);
-  const [role, setRole] = React.useState<string | null>(null);
-  const [perms, setPerms] = React.useState<Record<string, boolean>>({});
-  const [isLoading, setIsLoading] = React.useState(true);
-
-  const fetchPerms = React.useCallback(() => {
-    setIsLoading(true);
-    fetch("/api/my-permissions")
-      .then((res) => res.json())
-      .then((data) => {
-        setRole(data.role ?? null);
-        setPerms(data.permissions ?? {});
-        setIsLoading(false);
-      })
-      .catch((error) => {
-        console.error("Error fetching permissions:", error);
-        setIsLoading(false);
-      });
-  }, []);
-
-  React.useEffect(() => {
-    fetchPerms();
-  }, [fetchPerms]);
-
-  // Refresh when role changes elsewhere in the app
-  React.useEffect(() => {
-    const handleRoleUpdate = () => fetchPerms();
-    window.addEventListener('user-role-updated', handleRoleUpdate);
-    return () => window.removeEventListener('user-role-updated', handleRoleUpdate);
-  }, [fetchPerms]);
+  const { role, permissions: perms, loading: isLoading } = usePermissions();
 
   const can = (feature: string) => perms[feature] === true;
 
@@ -95,6 +68,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 <SidebarMenuItem>
                   <SidebarMenuButton onClick={(e) => { e.preventDefault(); setRpfaasOpen((v) => !v); }}>
                     <div className="flex items-center w-full">
+                      <ClipboardList className="mr-2 w-4 h-4 shrink-0" />
                       <span className="flex-1 text-left">RPFAAS Forms</span>
                       {rpfaasOpen ? (
                         <ChevronDown className="ml-2 w-4 h-4" />
@@ -134,6 +108,38 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </SidebarGroup>
         )}
 
+        {/* Review Queue — LAOO only */}
+        {!isLoading && can('review.laoo') && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Provincial Review</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <a href="/review-queue" className={pathname.startsWith("/review-queue") ? "sidebar-active" : ""}><ListChecks className="w-4 h-4 shrink-0" />Review Queue</a>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
+        {/* Signature Queue — municipal_tax_mapper, APA, provincial_assessor */}
+        {!isLoading && can('review.sign') && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Signatures</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <a href="/signature-queue" className={pathname.startsWith("/signature-queue") ? "sidebar-active" : ""}><PenLine className="w-4 h-4 shrink-0" />Signature Queue</a>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
         {/* Accountant group */}
         {!isLoading && can('accounting.view') && (
           <SidebarGroup>
@@ -142,7 +148,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               <SidebarMenu>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
-                    <a href="/accounting" className={pathname.startsWith("/accounting") ? "sidebar-active" : ""}>Accounting</a>
+                    <a href="/accounting" className={pathname.startsWith("/accounting") ? "sidebar-active" : ""}><Calculator className="w-4 h-4 shrink-0" />Accounting</a>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>
@@ -159,14 +165,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 {can('user_management.view') && (
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild>
-                      <a href="/manage-users" className={pathname.startsWith("/manage-users") ? "sidebar-active" : ""}>Manage Users</a>
+                      <a href="/manage-users" className={pathname.startsWith("/manage-users") ? "sidebar-active" : ""}><Users className="w-4 h-4 shrink-0" />Manage Users</a>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 )}
                 {can('role_management.view') && (
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild>
-                      <a href="/manage-roles" className={pathname.startsWith("/manage-roles") ? "sidebar-active" : ""}>Manage Roles</a>
+                      <a href="/manage-roles" className={pathname.startsWith("/manage-roles") ? "sidebar-active" : ""}><ShieldCheck className="w-4 h-4 shrink-0" />Manage Roles</a>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 )}
@@ -183,7 +189,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               <SidebarMenu>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
-                    <a href="/notes" className={pathname.startsWith("/notes") ? "sidebar-active" : ""}>Notes</a>
+                    <a href="/notes" className={pathname.startsWith("/notes") ? "sidebar-active" : ""}><StickyNote className="w-4 h-4 shrink-0" />Notes</a>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>

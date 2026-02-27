@@ -228,7 +228,7 @@ const BuildingStructureForm = () => {
 
                     {/* REST OF THE FORM REMAINS UNCHANGED */}
                     <SectionHeader>
-                        <div className="grid grid-cols-3">
+                        <div className="grid grid-cols-3"> 
                             <div className="col-span-2">
                                 GENERAL DESCRIPTION
                             </div>
@@ -243,8 +243,8 @@ const BuildingStructureForm = () => {
                         <td>
                             <div className="rpfaas-inner-grid grid grid-cols-3 divide-x divide-black items-stretch h-full">
                                 <div className="font-bold flex items-center">{typeOfBuilding || '—'}</div>
-                                <div className="flex items-center px-2 text-xs font-medium rpfaas-print-small whitespace-nowrap">Bldg. Age:</div>
-                                <div className="flex items-center px-2 text-xs font-bold rpfaas-print-small whitespace-nowrap">{buildingAge ? `${buildingAge} years` : '—'}</div>
+                                <div className="flex items-center px-1 font-medium floor-area-print whitespace-nowrap">Bldg. Age:</div>
+                                <div className="flex items-center px-2 font-bold rpfaas-print-small whitespace-nowrap">{buildingAge ? `${buildingAge} years` : '—'}</div>
                             </div>
                         </td>
                     </tr>
@@ -254,14 +254,14 @@ const BuildingStructureForm = () => {
                         <td>
                             <div className="rpfaas-inner-grid grid grid-cols-3 divide-x divide-black items-stretch h-full">
                                 <div className="font-bold flex items-center">{structuralType || '—'}</div>
-                                <div className="flex items-center px-2 text-xs font-medium rpfaas-print-small whitespace-nowrap">No. of Storey:</div>
-                                <div className="flex items-center px-2 text-xs font-bold rpfaas-print-small whitespace-nowrap">{numberOfStoreys || '—'}</div>
+                                <div className="flex items-center px-1 font-medium floor-area-print whitespace-nowrap">No. of Storey:</div>
+                                <div className="flex items-center px-2 font-bold rpfaas-print-small whitespace-nowrap">{numberOfStoreys || '—'}</div>
                             </div>
                         </td>
                         <td className="land-reference">
                             <div className="rpfaas-inner-grid grid grid-cols-3 divide-x divide-black items-stretch h-full">
-                                <div className="flex items-center text-xs font-bold col-span-1">Land Owner:</div>
-                                <div className="flex items-center col-span-2 pl-2 text-xs print:py-0.5">{landOwner || '—'}</div>
+                                <div className="flex items-center  rpfaas-print-small font-bold col-span-1">Land Owner:</div>
+                                <div className="flex items-center col-span-2 pl-2 text-[10px] print:text-[8px] rpfaas-print-small">{landOwner || '—'}</div>
                             </div>
                         </td>
                     </tr>
@@ -271,14 +271,14 @@ const BuildingStructureForm = () => {
                         <td>
                             <div className="rpfaas-inner-grid grid grid-cols-3 divide-x divide-black items-stretch h-full">
                                 <div className="font-bold flex items-center">{buildingPermitNo || '—'}</div>
-                                <div className="flex items-center px-2 text-xs font-medium rpfaas-print-small whitespace-nowrap">1<sup>st</sup> Floor Area:</div>
-                                <div className="flex items-center px-2 text-xs font-bold rpfaas-print-small whitespace-nowrap">{floorAreas[0] || '—'}</div>
+                                <div className="flex items-center px-1 font-medium floor-area-print whitespace-nowrap">1<sup>st</sup> Floor Area:</div>
+                                <div className="flex items-center px-2 font-bold rpfaas-print-small whitespace-nowrap">{floorAreas[0] || '—'}</div>
                             </div>
                         </td>
                         <td className="land-reference">
                             <div className="rpfaas-inner-grid grid grid-cols-3 divide-x divide-black items-stretch h-full">
-                                <div className="flex items-center text-xs font-bold col-span-1">TD/ARP No.:</div>
-                                <div className="flex items-center col-span-2 pl-2 text-xs print:py-0.5">{landTdArpNo || '—'}</div>
+                                <div className="flex items-center text-[10px] print:text-[8px] rpfaas-print-small font-bold col-span-1">TD/ARP No.:</div>
+                                <div className="flex items-center col-span-2 pl-2 text-[10px] print:text-[8px] rpfaas-print-small">{landTdArpNo || '—'}</div>
                             </div>
                         </td>
                     </tr>
@@ -288,14 +288,14 @@ const BuildingStructureForm = () => {
                         <td>
                             <div className="rpfaas-inner-grid grid grid-cols-3 divide-x divide-black items-stretch h-full">
                                 <div className="font-bold flex items-center">{cct || '—'}</div>
-                                <div className="flex items-center px-2 text-xs font-medium rpfaas-print-small whitespace-nowrap">2<sup>nd</sup> Floor Area:</div>
-                                <div className="flex items-center px-2 text-xs font-bold rpfaas-print-small whitespace-nowrap">{floorAreas[1] || '—'}</div>
+                                <div className="flex items-center px-1 font-medium floor-area-print whitespace-nowrap">2<sup>nd</sup> Floor Area:</div>
+                                <div className="flex items-center px-2 font-bold rpfaas-print-small whitespace-nowrap">{floorAreas[1] || '—'}</div>
                             </div>
                         </td>
                         <td className="land-reference">
                             <div className="rpfaas-inner-grid grid grid-cols-3 divide-x divide-black items-stretch h-full">
-                                <div className="flex items-center text-xs font-bold col-span-1">Area:</div>
-                                <div className="flex items-center col-span-2 pl-2 text-xs print:py-0.5">{landArea || '—'}<span> sqm</span></div>
+                                <div className="flex items-center text-[10px] print:text-[8px] rpfaas-print-small font-bold col-span-1">Area:</div>
+                                <div className="flex items-center col-span-2 pl-2 text-[10px] print:text-[8px] rpfaas-print-small">{landArea || '—'}<span> sqm</span></div>
                             </div>
                         </td>
                     </tr>
@@ -305,8 +305,8 @@ const BuildingStructureForm = () => {
                         <td>
                             <div className="rpfaas-inner-grid grid grid-cols-3 divide-x divide-black items-stretch h-full">
                                 <div className="font-bold flex items-center">{completionIssuedOn || '—'}</div>
-                                <div className="flex items-center px-2 text-xs font-medium rpfaas-print-small whitespace-nowrap">3<sup>rd</sup> Floor Area:</div>
-                                <div className="flex items-center px-2 text-xs font-bold rpfaas-print-small whitespace-nowrap">{floorAreas[2] || '—'}</div>
+                                <div className="flex items-center px-1 font-medium  floor-area-print whitespace-nowrap">3<sup>rd</sup> Floor Area:</div>
+                                <div className="flex items-center px-2 font-bold rpfaas-print-small whitespace-nowrap">{floorAreas[2] || '—'}</div>
                             </div>
                         </td>
                     </tr>
@@ -316,8 +316,8 @@ const BuildingStructureForm = () => {
                         <td>
                             <div className="rpfaas-inner-grid grid grid-cols-3 divide-x divide-black items-stretch h-full">
                                 <div className="font-bold flex items-center">{dateConstructed || '—'}</div>
-                                <div className="flex items-center px-2 text-xs font-medium rpfaas-print-small whitespace-nowrap">4<sup>th</sup> Floor Area:</div>
-                                <div className="flex items-center px-2 text-xs font-bold rpfaas-print-small whitespace-nowrap">{floorAreas[3] || '—'}</div>
+                                <div className="flex items-center px-1 font-medium floor-area-print whitespace-nowrap">4<sup>th</sup> Floor Area:</div>
+                                <div className="flex items-center px-2 font-bold rpfaas-print-small whitespace-nowrap">{floorAreas[3] || '—'}</div>
                             </div>
                         </td>
                     </tr>
@@ -327,8 +327,8 @@ const BuildingStructureForm = () => {
                         <td>
                             <div className="rpfaas-inner-grid grid grid-cols-3 divide-x divide-black items-stretch h-full">
                                 <div className="font-bold flex items-center">{dateOccupied || '—'}</div>
-                                <div className="flex items-center px-2 text-xs font-bold rpfaas-print-small whitespace-nowrap">Total:</div>
-                                <div className="flex items-center px-2 text-xs font-bold rpfaas-print-small whitespace-nowrap">{totalFloorArea || '—'} sqm</div>
+                                <div className="flex items-center px-1 font-bold rpfaas-print-small whitespace-nowrap">Total:</div>
+                                <div className="flex items-center px-2 font-bold rpfaas-print-small whitespace-nowrap">{totalFloorArea || '—'} sqm</div>
                             </div>
                         </td>
                     </tr>
@@ -355,13 +355,13 @@ const BuildingStructureForm = () => {
                         <td className="font-bold w-50">ROOF</td>
                         <td className="font-bold w-38">FLOORING</td>
                         {FLOOR_LEVELS.map((level) => (
-                            <td key={`floor-header-${level}`} className="text-center">
+                            <td key={`floor-header-${level}`} className="text-center  rpfaas-print-small">
                                 {level.replace(/\D/g, "")}<sup>{level.replace(/\d/g, "")}</sup>
                             </td>
                         ))}
                         <td className="font-bold w-32">WALLS</td>
                         {FLOOR_LEVELS.map((level) => (
-                            <td key={`wall-header-${level}`} className="text-center">
+                            <td key={`wall-header-${level}`} className="text-center rpfaas-print-small">
                                 {level.replace(/\D/g, "")}<sup>{level.replace(/\d/g, "")}</sup>
                             </td>
                         ))}
@@ -390,13 +390,13 @@ const BuildingStructureForm = () => {
                                 </td>
                                 <td>{row.flooring}</td>
                                 {FLOOR_LEVELS.map((_, i) => (
-                                    <td key={`floor-x-${idx}-${i}`} className="text-center">
+                                    <td key={`floor-x-${idx}-${i}`} className="text-center rpfaas-print-small">
                                         {flooringGrid[idx]?.[i] ? "X" : ""}
                                     </td>
                                 ))}
                                 <td>{row.walls}</td>
                                 {FLOOR_LEVELS.map((_, i) => (
-                                    <td key={`wall-x-${idx}-${i}`} className="text-center">
+                                    <td key={`wall-x-${idx}-${i}`} className="text-center rpfaas-print-small">
                                         {wallsGrid[idx]?.[i] ? "X" : ""}
                                     </td>
                                 ))}

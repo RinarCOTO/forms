@@ -2,11 +2,32 @@ export const dynamic = "force-dynamic";
 
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { createClient as createServerClient } from '@/lib/supabase/server'
 
 export async function POST() {
   try {
-    // Use service role key with additional bypass options
-    const supabase = createClient(
+    // 1. Require an authenticated super_admin caller
+    const supabase = await createServerClient();
+    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const adminCheck = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    );
+    const { data: callerProfile } = await adminCheck
+      .from('users').select('role').eq('id', authUser.id).single();
+
+    if (!callerProfile || callerProfile.role !== 'super_admin') {
+      return NextResponse.json({ error: 'Forbidden: super_admin role required' }, { status: 403 });
+    }
+
+    // 2. Use service role key with additional bypass options
+    const adminSupabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
       {
@@ -48,44 +69,31 @@ export async function POST() {
       );
     `;
 
-    const { error: createError } = await supabase.rpc('exec', { 
+    const { error: createError } = await adminSupabase.rpc('exec', { 
       sql: createTableSQL 
     });
 
     if (createError) {
       console.error('Error creating table:', createError);
       // Try alternative approach - execute via raw SQL
-      const { error: rawError } = await supabase.from('land_improvements').select('count').limit(1);
+      const { error: rawError } = await adminSupabase.from('land_improvements').select('count').limit(1);
       if (rawError && rawError.code === '42P01') {
         return NextResponse.json(
-          { error: 'Table does not exist and could not be created', details: createError.message },
+          { error: 'Table does not exist and could not be created' },
           { status: 500 }
         );
       }
     }
 
-    // Check if RLS is causing issues and temporarily disable it for testing
-    const disableRLSSQL = `
-      ALTER TABLE land_improvements DISABLE ROW LEVEL SECURITY;
-    `;
-
-    const { error: rlsError } = await supabase.rpc('exec', { 
-      sql: disableRLSSQL 
-    });
-
-    if (rlsError) {
-      console.error('Could not disable RLS:', rlsError);
-    }
-
     // Test table access
-    const { data, error } = await supabase
+    const { data, error } = await adminSupabase
       .from('land_improvements')
       .select('count')
       .limit(1);
 
     if (error) {
       return NextResponse.json(
-        { error: 'Table setup failed', details: error.message },
+        { error: 'Table setup failed' },
         { status: 500 }
       );
     }
@@ -96,10 +104,10 @@ export async function POST() {
       tableExists: true
     });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('Database setup error:', error);
     return NextResponse.json(
-      { error: 'Database setup failed', details: error.message },
+      { error: 'Database setup failed' },
       { status: 500 }
     );
   }

@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useCallback, memo, Suspense, useRef } from "react";
+import { StepPagination } from "@/components/ui/step-pagination";
 import "@/app/styles/forms-fill.css";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -230,6 +231,11 @@ function BuildingOtherStructureFillPageContent() {
 
   const [isSaving, setIsSaving] = useState(false);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
+  const isInitializedRef = useRef(false);
+  const markDirty = useCallback(() => {
+    if (isInitializedRef.current) setIsDirty(true);
+  }, []);
 
   // Basic Fields
   const [ownerName, setOwnerName] = useState("");
@@ -263,7 +269,10 @@ function BuildingOtherStructureFillPageContent() {
 
   // Load draft data if editing
   useEffect(() => {
-    if (!draftId) return;
+    if (!draftId) {
+      isInitializedRef.current = true;
+      return;
+    }
     const loadDraft = async () => {
       try {
         const response = await fetch(`/api/building-other-structure/${draftId}`);
@@ -287,6 +296,9 @@ function BuildingOtherStructureFillPageContent() {
         }
       } catch (error) {
         console.error('Failed to load draft data for step 1', error);
+      } finally {
+        // Allow a frame for state to settle before tracking dirty
+        setTimeout(() => { isInitializedRef.current = true; }, 100);
       }
     };
     loadDraft();
@@ -323,6 +335,7 @@ function BuildingOtherStructureFillPageContent() {
       if (response.ok) {
         const result = await response.json();
         if (result.data?.id) {
+          setIsDirty(false);
           localStorage.setItem('draft_id', result.data.id.toString());
           router.push(`/building-other-structure/fill/step-2?id=${result.data.id}`);
         } else {
@@ -369,6 +382,7 @@ function BuildingOtherStructureFillPageContent() {
       if (response.ok) {
         const result = await response.json();
         if (result.data?.id) localStorage.setItem('draft_id', result.data.id.toString());
+        setIsDirty(false);
         toast.success('Draft saved successfully.');
       } else {
         const error = await response.json();
@@ -408,9 +422,19 @@ function BuildingOtherStructureFillPageContent() {
                 <h1 className="rpfaas-fill-title">Fill-up Form: RPFAAS - Building &amp; Other Structures</h1>
                 <p className="text-sm text-muted-foreground">Enter the details below. You can generate the printable version afterwards.</p>
               </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleSaveDraft}
+                disabled={isSavingDraft || isSaving}
+                className="shrink-0"
+              >
+                {isSavingDraft ? <><Loader2 className="h-4 w-4 animate-spin mr-1" />Saving...</> : 'Save Draft'}
+              </Button>
             </header>
 
-            <form id={`form_${FORM_NAME}_main`} className="rpfaas-fill-form rpfaas-fill-form-single space-y-6">
+            <form id={`form_${FORM_NAME}_main`} className="rpfaas-fill-form rpfaas-fill-form-single space-y-6" onChange={markDirty}>
 
               {/* OWNER SECTION */}
               <section className="rpfaas-fill-section">
@@ -526,29 +550,14 @@ function BuildingOtherStructureFillPageContent() {
                 </div>
               </section>
 
-              <div className="rpfaas-fill-footer border-t border-border pt-4 mt-4">
-                <div className="rpfaas-fill-actions flex gap-2 justify-between items-center">
-                  <div />
-                  <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={handleSaveDraft}
-                      disabled={isSavingDraft || isSaving}
-                    >
-                      {isSavingDraft ? <><Loader2 className="h-4 w-4 animate-spin mr-1" />Saving...</> : 'Save Draft'}
-                    </Button>
-                    <Button
-                      type="button"
-                      onClick={handleNext}
-                      disabled={isSaving || isSavingDraft}
-                      className="rpfaas-fill-button rpfaas-fill-button-primary"
-                    >
-                      {isSaving ? <><Loader2 className="h-4 w-4 animate-spin" />Saving...</> : 'Next'}
-                    </Button>
-                  </div>
-                </div>
-              </div>
+              <StepPagination
+                currentStep={1}
+                draftId={draftId}
+                isDirty={isDirty}
+                onNext={handleNext}
+                isNextLoading={isSaving}
+                isNextDisabled={isSaving || isSavingDraft}
+              />
             </form>
           </div>
         </div>

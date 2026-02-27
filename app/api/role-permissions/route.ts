@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidateTag } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
 
@@ -275,6 +276,9 @@ export async function PUT(request: NextRequest) {
         { status: 500 }
       );
     }
+
+    // Bust the permissions cache for all users so they pick up the new settings
+    revalidateTag('permissions', 'max');
 
     return NextResponse.json({ success: true });
   } catch (error) {

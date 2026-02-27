@@ -3,96 +3,89 @@ import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { revalidateTag } from 'next/cache';
 
 export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> | { id: string } }) {
-  console.log('=== GET /api/building-other-structure/[id] - Route Hit ===');
-  
   try {
-    // Get the params (handle both sync and async params)
     const params = await Promise.resolve(context.params);
     const id = params.id;
-    
-    console.log('GET - Resolved ID:', id);
-    
+
     if (!id) {
-      console.log('GET - No ID in params, returning 400');
       return NextResponse.json(
-        { success: false, message: 'No ID provided', error: 'Missing ID parameter' },
+        { success: false, message: 'No ID provided' },
         { status: 400 }
       );
     }
-    
-    console.log('GET - Creating Supabase client with service role...');
+
+    // Verify authentication
+    const { createClient: createServerClient } = await import('@/lib/supabase/server');
+    const sessionSupabase = await createServerClient();
+    const { data: { user }, error: userError } = await sessionSupabase.auth.getUser();
+    if (userError || !user) {
+      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+    }
+
     const supabase = createSupabaseClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
-    
-    console.log('GET - Fetching from building_structures with ID:', id);
+
     const { data: draft, error } = await supabase
       .from('building_structures')
       .select('*')
       .eq('id', id)
       .single();
 
-    console.log('GET - Supabase response:', { draft, error });
-
     if (error) {
-      console.error('GET - Supabase error:', error);
+      console.error('GET /api/building-other-structure/[id] error:', error.code);
       return NextResponse.json(
-        { success: false, message: 'Draft not found', error: error.message },
+        { success: false, message: 'Draft not found' },
         { status: 404 }
       );
     }
 
     if (!draft) {
-      console.error('GET - No draft returned from Supabase');
       return NextResponse.json(
-        { success: false, message: 'Draft not found', error: 'No data returned' },
+        { success: false, message: 'Draft not found' },
         { status: 404 }
       );
     }
 
-    console.log('GET - Successfully fetched draft:', draft);
-    return NextResponse.json({ 
-      success: true, 
-      data: draft  // Return the actual database record
-    });
-    
+    return NextResponse.json({ success: true, data: draft });
+
   } catch (error) {
-    console.error('GET - Error:', error);
+    console.error('GET /api/building-other-structure/[id] error:', error instanceof Error ? error.message : 'Unknown');
     return NextResponse.json(
-      { success: false, message: 'Server error', error: String(error) },
+      { success: false, message: 'Server error' },
       { status: 500 }
     );
   }
 }
 
 export async function PUT(req: NextRequest, context: { params: Promise<{ id: string }> | { id: string } }) {
-  console.log('=== PUT /api/building-other-structure/[id] - Route Hit ===');
-  
   try {
     const params = await Promise.resolve(context.params);
     const id = params.id;
-    
-    console.log('PUT - Resolved ID:', id);
-    
+
     if (!id) {
-      console.log('PUT - No ID in params, returning 400');
       return NextResponse.json(
-        { success: false, message: 'No ID provided', error: 'Missing ID parameter' },
+        { success: false, message: 'No ID provided' },
         { status: 400 }
       );
     }
-    
+
     const data = await req.json();
-    console.log('PUT - Received data for ID', id, ':', JSON.stringify(data, null, 2));
-    
-    console.log('PUT - Creating Supabase client with service role...');
+
+    // Verify authentication
+    const { createClient: createServerClient } = await import('@/lib/supabase/server');
+    const sessionSupabase = await createServerClient();
+    const { data: { user }, error: userError } = await sessionSupabase.auth.getUser();
+    if (userError || !user) {
+      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+    }
+
     const supabase = createSupabaseClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
-    
-    console.log('PUT - Updating building_structures table...');
+
     const { data: updatedRecord, error } = await supabase
       .from('building_structures')
       .update(data)
@@ -100,44 +93,28 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
       .select()
       .single();
 
-    console.log('PUT - Supabase update response:', { updatedRecord, error });
-
     if (error) {
-      console.error('PUT - Supabase error:', error);
+      console.error('PUT /api/building-other-structure/[id] error:', error.code);
       return NextResponse.json(
-        { 
-          success: false, 
-          message: 'Failed to update draft', 
-          error: error.message,
-          details: error
-        },
+        { success: false, message: 'Failed to update draft' },
         { status: 500 }
       );
     }
 
     if (!updatedRecord) {
-      console.error('PUT - No record returned from update');
       return NextResponse.json(
-        { 
-          success: false, 
-          message: 'Record not found or not updated', 
-          error: 'No data returned from update'
-        },
+        { success: false, message: 'Record not found or not updated' },
         { status: 404 }
       );
     }
 
-    console.log('PUT - Successfully updated draft:', updatedRecord);
     revalidateTag('building-structures', 'max');
-    return NextResponse.json({
-      success: true,
-      data: updatedRecord  // Return the actual updated database record
-    });
-    
+    return NextResponse.json({ success: true, data: updatedRecord });
+
   } catch (error) {
-    console.error('PUT - Error:', error);
+    console.error('PUT /api/building-other-structure/[id] error:', error instanceof Error ? error.message : 'Unknown');
     return NextResponse.json(
-      { success: false, message: 'Server error', error: String(error) },
+      { success: false, message: 'Server error' },
       { status: 500 }
     );
   }
@@ -173,14 +150,11 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ id: 
     const { data: { user }, error: userError } = await sessionSupabase.auth.getUser();
     
     if (userError || !user) {
-      console.log('DELETE - No authenticated user:', userError);
       return NextResponse.json(
-        { success: false, message: 'Unauthorized', error: 'Not authenticated' },
+        { success: false, message: 'Unauthorized' },
         { status: 401 }
       );
     }
-
-    console.log('DELETE - Authenticated user:', user.id);
 
     // Get user role from users table using service role key
     const { data: userProfile, error: profileError } = await supabase
@@ -190,24 +164,19 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ id: 
       .single();
 
     if (profileError || !userProfile) {
-      console.log('DELETE - Could not get user profile:', profileError);
       return NextResponse.json(
-        { success: false, message: 'Unauthorized', error: 'Could not verify user role' },
+        { success: false, message: 'Unauthorized' },
         { status: 401 }
       );
     }
 
     // Check if user is admin or super_admin
     if (userProfile.role !== 'admin' && userProfile.role !== 'super_admin') {
-      console.log('DELETE - User does not have permission, role:', userProfile.role);
       return NextResponse.json(
-        { success: false, message: 'Forbidden', error: 'Only admins and super admins can delete records' },
+        { success: false, message: 'Forbidden' },
         { status: 403 }
       );
     }
-
-    console.log('DELETE - User authorized, role:', userProfile.role);
-    console.log('DELETE - Deleting from building_structures table...');
     
     const { data: deletedRecord, error } = await supabase
       .from('building_structures')
@@ -219,31 +188,19 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ id: 
     console.log('DELETE - Supabase delete response:', { deletedRecord, error });
 
     if (error) {
-      console.error('DELETE - Supabase error:', error);
+      console.error('DELETE /api/building-other-structure/[id] error:', error.code);
       return NextResponse.json(
-        { 
-          success: false, 
-          message: 'Failed to delete record', 
-          error: error.message,
-          details: error
-        },
+        { success: false, message: 'Failed to delete record' },
         { status: 500 }
       );
     }
 
     if (!deletedRecord) {
-      console.error('DELETE - No record deleted (may not exist)');
       return NextResponse.json(
-        { 
-          success: false, 
-          message: 'Record not found or already deleted', 
-          error: 'No record found with the specified ID'
-        },
+        { success: false, message: 'Record not found or already deleted' },
         { status: 404 }
       );
     }
-
-    console.log('DELETE - Successfully deleted record:', deletedRecord);
     revalidateTag('building-structures', 'max');
     revalidateTag('form-counts', 'max');
     return NextResponse.json({
@@ -253,9 +210,9 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ id: 
     });
     
   } catch (error) {
-    console.error('DELETE - Error:', error);
+    console.error('DELETE /api/building-other-structure/[id] error:', error instanceof Error ? error.message : 'Unknown');
     return NextResponse.json(
-      { success: false, message: 'Server error', error: String(error) },
+      { success: false, message: 'Server error' },
       { status: 500 }
     );
   }

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidateTag } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
 
@@ -88,6 +89,9 @@ export async function PATCH(
       console.error('Update user error:', updateError);
       return NextResponse.json({ error: 'Failed to update user' }, { status: 500 });
     }
+
+    // Bust the cached permissions for this user so sidebar reflects the new role immediately
+    revalidateTag(`permissions-${userId}`, 'max');
 
     return NextResponse.json({ user: updatedUser }, { status: 200 });
   } catch (error) {

@@ -41,12 +41,15 @@ import type { User, UserRole, Municipality, CreateUserData, UpdateUserData } fro
 import { MUNICIPALITIES, MUNICIPALITY_LABELS } from "@/app/types/user";
 
 const ROLE_LABELS: Record<UserRole, string> = {
-  super_admin: "Super Admin",
-  admin: "Admin",
-  tax_mapper: "Tax Mapper",
-  municipal_tax_mapper: "Municipal Tax Mapper",
-  accountant: "Accountant",
-  user: "User",
+  super_admin:                  "Super Admin",
+  admin:                        "Admin",
+  tax_mapper:                   "Tax Mapper",
+  municipal_tax_mapper:         "Municipal Tax Mapper",
+  laoo:                         "LAOO (Local Assessment Operations Officer)",
+  assistant_provincial_assessor:"Assistant Provincial Assessor",
+  provincial_assessor:          "Provincial Assessor",
+  accountant:                   "Accountant",
+  user:                         "User",
 };
 
 const ROLE_OPTIONS: UserRole[] = [
@@ -54,9 +57,18 @@ const ROLE_OPTIONS: UserRole[] = [
   "admin",
   "tax_mapper",
   "municipal_tax_mapper",
+  "laoo",
+  "assistant_provincial_assessor",
+  "provincial_assessor",
   "accountant",
   "user",
 ];
+
+// Roles that require a municipality assignment
+const MUNICIPALITY_ROLES: UserRole[] = ["tax_mapper", "municipal_tax_mapper", "laoo"];
+
+// Roles that have a LAOO level
+const LAOO_ROLES: UserRole[] = ["laoo"];
 
 function getRoleBadgeVariant(role: UserRole) {
   switch (role) {
@@ -111,6 +123,7 @@ function EditUserDialog({ user, open, onClose, onSave }: EditDialogProps) {
         full_name: user.full_name ?? "",
         role: user.role,
         municipality: user.municipality ?? null,
+        laoo_level: user.laoo_level ?? null,
         department: user.department ?? "",
         position: user.position ?? "",
         phone: user.phone ?? "",
@@ -160,13 +173,42 @@ function EditUserDialog({ user, open, onClose, onSave }: EditDialogProps) {
               ))}
             </select>
           </div>
-          <div className="space-y-1">
-            <Label>Municipality</Label>
-            <MunicipalitySelect
-              value={form.municipality}
-              onChange={(v) => setForm((f) => ({ ...f, municipality: v }))}
-            />
-          </div>
+          {MUNICIPALITY_ROLES.includes(form.role ?? "user") && (
+            <div className="space-y-1">
+              <Label>Municipality <span className="text-red-400">*</span></Label>
+              <MunicipalitySelect
+                value={form.municipality}
+                onChange={(v) => setForm((f) => ({ ...f, municipality: v }))}
+              />
+              <p className="text-xs text-zinc-500">Required for this role — scopes which submissions are visible.</p>
+            </div>
+          )}
+          {!MUNICIPALITY_ROLES.includes(form.role ?? "user") && (
+            <div className="space-y-1">
+              <Label>Municipality</Label>
+              <MunicipalitySelect
+                value={form.municipality}
+                onChange={(v) => setForm((f) => ({ ...f, municipality: v }))}
+              />
+            </div>
+          )}
+          {LAOO_ROLES.includes(form.role ?? "user") && (
+            <div className="space-y-1">
+              <Label>LAOO Level <span className="text-red-400">*</span></Label>
+              <select
+                className="w-full border border-zinc-700 rounded-md px-3 py-2 text-sm bg-zinc-800 text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-500"
+                value={form.laoo_level ?? ""}
+                onChange={(e) => setForm((f) => ({ ...f, laoo_level: e.target.value ? parseInt(e.target.value) : null }))}
+              >
+                <option value="">— Select level —</option>
+                <option value="1">LAOO I</option>
+                <option value="2">LAOO II</option>
+                <option value="3">LAOO III</option>
+                <option value="4">LAOO IV</option>
+              </select>
+              <p className="text-xs text-zinc-500">Informational only — all LAOO levels have the same review permissions.</p>
+            </div>
+          )}
           <div className="space-y-1">
             <Label>Department</Label>
             <Input
@@ -232,6 +274,7 @@ function CreateUserDialog({ open, onClose, onCreate }: CreateDialogProps) {
     full_name: "",
     role: "user",
     municipality: null,
+    laoo_level: null,
     department: "",
     position: "",
     phone: "",
@@ -258,7 +301,7 @@ function CreateUserDialog({ open, onClose, onCreate }: CreateDialogProps) {
       const { confirmPassword, ...data } = form;
       await onCreate(data);
       onClose();
-      setForm({ email: "", password: "", confirmPassword: "", full_name: "", role: "user", municipality: null, department: "", position: "", phone: "" });
+      setForm({ email: "", password: "", confirmPassword: "", full_name: "", role: "user", municipality: null, laoo_level: null, department: "", position: "", phone: "" });
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to create user.");
     } finally {
@@ -328,13 +371,42 @@ function CreateUserDialog({ open, onClose, onCreate }: CreateDialogProps) {
               ))}
             </select>
           </div>
-          <div className="space-y-1">
-            <Label>Municipality</Label>
-            <MunicipalitySelect
-              value={form.municipality}
-              onChange={(v) => setForm((f) => ({ ...f, municipality: v }))}
-            />
-          </div>
+          {MUNICIPALITY_ROLES.includes(form.role ?? "user") && (
+            <div className="space-y-1">
+              <Label>Municipality <span className="text-red-400">*</span></Label>
+              <MunicipalitySelect
+                value={form.municipality}
+                onChange={(v) => setForm((f) => ({ ...f, municipality: v }))}
+              />
+              <p className="text-xs text-zinc-500">Required for this role — scopes which submissions are visible.</p>
+            </div>
+          )}
+          {!MUNICIPALITY_ROLES.includes(form.role ?? "user") && (
+            <div className="space-y-1">
+              <Label>Municipality</Label>
+              <MunicipalitySelect
+                value={form.municipality}
+                onChange={(v) => setForm((f) => ({ ...f, municipality: v }))}
+              />
+            </div>
+          )}
+          {LAOO_ROLES.includes(form.role ?? "user") && (
+            <div className="space-y-1">
+              <Label>LAOO Level <span className="text-red-400">*</span></Label>
+              <select
+                className="w-full border border-zinc-700 rounded-md px-3 py-2 text-sm bg-zinc-800 text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-500"
+                value={form.laoo_level ?? ""}
+                onChange={(e) => setForm((f) => ({ ...f, laoo_level: e.target.value ? parseInt(e.target.value) : null }))}
+              >
+                <option value="">— Select level —</option>
+                <option value="1">LAOO I</option>
+                <option value="2">LAOO II</option>
+                <option value="3">LAOO III</option>
+                <option value="4">LAOO IV</option>
+              </select>
+              <p className="text-xs text-zinc-500">Informational only — all LAOO levels have the same review permissions.</p>
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label>Department</Label>

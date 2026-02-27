@@ -20,47 +20,170 @@ table.no-border td {
 }
 
 .sectionHeader {
-  background-color: #e6e6e6; 
+  background-color: #e6e6e6;
 }
 
+/* =========================
+   SCREEN DISPLAY IMPROVEMENTS
+   (Overrides for on-screen readability — print rules below override these back)
+========================= */
+
+@media screen {
+  /* Base font for the form — matches the rest of the app */
+  .rpfaas-print {
+    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+      "Segoe UI", Roboto, sans-serif;
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: #111827;
+  }
+
+  /* Soften the harsh black borders on screen */
+  table {
+    border-color: #374151;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.07);
+    margin-bottom: 0.5rem;
+  }
+
+  table th,
+  table td {
+    border-color: #6b7280;
+    /* Add vertical padding so cells aren't cramped */
+    padding: 5px 9px;
+    vertical-align: middle;
+  }
+
+  /* Section headers: stronger contrast + left accent bar */
+  .sectionHeader {
+    background: linear-gradient(90deg, #d1d5db 0%, #e9eaec 100%);
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #1f2937;
+    border-left: 3px solid #4b5563 !important;
+    padding-top: 5px !important;
+    padding-bottom: 5px !important;
+  }
+
+  /* Form title */
+  .rpfaas-print > h1 {
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: #111827;
+    border-bottom: 2px solid #374151;
+    padding-bottom: 0.5rem;
+    margin-bottom: 0.75rem;
+  }
+
+  /* Subtle hover tint on data rows for scannability */
+  tbody tr:hover > td {
+    background-color: rgba(243, 244, 246, 0.6);
+  }
+
+  /* Labels / field captions inside cells */
+  .rpfaas-print td:first-child:not(:only-child) {
+    color: #374151;
+    font-size: 12.5px;
+  }
+
+  /* Make bold values pop a bit more */
+  .rpfaas-print .font-bold,
+  .rpfaas-print td.font-bold {
+    color: #111827;
+    font-weight: 700;
+  }
+
+  /* Secondary labels/values inside inner grids (e.g. "1st Floor Area:", storey count)
+     should be compact on screen just like they are in print */
+  .rpfaas-print-small {
+    font-size: 12px !important;
+    color: #374151;
+  }
+.floor-area-print{
+  padding-left: 2px;
+  font-size: 12px !important;
+}
+}
 /* =========================
    PRINT SETTINGS (A4 - Single Page Optimized)
 ========================= */
 
 @page {
-  size: A4;
-  margin-top: -8mm;
-  margin-right: 8mm;
-  margin-bottom: 8mm;
-  margin-left: 8mm;
-  /* Reduced top margin for print */
+  size: A4 portrait;
+  margin: 2mm 8mm 12mm 8mm;
 }
 
 @media print {
   body {
     margin: 0;
     padding: 0;
-    background: white;
+    background: white !important;
+  }
+  body .floor-area-print {
+    font-size: 10px !important;
+    padding-left: 2px !important;
+  }
+  /* Remove all scrollbars — overflow containers render scroll gutters in print */
+  * {
+    overflow: visible !important;
+    scrollbar-width: none !important;
   }
 
+  /* Hide sidebar, rail, and all page chrome */
+  [data-sidebar="sidebar"],
+  [data-sidebar="rail"] {
+    display: none !important;
+  }
+
+  /* Remove wrapper padding/margins/backgrounds so the form fills the page */
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .rpfaas-fill,
+  #print-area,
+  .preview-container,
+  .border.p-2.bg-white.overflow-x-auto {
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: white !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    min-height: 0 !important;
+    gap: 0 !important;
+  }
+
+  .rpfaas-print sup {
+  font-size: 9px!important;
+  }
   .rpfaas-print {
     width: 100%;
-    font-size: 12px; /* Scaled down base font */
-    line-height: 1.15; /* Tighter line height */
+    font-size: 9pt !important;
+    line-height: 1;
     color: #000;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
 
+  /* Force ALL text inside the print form to uniform size */
+
+
+  /* Prevent browser from shrinking superscripts (1st, 2nd, etc.) */
+
   .rpfaas-print-small {
-    font-size: 9px !important;
+    font-size: 12px !important;
     line-height: 1 !important;
     padding-top: 2px !important;
     padding-bottom: 2px !important;
   }
 
   h1 {
-    font-size: 12px !important;
+    font-size: 12pt !important;
     margin-bottom: 4mm;
   }
 
@@ -104,8 +227,8 @@ table.no-border td {
     border: 1px solid #000 !important;
   }
 
-  /* Prevent ugly page breaks */
-  table, tr, td, th, tbody, thead, tfoot {
+  /* Tables can span pages; prevent breaks mid-row */
+  tr, td, th {
     page-break-inside: avoid !important;
   }
 
@@ -113,17 +236,32 @@ table.no-border td {
     font-weight: bold;
   }
 
-  /* Hide interactive UI junk */
-  input, button, select {
-    appearance: none;
-    -webkit-appearance: none;
-    border: 1px solid #000;
-    width: 10px;
-    height: 10px;
+  /* Hide interactive UI chrome in print */
+  button {
+    display: none !important;
   }
 
+  /* Checkboxes: small square, show check mark for checked state */
   input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
     display: inline-block;
+    width: 10px;
+    height: 10px;
+    border: 1px solid #000;
+    vertical-align: middle;
+    flex-shrink: 0;
+    position: relative;
+  }
+
+  input[type="checkbox"]:checked::after {
+    content: "✓";
+    position: absolute;
+    top: -2px;
+    left: 0px;
+    font-size: 9px;
+    line-height: 1;
+    color: #000;
   }
 
   .underline-amount {
@@ -154,11 +292,63 @@ table.no-border td {
     border: 1px solid #000 !important;
     padding: 2px 4px !important;
   }
+
+  /* Ensure all Tailwind print:hidden elements are actually hidden
+     (Tailwind v4 generates display:none without !important, which can be
+     overridden by other rules — this enforces it) */
+  .print\:hidden {
+    display: none !important;
+  }
+
+  /* Show print-only blocks, hide screen-only blocks */
+  .print-only {
+    display: block !important;
+  }
+
+  /* ── Supporting Documents: one photo per printed page ── */
+  .photo-page {
+    page-break-before: always;
+    break-before: page;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 5mm;
+    box-sizing: border-box;
+  }
+
+  .photo-page-title {
+    font-size: 14pt;
+    font-weight: bold;
+    text-align: center;
+    width: 100%;
+    border-bottom: 1px solid #000;
+    padding-bottom: 4mm;
+    margin-bottom: 6mm;
+  }
+
+  .photo-page img {
+    display: block;
+    max-width: 180mm;
+    max-height: 240mm;
+    object-fit: contain;
+    margin: 0 auto;
+  }
+
+  .photo-page-filename {
+    font-size: 8pt;
+    color: #555;
+    margin-top: 4mm;
+    text-align: center;
+  }
 }
 
 /* Screen Utilities */
+.print-only {
+  display: none;
+}
+
 .underline-amount {
-  border-bottom: 2px solid #000;
+  border-bottom: 2px solid #374151;
   padding: 6px 4px;
   vertical-align: middle;
 }
@@ -177,107 +367,4 @@ table.no-border td {
   border-bottom: 2px solid #000;
 }
 
-/* Fill mode formatting (kept intact) */
-.rpfaas-fill {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  padding: 1.5rem;
-}
-
-.rpfaas-fill-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.rpfaas-fill-title {
-  font-size: 1.25rem;
-  font-weight: 600;
-}
-
-.rpfaas-fill-link {
-  font-size: 0.875rem;
-  color: #2563eb;
-  text-decoration: underline;
-}
-
-.rpfaas-fill-form {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 1.5rem;
-  max-width: 64rem;
-}
-
-@media (min-width: 768px) {
-  .rpfaas-fill-form {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-.rpfaas-fill-section {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.rpfaas-fill-section-title {
-  font-weight: 600;
-}
-
-.rpfaas-fill-field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.rpfaas-fill-label {
-  font-size: 0.875rem;
-  font-weight: 500;
-}
-
-.rpfaas-fill-input {
-  border: 1px solid #d4d4d8;
-  border-radius: 0.25rem;
-  padding: 0.25rem 0.5rem;
-  font-size: 0.875rem;
-}
-
-.rpfaas-fill-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-top: 1rem;
-  border-top: 1px solid #e5e7eb;
-}
-
-.rpfaas-fill-hint {
-  font-size: 0.75rem;
-  color: #6b7280;
-}
-
-.rpfaas-fill-actions {
-  display: flex;
-  gap: 0.75rem;
-}
-
-.rpfaas-fill-button {
-  padding: 0.25rem 0.75rem;
-  font-size: 0.875rem;
-  border-radius: 0.25rem;
-  border: 1px solid transparent;
-}
-
-.rpfaas-fill-button-secondary {
-  border-color: #d4d4d8;
-  background-color: white;
-}
-
-.rpfaas-fill-button-primary {
-  background-color: #2563eb;
-  color: white;
-}
-.rpfass-font-small{
-  font-size: 10px;
-}
+/* rpfaas-fill-* classes live in app/styles/forms-fill.css — do not duplicate here */

@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, useState, useEffect, useMemo, useCallback, Suspense } from "react";
+import { StepPagination } from "@/components/ui/step-pagination";
 import "@/app/styles/forms-fill.css";
 import { getAssessmentLevel } from "@/config/assessment-level";
 import { AppSidebar } from "@/components/app-sidebar";
@@ -325,38 +326,15 @@ function BuildingStructureFormFillPage5() {
                 </div>
               </section>
 
-              <div className="rpfaas-fill-footer border-t border-border pt-4 mt-4">
-                <div className="rpfaas-fill-actions flex gap-2 justify-between items-center">
-                  <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => router.push(`/building-other-structure/fill/step-5${draftId ? `?id=${draftId}` : ''}`)}
-                      className="rpfaas-fill-button rpfaas-fill-button-secondary"
-                    >
-                      Previous
-                    </Button>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      onClick={handlePreview}
-                      disabled={isSaving}
-                      className="rpfaas-fill-button rpfaas-fill-button-primary"
-                    >
-                      {isSaving ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          Saving...
-                        </>
-                      ) : (
-                        'Preview'
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              </div>
+              <StepPagination
+                currentStep={6}
+                draftId={draftId}
+                isDirty={false}
+                onNext={handlePreview}
+                nextLabel="Preview"
+                isNextLoading={isSaving}
+                isNextDisabled={isSaving}
+              />
             </form>
           </div>
         </div>

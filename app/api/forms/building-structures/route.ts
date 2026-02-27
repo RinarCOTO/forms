@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
     const admin = getAdminClient()
     let query = admin
       .from('building_structures')
-      .select('id, owner_name, updated_at, status, municipality, location_municipality')
+      .select('id, owner_name, updated_at, status, municipality, location_municipality, location_barangay, submitted_at')
       .order('updated_at', { ascending: false })
 
     // Restrict to municipality if user is not admin and has a municipality assigned

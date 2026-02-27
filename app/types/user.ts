@@ -5,6 +5,9 @@ export type UserRole =
   | 'admin'
   | 'tax_mapper'
   | 'municipal_tax_mapper'
+  | 'laoo'
+  | 'assistant_provincial_assessor'
+  | 'provincial_assessor'
   | 'accountant'
   | 'user';
 
@@ -52,6 +55,7 @@ export interface User {
   full_name?: string | null;
   role: UserRole;
   municipality?: Municipality | null;
+  laoo_level?: number | null; // 1–4, only relevant for laoo role
   department?: string | null;
   position?: string | null;
   phone?: string | null;
@@ -67,6 +71,7 @@ export interface CreateUserData {
   full_name?: string;
   role?: UserRole;
   municipality?: Municipality | null;
+  laoo_level?: number | null;
   department?: string;
   position?: string;
   phone?: string;
@@ -76,6 +81,7 @@ export interface UpdateUserData {
   full_name?: string;
   role?: UserRole;
   municipality?: Municipality | null;
+  laoo_level?: number | null;
   department?: string;
   position?: string;
   phone?: string;

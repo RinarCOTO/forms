@@ -1,23 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { createClient as createServerClient } from '@/lib/supabase/server';
 
 export async function GET(req: NextRequest) {
-  console.log('=== Database Schema Check API ===');
-  
   try {
-    // Use admin client to check database schema
+    // 1. Require an authenticated super_admin caller
+    const supabase = await createServerClient();
+    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const supabaseAdmin = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
+      { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
-    console.log('Checking database schema...');
+    const { data: callerProfile } = await supabaseAdmin
+      .from('users').select('role').eq('id', authUser.id).single();
+
+    if (!callerProfile || callerProfile.role !== 'super_admin') {
+      return NextResponse.json({ error: 'Forbidden: super_admin role required' }, { status: 403 });
+    }
     
     // Check current columns in building_structures table
     const { data: columns, error: columnError } = await supabaseAdmin
@@ -27,15 +33,11 @@ export async function GET(req: NextRequest) {
       .eq('table_schema', 'public')
       .order('ordinal_position');
 
-    console.log('Current columns:', { columns, columnError });
-
     // Test if we can query the table with service role
     const { data: testData, error: testError } = await supabaseAdmin
       .from('building_structures')
       .select('id')
       .limit(1);
-
-    console.log('Permission test:', { testData, testError });
 
     // List of required columns
     const requiredColumns = [
@@ -86,8 +88,7 @@ ALTER TABLE public.building_structures DISABLE ROW LEVEL SECURITY;
     console.error('Database schema check error:', error);
     return NextResponse.json({
       success: false,
-      error: 'Failed to check database schema',
-      details: String(error)
+      error: 'Failed to check database schema'
     }, { status: 500 });
   }
 }

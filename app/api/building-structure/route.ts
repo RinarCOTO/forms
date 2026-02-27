@@ -59,8 +59,6 @@ export async function POST(request: NextRequest) {
   try {
     const body: BuildingStructureInput = await request.json();
     
-    console.log('🔵 API received data:', body);
-    
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -132,14 +130,9 @@ export async function POST(request: NextRequest) {
       .single();
     
     if (error) {
-      console.error('Error creating building structure:', error);
+      console.error('Error creating building structure:', error.code);
       return NextResponse.json(
-        {
-          success: false,
-          error: 'Failed to create building structure',
-          message: error.message,
-          details: error
-        },
+        { success: false, error: 'Failed to create building structure' },
         { status: 500 }
       );
     }
@@ -151,14 +144,9 @@ export async function POST(request: NextRequest) {
     }, { status: 201 });
     
   } catch (error) {
-    console.error('Error creating building structure:', error);
-    
+    console.error('Error creating building structure:', error instanceof Error ? error.message : 'Unknown');
     return NextResponse.json(
-      {
-        success: false,
-        error: 'Failed to create building structure',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      },
+      { success: false, error: 'Failed to create building structure' },
       { status: 500 }
     );
   }
@@ -204,13 +192,9 @@ export async function GET(request: NextRequest) {
     const { data, error, count } = await query;
     
     if (error) {
-      console.error('Error fetching building structures:', error);
+      console.error('Error fetching building structures:', error.code);
       return NextResponse.json(
-        {
-          success: false,
-          error: 'Failed to fetch building structures',
-          message: error.message,
-        },
+        { success: false, error: 'Failed to fetch building structures' },
         { status: 500 }
       );
     }
@@ -227,13 +211,9 @@ export async function GET(request: NextRequest) {
     });
     
   } catch (error) {
-    console.error('Error fetching building structures:', error);
+    console.error('Error fetching building structures:', error instanceof Error ? error.message : 'Unknown');
     return NextResponse.json(
-      {
-        success: false,
-        error: 'Failed to fetch building structures',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      },
+      { success: false, error: 'Failed to fetch building structures' },
       { status: 500 }
     );
   }

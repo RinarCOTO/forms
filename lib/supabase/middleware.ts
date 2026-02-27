@@ -11,12 +11,16 @@ export async function updateSession(request: NextRequest) {
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
   if (!supabaseUrl || !supabaseAnonKey) {
-    console.error('Missing Supabase environment variables')
-    console.error('NEXT_PUBLIC_SUPABASE_URL:', supabaseUrl ? 'Set' : 'Missing')
-    console.error('NEXT_PUBLIC_SUPABASE_ANON_KEY:', supabaseAnonKey ? 'Set' : 'Missing')
-    
-    // Allow the request to proceed without authentication
-    return supabaseResponse
+    console.error('Missing Supabase environment variables — blocking all requests')
+
+    // Fail CLOSED: redirect everything to /login when config is missing
+    const publicPaths = ['/login', '/signup', '/reset-password']
+    const isPublic = publicPaths.some(p => request.nextUrl.pathname.startsWith(p))
+    if (isPublic) return supabaseResponse
+
+    const url = request.nextUrl.clone()
+    url.pathname = '/login'
+    return NextResponse.redirect(url)
   }
 
   const supabase = createServerClient(
@@ -49,7 +53,18 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser()
 
   // Protected routes - include home page
-  const protectedPaths = ['/', '/dashboard', '/rpfaas', '/notes', '/building-other-structure', '/manage-users']
+  const protectedPaths = [
+    '/',
+    '/dashboard',
+    '/rpfaas',
+    '/notes',
+    '/building-other-structure',
+    '/manage-users',
+    '/manage-roles',
+    '/forms',
+    '/land-other-improvements',
+    '/review-queue',
+  ]
   const isProtectedPath = protectedPaths.some(path => 
     path === '/' ? request.nextUrl.pathname === '/' : request.nextUrl.pathname.startsWith(path)
   )

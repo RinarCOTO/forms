@@ -4,14 +4,6 @@ import { createClient as createAdminClient } from '@supabase/supabase-js';
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('GET /api/auth/user - Starting request');
-    
-    // Check environment variables
-    console.log('Environment variables check:');
-    console.log('- NEXT_PUBLIC_SUPABASE_URL:', !!process.env.NEXT_PUBLIC_SUPABASE_URL);
-    console.log('- SUPABASE_SERVICE_ROLE_KEY:', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
-    console.log('- NEXT_PUBLIC_SUPABASE_ANON_KEY:', !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
-    
     const supabase = await createClient();
 
     // Get the current user from auth
@@ -21,19 +13,14 @@ export async function GET(request: NextRequest) {
     } = await supabase.auth.getUser();
 
     if (authError || !authUser) {
-      console.log('Auth error or no user:', authError);
       return NextResponse.json(
         { error: authError?.message || 'Unauthorized', user: null },
         { status: 401 }
       );
     }
 
-    console.log('Auth user found:', { id: authUser.id, email: authUser.email });
-
     // Check if we have service role key, if not, try with regular client first
     if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      console.log('No service role key, trying with regular client...');
-      
       // Try with regular client first
       const { data: userProfile, error: profileError } = await supabase
         .from('users')
@@ -42,7 +29,6 @@ export async function GET(request: NextRequest) {
         .single();
 
       if (!profileError && userProfile) {
-        console.log('Profile found with regular client:', userProfile);
         return NextResponse.json({
           user: {
             id: authUser.id,
@@ -55,7 +41,6 @@ export async function GET(request: NextRequest) {
         });
       }
       
-      console.log('Regular client failed, service role key required:', profileError);
       return NextResponse.json(
         { 
           error: 'Service role key not configured. Please set SUPABASE_SERVICE_ROLE_KEY environment variable.',
@@ -85,7 +70,6 @@ export async function GET(request: NextRequest) {
       .single();
 
     if (profileError) {
-      console.log('User profile not found, creating one...', profileError);
       
       // Create user profile if it doesn't exist using admin client
       const { data: newProfile, error: createError } = await supabaseAdmin
@@ -119,7 +103,6 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      console.log('User profile created:', newProfile);
       return NextResponse.json(
         { user: newProfile },
         { status: 200 }

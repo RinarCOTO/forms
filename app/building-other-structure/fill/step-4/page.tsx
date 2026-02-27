@@ -1,7 +1,8 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, useEffect, useMemo, useCallback, Suspense } from "react";
+import { useState, useEffect, useMemo, useCallback, Suspense, useRef } from "react";
+import { StepPagination } from "@/components/ui/step-pagination";
 import "@/app/styles/forms-fill.css";
 import { Button } from "@/components/ui/button";
 import { AppSidebar } from "@/components/app-sidebar";
@@ -53,7 +54,9 @@ const BuildingStructureFormFillPage4 = () => {
 
   const [isSaving, setIsSaving] = useState(false);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
-  
+  const [isDirty, setIsDirty] = useState(false);
+  const isInitializedRef = useRef(false);
+
   // State for Standard Deductions
   const [selections, setSelections] = useState<(string | number | null)[]>(() => [null]);
 
@@ -139,8 +142,13 @@ if (loadedData?.additional_flat_rate_areas?.length > 0) {
     
     // Note: You may need similar loading logic here for additionalPercentSelections/Areas
     // if you are saving them to the DB and want to reload them on edit.
-    
+    setTimeout(() => { isInitializedRef.current = true; }, 150);
   }, [loadedData, form]);
+
+  // Track unsaved changes after initialization
+  useEffect(() => {
+    if (isInitializedRef.current) setIsDirty(true);
+  }, [selections, comments, additionalPercentSelections, additionalPercentAreas, additionalFlatRateSelections, additionalFlatRateAreas]);
 
   const handleSelectionChange = useCallback((newValues: (string | number | null)[]) => {
     setSelections([...newValues]);
@@ -280,6 +288,7 @@ if (loadedData?.additional_flat_rate_areas?.length > 0) {
       if (response.ok) {
         const result = await response.json();
         if (result.data?.id) {
+          setIsDirty(false);
           localStorage.setItem("draft_id", result.data.id.toString());
           router.push(`/building-other-structure/fill/step-5?id=${result.data.id}`);
         }
@@ -328,6 +337,7 @@ if (loadedData?.additional_flat_rate_areas?.length > 0) {
       if (response.ok) {
         const result = await response.json();
         if (result.data?.id) localStorage.setItem('draft_id', result.data.id.toString());
+        setIsDirty(false);
         toast.success('Draft saved successfully.');
       } else {
         toast.error('Failed to save draft.');
@@ -361,9 +371,21 @@ if (loadedData?.additional_flat_rate_areas?.length > 0) {
 
         <div className="flex-1 p-6 overflow-y-auto bg-stone-200">
           <div className="max-w-4xl mx-auto">
-            <header className="mb-6">
-              <h1 className="text-2xl font-bold tracking-tight">Fill-up Form: General Description</h1>
-              <p className="text-sm text-muted-foreground">Manage structure deductions and deviations.</p>
+            <header className="flex items-center justify-between gap-4 mb-6">
+              <div>
+                <h1 className="text-2xl font-bold tracking-tight">Fill-up Form: General Description</h1>
+                <p className="text-sm text-muted-foreground">Manage structure deductions and deviations.</p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => form.handleSubmit(handleSaveDraft)()}
+                disabled={isSavingDraft || isSaving}
+                className="shrink-0"
+              >
+                {isSavingDraft ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving...</> : 'Save Draft'}
+              </Button>
             </header>
 
             <form onSubmit={form.handleSubmit(handleNext)} className="space-y-8">
@@ -420,39 +442,14 @@ if (loadedData?.additional_flat_rate_areas?.length > 0) {
                 addFlatOptions={ADDITIONAL_FLAT_RATE_CHOICES}
               />
 
-              <div className="flex justify-between items-center pt-6 border-t">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() =>
-                    router.push(
-                      `/building-other-structure/fill/step-3${draftId ? `?id=${draftId}` : ""}`
-                    )
-                  }
-                >
-                  Previous
-                </Button>
-
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => form.handleSubmit(handleSaveDraft)()}
-                    disabled={isSavingDraft || isSaving}
-                  >
-                    {isSavingDraft ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving...</> : 'Save Draft'}
-                  </Button>
-                  <Button type="submit" disabled={isSaving || isSavingDraft}>
-                    {isSaving ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...
-                      </>
-                    ) : (
-                      'Next'
-                    )}
-                  </Button>
-                </div>
-              </div>
+              <StepPagination
+                currentStep={4}
+                draftId={draftId}
+                isDirty={isDirty}
+                onNext={() => form.handleSubmit(handleNext)()}
+                isNextLoading={isSaving}
+                isNextDisabled={isSaving || isSavingDraft}
+              />
             </form>
           </div>
         </div>

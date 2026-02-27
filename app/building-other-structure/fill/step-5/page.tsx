@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect, useCallback, useRef, Suspense } from "react";
+import { StepPagination } from "@/components/ui/step-pagination";
 import "@/app/styles/forms-fill.css";
 import { AppSidebar } from "@/components/app-sidebar";
 import {
@@ -454,32 +455,12 @@ function BuildingStructureFormFillPage5() {
             )}
 
             {/* Footer navigation */}
-            <div className="rpfaas-fill-footer border-t border-border pt-4 mt-6">
-              <div className="rpfaas-fill-actions flex gap-2 justify-between items-center">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() =>
-                    router.push(
-                      `/building-other-structure/fill/step-4${navParams}`
-                    )
-                  }
-                >
-                  Previous
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() =>
-                    router.push(
-                      `/building-other-structure/fill/step-6${navParams}`
-                    )
-                  }
-                >
-                  Next
-                </Button>
-              </div>
-            </div>
+            <StepPagination
+              currentStep={5}
+              draftId={draftId}
+              isDirty={false}
+              onNext={() => router.push(`/building-other-structure/fill/step-6${navParams}`)}
+            />
           </div>
         </div>
       </SidebarInset>

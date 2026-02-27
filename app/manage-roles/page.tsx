@@ -30,27 +30,42 @@ import { toast } from "sonner";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type UserRole = "super_admin" | "admin" | "tax_mapper" | "municipal_tax_mapper" | "accountant" | "user";
+type UserRole =
+  | "super_admin"
+  | "admin"
+  | "tax_mapper"
+  | "municipal_tax_mapper"
+  | "laoo"
+  | "assistant_provincial_assessor"
+  | "provincial_assessor"
+  | "accountant"
+  | "user";
 type PermissionMap = Record<string, Record<string, boolean>>;
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const ROLES: { key: UserRole; label: string; short: string }[] = [
-  { key: "super_admin",         label: "Super Admin",           short: "SA"  },
-  { key: "admin",               label: "Admin",                 short: "Ad"  },
-  { key: "tax_mapper",          label: "Tax Mapper",            short: "TM"  },
-  { key: "municipal_tax_mapper",label: "Municipal Tax Mapper",  short: "MTM" },
-  { key: "accountant",          label: "Accountant",            short: "Acc" },
-  { key: "user",                label: "User",                  short: "Usr" },
+  { key: "super_admin",                  label: "Super Admin",               short: "SA"   },
+  { key: "admin",                        label: "Admin",                     short: "Ad"   },
+  { key: "tax_mapper",                   label: "Tax Mapper",                short: "TM"   },
+  { key: "municipal_tax_mapper",         label: "Municipal Tax Mapper",      short: "MTM"  },
+  { key: "laoo",                         label: "LAOO",                      short: "LAOO" },
+  { key: "assistant_provincial_assessor",label: "Asst. Provincial Assessor", short: "APA"  },
+  { key: "provincial_assessor",          label: "Provincial Assessor",       short: "PA"   },
+  { key: "accountant",                   label: "Accountant",                short: "Acc"  },
+  { key: "user",                         label: "User",                      short: "Usr"  },
 ];
 
 const ROLE_BADGE_COLORS: Record<UserRole, string> = {
-  super_admin:          "bg-red-900/40 text-red-300 border-red-700",
-  admin:                "bg-blue-900/40 text-blue-300 border-blue-700",
-  tax_mapper:           "bg-emerald-900/40 text-emerald-300 border-emerald-700",
-  municipal_tax_mapper: "bg-teal-900/40 text-teal-300 border-teal-700",
-  accountant:           "bg-purple-900/40 text-purple-300 border-purple-700",
-  user:                 "bg-zinc-800 text-zinc-400 border-zinc-600",
+  super_admin:                  "bg-red-900/40 text-red-300 border-red-700",
+  admin:                        "bg-blue-900/40 text-blue-300 border-blue-700",
+  tax_mapper:                   "bg-emerald-900/40 text-emerald-300 border-emerald-700",
+  municipal_tax_mapper:         "bg-teal-900/40 text-teal-300 border-teal-700",
+  laoo:                         "bg-cyan-900/40 text-cyan-300 border-cyan-700",
+  assistant_provincial_assessor:"bg-amber-900/40 text-amber-300 border-amber-700",
+  provincial_assessor:          "bg-orange-900/40 text-orange-300 border-orange-700",
+  accountant:                   "bg-purple-900/40 text-purple-300 border-purple-700",
+  user:                         "bg-zinc-800 text-zinc-400 border-zinc-600",
 };
 
 interface Feature {
@@ -126,6 +141,15 @@ const MODULES: Module[] = [
     color: "bg-zinc-800/60 border-zinc-600/40 text-zinc-300",
     features: [
       { key: "dashboard.view", label: "View Dashboard", description: "Access the main dashboard and statistics" },
+    ],
+  },
+  {
+    label: "Review & Workflow",
+    color: "bg-indigo-900/30 border-indigo-700/40 text-indigo-300",
+    features: [
+      { key: "forms.submit",  label: "Submit Forms",  description: "Submit a completed FAAS form for LAOO review" },
+      { key: "review.laoo",  label: "LAOO Review",   description: "Review, comment on, return, or approve submitted FAAS forms (provincial)" },
+      { key: "review.sign",  label: "Sign / E-Sign", description: "Attach a digital signature to FAAS forms and Tax Declarations" },
     ],
   },
 ];
