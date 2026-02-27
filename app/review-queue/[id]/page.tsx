@@ -99,7 +99,7 @@ const STATUS_STYLE: Record<string, string> = {
 const STATUS_LABEL: Record<string, string> = {
   submitted:    "Submitted — Awaiting Review",
   under_review: "Under Review",
-  returned:     "Returned for Revision",
+  returned:     "Returned for Review",
   approved:     "Approved",
 };
 
@@ -342,7 +342,7 @@ function ReviewDetailInner({ id }: { id: string }) {
         return;
       }
 
-      const labels = { claim: "Under Review", return: "Returned", approve: "Approved" };
+      const labels = { claim: "Under Review", return: "Returned for Review", approve: "Approved" };
       toast.success(`Form marked as "${labels[action]}".`);
       await loadData();
     } catch {
@@ -600,12 +600,21 @@ function ReviewDetailInner({ id }: { id: string }) {
                           </p>
                         );
                       }
+                      // Build response map for nested display
+                      const responseMap = new Map<string, Comment[]>();
+                      comments.filter(c => c.parent_id).forEach(c => {
+                        if (!responseMap.has(c.parent_id!)) responseMap.set(c.parent_id!, []);
+                        responseMap.get(c.parent_id!)!.push(c);
+                      });
+                      // Only show top-level (non-response) comments in the main list
+                      const topLevel = visible.filter(c => !c.parent_id);
                       return (
                         <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
-                          {visible.map(c => {
+                          {topLevel.map(c => {
                             const fields = c.field_name
                               ? c.field_name.split(",").map(s => s.trim()).filter(Boolean)
                               : [];
+                            const responses = responseMap.get(c.id) ?? [];
                             return (
                               <div
                                 key={c.id}
@@ -633,6 +642,19 @@ function ReviewDetailInner({ id }: { id: string }) {
                                   <Clock className="h-3 w-3 ml-1" />
                                   <span>{fmtDate(c.created_at)}</span>
                                 </div>
+                                {/* Tax mapper responses */}
+                                {responses.map(r => (
+                                  <div key={r.id} className="mt-2 ml-2 border-l-2 border-green-400 pl-2 space-y-0.5 bg-green-50/60 rounded-r py-1" onClick={e => e.stopPropagation()}>
+                                    <p className="text-xs font-semibold text-green-700">Tax Mapper Response</p>
+                                    <p className="text-xs text-foreground">{r.comment_text}</p>
+                                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                      <User className="h-3 w-3" />
+                                      <span>{r.author_name}</span>
+                                      <Clock className="h-3 w-3 ml-1" />
+                                      <span>{fmtDate(r.created_at)}</span>
+                                    </div>
+                                  </div>
+                                ))}
                               </div>
                             );
                           })}

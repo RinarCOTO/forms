@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import {
@@ -47,26 +48,40 @@ export function StepPagination({
   const router = useRouter();
   const [showModal, setShowModal] = useState(false);
   const [pendingStep, setPendingStep] = useState<number | null>(null);
+  // Read localStorage after mount so we can include it in href attributes
+  const [localId, setLocalId] = useState<string | null>(null);
+  useEffect(() => {
+    const stored = localStorage.getItem("draft_id");
+    if (stored) setLocalId(stored);
+  }, []);
+
+  const effectiveId = draftId ?? localId;
+
+  const stepHref = (step: number) =>
+    `/building-other-structure/fill/step-${step}${effectiveId ? `?id=${effectiveId}` : ""}`;
 
   const navigateTo = useCallback(
     (step: number) => {
-      const query = draftId ? `?id=${draftId}` : "";
-      router.push(`/building-other-structure/fill/step-${step}${query}`);
+      router.push(stepHref(step));
     },
-    [draftId, router]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [effectiveId, router]
   );
 
-  const requestNavigate = useCallback(
-    (step: number) => {
-      if (step === currentStep) return;
+  const handleStepClick = useCallback(
+    (e: React.MouseEvent, step: number) => {
+      if (step === currentStep) {
+        e.preventDefault();
+        return;
+      }
       if (isDirty) {
+        e.preventDefault();
         setPendingStep(step);
         setShowModal(true);
-      } else {
-        navigateTo(step);
       }
+      // Not dirty → let the <Link> navigate naturally (href takes effect)
     },
-    [currentStep, isDirty, navigateTo]
+    [currentStep, isDirty]
   );
 
   const handleLeave = useCallback(() => {
@@ -91,25 +106,30 @@ export function StepPagination({
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => requestNavigate(currentStep - 1)}
               className="gap-1"
+              asChild
             >
-              <ChevronLeft className="h-4 w-4" />
-              Previous
+              <Link
+                href={stepHref(currentStep - 1)}
+                onClick={(e) => handleStepClick(e, currentStep - 1)}
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Previous
+              </Link>
             </Button>
           )}
         </div>
 
-        {/* Center: Step number circles */}
+        {/* Center: Step number links */}
         <nav className="flex items-center gap-2" aria-label="Form steps">
           {FORM_STEPS.map(({ step, label }) => {
             const isActive = step === currentStep;
             const isCompleted = step < currentStep;
             return (
-              <button
+              <Link
                 key={step}
-                type="button"
-                onClick={() => requestNavigate(step)}
+                href={stepHref(step)}
+                onClick={(e) => handleStepClick(e, step)}
                 title={label}
                 aria-current={isActive ? "step" : undefined}
                 className={cn(
@@ -123,7 +143,7 @@ export function StepPagination({
               >
                 {step}
                 <span className="sr-only">{label}</span>
-              </button>
+              </Link>
             );
           })}
         </nav>

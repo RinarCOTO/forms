@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect, useCallback, Suspense, useRef } from "react";
 import { StepPagination } from "@/components/ui/step-pagination";
+import { ReviewCommentsFloat } from "@/components/review-comments-float";
 import { generateYears, calculateAge, calculateTotalFloorArea } from "@/utils/form-helpers";
 import { BUILDING_TYPES, STRUCTURAL_TYPES } from "@/config/form-options";
 import { getUnitConstructionCost } from "@/config/unit-construction-cost";
@@ -392,7 +393,7 @@ const handleNext = useCallback(async () => {
                 <h2 className="rpfaas-fill-section-title mb-4">General Description</h2>
                 <div className=" gap-3">
                   {/* TYPE OF BUILDING */}
-                  <div className="space-y-1">
+                  <div className="space-y-1" data-comment-field="type_of_building">
                     <Label className="rpfaas-fill-label">Type of Building</Label>
                     <div className="relative group">
                       <select
@@ -411,7 +412,7 @@ const handleNext = useCallback(async () => {
                 <div className="grid grid-cols-2 gap-3">
 
                   {/* STRUCTURAL TYPE */}
-                  <div className="space-y-1">
+                  <div className="space-y-1" data-comment-field="structure_type">
                     <Label className="rpfaas-fill-label">Structural Type</Label>
                     <div className="relative group">
                       <select
@@ -430,7 +431,7 @@ const handleNext = useCallback(async () => {
 
                 <div className="grid grid-cols-2 gap-3">
                   {/* BUILDING PERMIT - NOW USING STATE */}
-                  <div className="rpfaas-fill-field">
+                  <div className="rpfaas-fill-field" data-comment-field="building_permit_no">
                     <Label className="rpfaas-fill-label">Building Permit No.</Label>
                     <Input
                       type="text"
@@ -440,7 +441,7 @@ const handleNext = useCallback(async () => {
                     />
                   </div>
                     {/* CCT - NOW USING STATE */}
-                    <div className="rpfaas-fill-field">
+                    <div className="rpfaas-fill-field" data-comment-field="cct">
                       <Label className="rpfaas-fill-label">Condominium Certificate of Title(CCT)</Label>
                       <Input
                         type="text"
@@ -454,7 +455,7 @@ const handleNext = useCallback(async () => {
                 {/* DATE CONSTRUCTED & OCCUPIED */}
                 <div className="grid grid-cols-3 gap-3">
                     {/* COMPLETION DATE - NOW USING GENERATE YEARS + STATE */}
-                    <div className="rpfaas-fill-field">
+                    <div className="rpfaas-fill-field" data-comment-field="completion_issued_on">
                       <Label className="rpfaas-fill-label ">Certificate of Completion Issued On</Label>
                       <div className="relative group">
                         <select
@@ -469,7 +470,7 @@ const handleNext = useCallback(async () => {
                         </select>
                       </div>
                     </div>
-                    <div className="rpfaas-fill-field">
+                    <div className="rpfaas-fill-field" data-comment-field="date_constructed">
                       <Label className="rpfaas-fill-label">Date Constructed</Label>
                       <div className="relative group">
                         <select
@@ -485,7 +486,7 @@ const handleNext = useCallback(async () => {
                       </div>
                     </div>
 
-                    <div className="rpfaas-fill-field">
+                    <div className="rpfaas-fill-field" data-comment-field="date_occupied">
                       <Label className="rpfaas-fill-label">Date Occupied</Label>
                       <div className="relative group">
                         <select
@@ -500,7 +501,7 @@ const handleNext = useCallback(async () => {
                         </select>
                       </div>
                     </div>
-                    <div className="rpfaas-fill-field space-y-1">
+                    <div className="rpfaas-fill-field space-y-1" data-comment-field="building_age">
                       <Label className="rpfaas-fill-label">Building Age</Label>
                       <Input 
                         type="text" 
@@ -509,7 +510,7 @@ const handleNext = useCallback(async () => {
                         readOnly
                       />
                     </div>
-                  <div className="rpfaas-fill-field space-y-1">
+                  <div className="rpfaas-fill-field space-y-1" data-comment-field="unit_cost">
                     <Label className="rpfaas-fill-label">Unit Construction Cost</Label>
                     <div className="relative">
                       <div className="rpfaas-fill-input bg-gray-100 pr-4 font-medium pl-10">
@@ -524,7 +525,7 @@ const handleNext = useCallback(async () => {
               <section className="rpfaas-fill-section">
                 <h2 className="rpfaas-fill-section-title mb-4">Floor Information</h2>
                 <div className="grid grid-cols-3">
-                  <div className="rpfaas-fill-field space-y-1">
+                  <div className="rpfaas-fill-field space-y-1" data-comment-field="number_of_storeys">
                     <Label className="rpfaas-fill-label">Number of Storeys</Label>
                     <Input
                       type="number"
@@ -555,7 +556,7 @@ const handleNext = useCallback(async () => {
                 </div>
                 {/* Total Floor Area Display (Read Only) */}
                 <div className="grid grid-cols-3">
-                   <div className="rpfaas-fill-field space-y-1">
+                   <div className="rpfaas-fill-field space-y-1" data-comment-field="total_floor_area">
                     <Label className="rpfaas-fill-label">TOTAL FLOOR AREA</Label>
                     <div className="relative">
                       <Input 
@@ -573,7 +574,7 @@ const handleNext = useCallback(async () => {
               {/* LAND REFERENCE - NOW USING STATE */}
               <section className="rpfaas-fill-section">
                 <h2 className="rpfaas-fill-section-title mb-4">LAND REFERENCE</h2>
-                <div className="rpfaas-fill-field space-y-1">
+                <div className="rpfaas-fill-field space-y-1" data-comment-field="land_owner">
                   <Label className="rpfaas-fill-label">Land Owner</Label>
                     <Input 
                       type="text" 
@@ -584,7 +585,7 @@ const handleNext = useCallback(async () => {
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="rpfaas-fill-field space-y-1">
+                  <div className="rpfaas-fill-field space-y-1" data-comment-field="td_arp_no">
                     <Label className="rpfaas-fill-label">TD/ARP No.</Label>
                     <Input 
                       type="number" 
@@ -594,7 +595,7 @@ const handleNext = useCallback(async () => {
                     />
                   </div>
 
-                  <div className="rpfaas-fill-field space-y-1">
+                  <div className="rpfaas-fill-field space-y-1" data-comment-field="land_area">
                     <Label className="rpfaas-fill-label">Area</Label>
                     <div className="relative">
                     <Input 
@@ -622,6 +623,7 @@ const handleNext = useCallback(async () => {
           </div>
         </div>
       </SidebarInset>
+      <ReviewCommentsFloat draftId={draftId} />
     </SidebarProvider>
   );
 };

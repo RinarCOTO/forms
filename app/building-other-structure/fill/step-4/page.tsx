@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect, useMemo, useCallback, Suspense, useRef } from "react";
 import { StepPagination } from "@/components/ui/step-pagination";
+import { ReviewCommentsFloat } from "@/components/review-comments-float";
 import "@/app/styles/forms-fill.css";
 import { Button } from "@/components/ui/button";
 import { AppSidebar } from "@/components/app-sidebar";
@@ -390,16 +391,18 @@ if (loadedData?.additional_flat_rate_areas?.length > 0) {
 
             <form onSubmit={form.handleSubmit(handleNext)} className="space-y-8">
               
-              <DeductionsTable
-                unitCost={unitCost}
-                totalFloorArea={totalFloorArea}
-                selections={selections}
-                onSelectionChange={handleSelectionChange}
-                deductionChoices={DEDUCTION_CHOICES}
-                comments={comments}
-                onCommentsChange={setComments}
-                error={form.formState.errors.deductions?.message as string}
-              />
+              <div data-comment-field="selected_deductions">
+                <DeductionsTable
+                  unitCost={unitCost}
+                  totalFloorArea={totalFloorArea}
+                  selections={selections}
+                  onSelectionChange={handleSelectionChange}
+                  deductionChoices={DEDUCTION_CHOICES}
+                  comments={comments}
+                  onCommentsChange={setComments}
+                  error={form.formState.errors.deductions?.message as string}
+                />
+              </div>
 
               <AdditionalTable
                 label="Additional Percent Deviations (Additions)"
@@ -421,26 +424,28 @@ if (loadedData?.additional_flat_rate_areas?.length > 0) {
                 onAreasChange={setAdditionalFlatRateAreas}
               />
 
-              <TotalDeductionTable
-                label="Market Value Summary"
-                unitCost={unitCost}
-                totalFloorArea={totalFloorArea}
-                netUnitCost={financialSummary.netUnitCost}
+              <div data-comment-field="market_value">
+                <TotalDeductionTable
+                  label="Market Value Summary"
+                  unitCost={unitCost}
+                  totalFloorArea={totalFloorArea}
+                  netUnitCost={financialSummary.netUnitCost}
 
-                // Standard
-                deductionSelections={selections}
-                deductionOptions={DEDUCTION_CHOICES}
-                
-                // Percent
-                addPercentSelections={additionalPercentSelections}
-                addPercentAreas={additionalPercentAreas}
-                addPercentOptions={ADDITIONAL_PERCENT_CHOICES}
+                  // Standard
+                  deductionSelections={selections}
+                  deductionOptions={DEDUCTION_CHOICES}
 
-                // Flat
-                addFlatSelections={additionalFlatRateSelections}
-                addFlatAreas={additionalFlatRateAreas}
-                addFlatOptions={ADDITIONAL_FLAT_RATE_CHOICES}
-              />
+                  // Percent
+                  addPercentSelections={additionalPercentSelections}
+                  addPercentAreas={additionalPercentAreas}
+                  addPercentOptions={ADDITIONAL_PERCENT_CHOICES}
+
+                  // Flat
+                  addFlatSelections={additionalFlatRateSelections}
+                  addFlatAreas={additionalFlatRateAreas}
+                  addFlatOptions={ADDITIONAL_FLAT_RATE_CHOICES}
+                />
+              </div>
 
               <StepPagination
                 currentStep={4}
@@ -454,6 +459,7 @@ if (loadedData?.additional_flat_rate_areas?.length > 0) {
           </div>
         </div>
       </SidebarInset>
+      <ReviewCommentsFloat draftId={draftId} />
     </SidebarProvider>
   );
 };

@@ -136,7 +136,7 @@ export default function BuildingOtherStructureDashboard() {
   const getStatusLabel = (status: string) => {
     switch (status) {
       case 'under_review': return 'Under Review';
-      case 'returned':     return 'Returned';
+      case 'returned':     return 'Returned for Review';
       case 'submitted':    return 'Submitted';
       case 'approved':     return 'Approved';
       case 'draft':        return 'Draft';
@@ -170,8 +170,12 @@ export default function BuildingOtherStructureDashboard() {
   const totalPages = Math.max(1, Math.ceil(filteredSubmissions.length / PAGE_SIZE));
   const paginatedSubmissions = filteredSubmissions.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
-  const handlePrintPreview = useCallback((submissionId: number) => {
-    router.push(`/building-other-structure/print-preview?id=${submissionId}`);
+  const handlePrintPreview = useCallback((submissionId: number, status?: string) => {
+    if (status === 'returned') {
+      router.push(`/building-other-structure/fill/preview-form?id=${submissionId}`);
+    } else {
+      router.push(`/building-other-structure/print-preview?id=${submissionId}`);
+    }
   }, [router]);
 
   return (
@@ -305,7 +309,7 @@ export default function BuildingOtherStructureDashboard() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => handlePrintPreview(submission.id)}>
+                                <DropdownMenuItem onClick={() => handlePrintPreview(submission.id, submission.status)}>
                                   <Eye className="h-4 w-4 mr-2" /> View
                                 </DropdownMenuItem>
                                 <DropdownMenuItem

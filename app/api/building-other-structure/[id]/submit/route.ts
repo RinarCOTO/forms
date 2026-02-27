@@ -79,8 +79,27 @@ export async function POST(
     const fromStatus = record.status;
     const now = new Date().toISOString();
 
-    // ── Status transition only ────────────────────────────────────────────────
-    // Form data is saved separately via PUT before this endpoint is called.
+    // ── If re-submitting from 'returned', fetch full form data + LAOO comments
+    //    to generate change-tracking response comments ─────────────────────────
+    let fullRecord: Record<string, unknown> | null = null;
+    let laooComments: Array<{ id: string; field_name: string | null; comment_text: string }> = [];
+
+    if (fromStatus === 'returned') {
+      const [formRes, commentsRes] = await Promise.all([
+        admin.from('building_structures').select('*').eq('id', id).single(),
+        admin.from('form_comments')
+          .select('id, field_name, comment_text, parent_id, author_role')
+          .eq('form_type', 'building_structures')
+          .eq('form_id', parseInt(id))
+          .is('parent_id', null)
+          .neq('author_role', 'tax_mapper')
+          .order('created_at', { ascending: true }),
+      ]);
+      fullRecord = formRes.data ?? null;
+      laooComments = (commentsRes.data ?? []) as typeof laooComments;
+    }
+
+    // ── Status transition ─────────────────────────────────────────────────────
     const { data: updated, error: updateError } = await admin
       .from('building_structures')
       .update({
@@ -97,6 +116,73 @@ export async function POST(
         { success: false, message: 'Failed to update record', error: updateError?.message },
         { status: 500 }
       );
+    }
+
+    // ── Generate change-tracking response comments (non-blocking) ─────────────
+    if (fromStatus === 'returned' && fullRecord && laooComments.length > 0) {
+      // Map field_name keys to DB column values
+      const fieldValueMap: Record<string, string> = {
+        owner_name: String(fullRecord.owner_name ?? ''),
+        admin_care_of: String(fullRecord.admin_care_of ?? ''),
+        owner_address: [fullRecord.owner_address_province, fullRecord.owner_address_municipality, fullRecord.owner_address_barangay].filter(Boolean).join(', ') || String(fullRecord.owner_address ?? ''),
+        location_province: String(fullRecord.location_province ?? ''),
+        location_municipality: String(fullRecord.location_municipality ?? ''),
+        location_barangay: String(fullRecord.location_barangay ?? ''),
+        type_of_building: String(fullRecord.type_of_building ?? ''),
+        structure_type: String(fullRecord.structure_type ?? ''),
+        building_permit_no: String(fullRecord.building_permit_no ?? ''),
+        cct: String(fullRecord.cct ?? ''),
+        completion_issued_on: String(fullRecord.completion_issued_on ?? '').substring(0, 4),
+        date_constructed: String(fullRecord.date_constructed ?? '').substring(0, 4),
+        date_occupied: String(fullRecord.date_occupied ?? '').substring(0, 4),
+        building_age: String(fullRecord.building_age ?? ''),
+        number_of_storeys: String(fullRecord.number_of_storeys ?? ''),
+        total_floor_area: String(fullRecord.total_floor_area ?? ''),
+        unit_cost: String(fullRecord.cost_of_construction ?? ''),
+        land_owner: String(fullRecord.land_owner ?? ''),
+        td_arp_no: String(fullRecord.td_arp_no ?? ''),
+        land_area: String(fullRecord.land_area ?? ''),
+        roofing_material: (() => { try { const v = typeof fullRecord.roofing_material === 'string' ? JSON.parse(fullRecord.roofing_material) : fullRecord.roofing_material; return v?.summary ?? JSON.stringify(v) ?? ''; } catch { return ''; } })(),
+        flooring_material: (() => { try { const v = typeof fullRecord.flooring_material === 'string' ? JSON.parse(fullRecord.flooring_material) : fullRecord.flooring_material; return v?.summary ?? JSON.stringify(v) ?? ''; } catch { return ''; } })(),
+        wall_material: (() => { try { const v = typeof fullRecord.wall_material === 'string' ? JSON.parse(fullRecord.wall_material) : fullRecord.wall_material; return v?.summary ?? JSON.stringify(v) ?? ''; } catch { return ''; } })(),
+        selected_deductions: Array.isArray(fullRecord.selected_deductions) ? (fullRecord.selected_deductions as string[]).join(', ') : String(fullRecord.selected_deductions ?? ''),
+        market_value: String(fullRecord.market_value ?? ''),
+        actual_use: String(fullRecord.actual_use ?? ''),
+        assessment_level: String(fullRecord.assessment_level ?? ''),
+        assessed_value: String(fullRecord.estimated_value ?? ''),
+        amount_in_words: String(fullRecord.amount_in_words ?? ''),
+      };
+
+      const responseInserts = laooComments
+        .map((c) => {
+          const fields = (c.field_name ?? '').split(',').map((f) => f.trim()).filter(Boolean);
+          if (fields.length === 0) return null;
+          const valueParts = fields
+            .map((f) => {
+              const v = fieldValueMap[f];
+              return v ? `${f}: ${v}` : null;
+            })
+            .filter(Boolean);
+          if (valueParts.length === 0) return null;
+          return {
+            form_type: 'building_structures',
+            form_id: parseInt(id),
+            field_name: c.field_name,
+            comment_text: `Tax mapper updated values — ${valueParts.join(' | ')}`,
+            author_id: authUser.id,
+            author_role: profile.role,
+            parent_id: c.id,
+          };
+        })
+        .filter((v): v is NonNullable<typeof v> => v !== null);
+
+      if (responseInserts.length > 0) {
+        try {
+          await admin.from('form_comments').insert(responseInserts);
+        } catch (insertErr) {
+          console.warn('Change-tracking comment insert failed:', insertErr);
+        }
+      }
     }
 
     // ── Write audit entry (non-blocking — table may not exist yet) ─────────────

@@ -89,7 +89,7 @@ const STATUS_FILTERS = [
   { value: "submitted", label: "Submitted" },
   { value: "under_review", label: "Under Review" },
   { value: "approved", label: "Approved" },
-  { value: "returned", label: "Returned" },
+  { value: "returned", label: "Returned for Review" },
 ] as const;
 
 const FORM_TYPE_FILTERS = [
@@ -113,7 +113,7 @@ function getStatusVariant(status: string) {
 function getStatusLabel(status: string) {
   switch (status) {
     case "under_review": return "Under Review";
-    case "returned":     return "Returned";
+    case "returned":     return "Returned for Review";
     case "submitted":    return "Submitted";
     case "approved":     return "Approved";
     case "draft":        return "Draft";
@@ -267,7 +267,7 @@ export default function ReviewQueuePage() {
         return;
       }
 
-      const labels = { approve: "Approved", return: "Returned for Revision", review: "Under Review" };
+      const labels = { approve: "Approved", return: "Returned for Review", review: "Under Review" };
       toast.success(`Form marked as "${labels[dialogAction]}" successfully.`);
       setDialogOpen(false);
       setSelectedItem(null);

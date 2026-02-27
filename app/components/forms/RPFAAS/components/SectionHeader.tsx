@@ -4,14 +4,16 @@ type SectionHeaderProps = {
     children: ReactNode;
     colSpan?: number;
     className?: string;
+    "data-field"?: string;
 };
 
 export const SectionHeader = ({
     children,
     colSpan = 3,
-    className = ""
+    className = "",
+    "data-field": dataField,
 }: SectionHeaderProps) => (
-    <tr>
+    <tr data-field={dataField}>
         <td colSpan={colSpan} className={`font-bold sectionHeader ${className}`}>
             {children}
         </td>

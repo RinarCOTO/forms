@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect, useCallback, useRef, Suspense } from "react";
 import { StepPagination } from "@/components/ui/step-pagination";
+import { ReviewCommentsFloat } from "@/components/review-comments-float";
 import "@/app/styles/forms-fill.css";
 import { AppSidebar } from "@/components/app-sidebar";
 import {
@@ -464,6 +465,7 @@ function BuildingStructureFormFillPage5() {
           </div>
         </div>
       </SidebarInset>
+      <ReviewCommentsFloat draftId={draftId} />
     </SidebarProvider>
   );
 }

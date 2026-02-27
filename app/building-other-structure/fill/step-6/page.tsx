@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, useState, useEffect, useMemo, useCallback, Suspense } from "react";
 import { StepPagination } from "@/components/ui/step-pagination";
+import { ReviewCommentsFloat } from "@/components/review-comments-float";
 import "@/app/styles/forms-fill.css";
 import { getAssessmentLevel } from "@/config/assessment-level";
 import { AppSidebar } from "@/components/app-sidebar";
@@ -259,7 +260,7 @@ function BuildingStructureFormFillPage5() {
               <section className="rpfaas-fill-section">
                 <h2 className="rpfaas-fill-section-title mb-4">Property Assessment</h2>
 
-                <div className="rpfaas-fill-field space-y-1">
+                <div className="rpfaas-fill-field space-y-1" data-comment-field="actual_use">
                   <Label className="rpfaas-fill-label" htmlFor="actual_use_p5">Actual Use</Label>
                   <Input
                     id="actual_use_p5"
@@ -272,7 +273,7 @@ function BuildingStructureFormFillPage5() {
                   />
                 </div>
 
-                <div className="rpfaas-fill-field space-y-1">
+                <div className="rpfaas-fill-field space-y-1" data-comment-field="market_value">
                   <Label className="rpfaas-fill-label" htmlFor="market_value_p5">Market Value</Label>
                   <Input
                     id="market_value_p5"
@@ -285,7 +286,7 @@ function BuildingStructureFormFillPage5() {
                   />
                 </div>
 
-                <div className="rpfaas-fill-field space-y-1">
+                <div className="rpfaas-fill-field space-y-1" data-comment-field="assessment_level">
                   <Label className="rpfaas-fill-label" htmlFor="assessment_level_p5">Assessment Level</Label>
                   <Input
                     id="assessment_level_p5"
@@ -298,7 +299,7 @@ function BuildingStructureFormFillPage5() {
                   />
                 </div>
 
-                <div className="rpfaas-fill-field space-y-1">
+                <div className="rpfaas-fill-field space-y-1" data-comment-field="assessed_value">
                   <Label className="rpfaas-fill-label" htmlFor="estimated_value_p5">Assessed Value</Label>
                   <Input
                     id="estimated_value_p5"
@@ -312,7 +313,7 @@ function BuildingStructureFormFillPage5() {
                   />
                 </div>
 
-                <div className="rpfaas-fill-field space-y-1">
+                <div className="rpfaas-fill-field space-y-1" data-comment-field="amount_in_words">
                   <Label className="rpfaas-fill-label" htmlFor="amount_in_words_p5">Amount in Words:</Label>
                   <Input
                     id="amount_in_words_p5"
@@ -339,6 +340,7 @@ function BuildingStructureFormFillPage5() {
           </div>
         </div>
       </SidebarInset>
+      <ReviewCommentsFloat draftId={draftId} />
     </SidebarProvider>
   );
 }

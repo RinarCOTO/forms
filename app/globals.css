@@ -216,3 +216,39 @@
     cursor: default;
   }
 }
+
+/* LAOO comment field highlighting on step/edit pages */
+.laoo-field-focused {
+  outline: 3px solid #f97316 !important;
+  outline-offset: 3px;
+  border-radius: 6px;
+  animation: laoo-pulse 0.5s ease-in-out 3;
+}
+@keyframes laoo-pulse {
+  0%, 100% { outline-color: #f97316; }
+  50%       { outline-color: rgba(249, 115, 22, 0.3); }
+}
+
+.has-laoo-comment {
+  position: relative;
+}
+.has-laoo-comment::after {
+  content: "LAOO Comment";
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: #f97316;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: 0 4px 0 4px;
+  pointer-events: none;
+  z-index: 10;
+}
+.has-laoo-comment label,
+.has-laoo-comment legend,
+.has-laoo-comment > span:first-child {
+  color: #c2410c;
+}

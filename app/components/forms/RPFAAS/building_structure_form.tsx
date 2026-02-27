@@ -179,19 +179,19 @@ const BuildingStructureForm = () => {
                         <td></td>
                         <td>Lot No.</td>
                     </tr>
-                    <tr className="bordered-table">
+                    <tr className="bordered-table" data-field="owner_name">
                         <td>Owner:</td>
                         <td colSpan={3} className="font-bold uppercase">{ownerName || '—'}</td>
                     </tr>
 
-                    <tr>
+                    <tr data-field="owner_address">
                         <td>Address:</td>
                         <td colSpan={3}>
                             {[ownerAddressBarangay, ownerAddressMunicipality, ownerAddressProvince].filter(Boolean).join(", ") || '—'}
                         </td>
                     </tr>
 
-                    <tr>
+                    <tr data-field="admin_care_of">
                         <td>Administration/Care of:</td>
                         <td className="capitalize" colSpan={3}>{adminCareOfName || '—'}</td>
                     </tr>
@@ -204,7 +204,7 @@ const BuildingStructureForm = () => {
                     </tr>
 
                     <SectionHeader>LOCATION OF PROPERTY</SectionHeader>
-                    <tr className="border-t-2">
+                    <tr className="border-t-2" data-field="location_municipality">
                         <td>No/Street/Sitio:</td>
                         <td>
                             <div className="grid grid-cols-2">
@@ -215,7 +215,7 @@ const BuildingStructureForm = () => {
                         <td className="font-bold">{locationMunicipality || '—'}</td>
                     </tr>
 
-                    <tr className="border-b-2 border-black">
+                    <tr className="border-b-2 border-black" data-field="location_barangay location_province">
                         <td>Barangay:</td>
                         <td>
                             <div className="grid grid-cols-2">
@@ -238,7 +238,7 @@ const BuildingStructureForm = () => {
                         </div>
                     </SectionHeader>
 
-                    <tr className="border-t-2">
+                    <tr className="border-t-2" data-field="type_of_building building_age">
                         <td>Type of Bldg:</td>
                         <td>
                             <div className="rpfaas-inner-grid grid grid-cols-3 divide-x divide-black items-stretch h-full">
@@ -249,7 +249,7 @@ const BuildingStructureForm = () => {
                         </td>
                     </tr>
 
-                    <tr className="py-auto my-auto">
+                    <tr className="py-auto my-auto" data-field="structure_type number_of_storeys land_owner">
                         <td>Structural Type:</td>
                         <td>
                             <div className="rpfaas-inner-grid grid grid-cols-3 divide-x divide-black items-stretch h-full">
@@ -266,7 +266,7 @@ const BuildingStructureForm = () => {
                         </td>
                     </tr>
 
-                    <tr>
+                    <tr data-field="building_permit_no td_arp_no">
                         <td>Building Permit No.</td>
                         <td>
                             <div className="rpfaas-inner-grid grid grid-cols-3 divide-x divide-black items-stretch h-full">
@@ -283,7 +283,7 @@ const BuildingStructureForm = () => {
                         </td>
                     </tr>
 
-                    <tr>
+                    <tr data-field="cct land_area">
                         <td>Condominium Certificate of Title (CCT):</td>
                         <td>
                             <div className="rpfaas-inner-grid grid grid-cols-3 divide-x divide-black items-stretch h-full">
@@ -300,7 +300,7 @@ const BuildingStructureForm = () => {
                         </td>
                     </tr>
 
-                    <tr>
+                    <tr data-field="completion_issued_on">
                         <td>Certificate of Completion Issued on:</td>
                         <td>
                             <div className="rpfaas-inner-grid grid grid-cols-3 divide-x divide-black items-stretch h-full">
@@ -311,7 +311,7 @@ const BuildingStructureForm = () => {
                         </td>
                     </tr>
 
-                    <tr>
+                    <tr data-field="date_constructed">
                         <td>Date Constructed/Completed:</td>
                         <td>
                             <div className="rpfaas-inner-grid grid grid-cols-3 divide-x divide-black items-stretch h-full">
@@ -322,7 +322,7 @@ const BuildingStructureForm = () => {
                         </td>
                     </tr>
 
-                    <tr>
+                    <tr data-field="date_occupied total_floor_area">
                         <td className="font-bold">Date Occupied:</td>
                         <td>
                             <div className="rpfaas-inner-grid grid grid-cols-3 divide-x divide-black items-stretch h-full">
@@ -333,9 +333,9 @@ const BuildingStructureForm = () => {
                         </td>
                     </tr>
 
-                    <SectionHeader className="border-b-2 space-x-3">
+                    <SectionHeader className="border-b-2 space-x-3" data-field="unit_cost">
                         <span>Unit Construction Cost:</span>
-                        <span>₱{formatCurrency(unitCost)}</span>    
+                        <span>₱{formatCurrency(unitCost)}</span>
                     </SectionHeader>
 
                     <tr>
@@ -350,7 +350,7 @@ const BuildingStructureForm = () => {
             {/* Structural Materials */}
             <table>
                 <tbody>
-                    <SectionHeader colSpan={11} className="py-4 section-divider">Structural Materials (checklists)</SectionHeader>
+                    <SectionHeader colSpan={11} className="py-4 section-divider" data-field="roofing_material flooring_material wall_material">Structural Materials (checklists)</SectionHeader>
                     <tr>
                         <td className="font-bold w-50">ROOF</td>
                         <td className="font-bold w-38">FLOORING</td>
@@ -405,7 +405,7 @@ const BuildingStructureForm = () => {
                     })}
                 </tbody>
             </table>
-            <div className="flex flex-row gap-6">
+            <div className="flex flex-row gap-6" data-field="market_value">
                 <div>Base Cost: ₱{formatCurrency(baseCost)}</div>
                 <div>Less Deductions: ₱{formatCurrency(standardDeductionTotal)}</div>
                 <div className="font-bold">Market Value: ₱{formatCurrency(marketValue)}</div>
@@ -413,7 +413,7 @@ const BuildingStructureForm = () => {
             {/* Additional Items */}
             <table>
                 <tbody>
-                    <SectionHeader colSpan={7}>Deductions: (Use additional sheet if necessary)</SectionHeader>
+                    <SectionHeader colSpan={7} data-field="selected_deductions">Deductions: (Use additional sheet if necessary)</SectionHeader>
                     <tr className="bg-gray-100">
                         <td>
                             <div className="grid grid-cols-2">
@@ -608,7 +608,7 @@ const BuildingStructureForm = () => {
                         <td>Estimated Value</td>
                     </tr>
 
-                    <tr>
+                    <tr data-field="actual_use market_value assessment_level assessed_value">
                         <td className="font-bold">Residential</td>
                         <td className="font-bold">₱{formatCurrency(marketValue)}</td>
                         <td className="font-bold">{assessmentLevel}</td>

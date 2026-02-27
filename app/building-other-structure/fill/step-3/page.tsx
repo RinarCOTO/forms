@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, FormEvent, useEffect, useCallback, Suspense, useRef } from "react";
 import { StepPagination } from "@/components/ui/step-pagination";
+import { ReviewCommentsFloat } from "@/components/review-comments-float";
 import { useFormData } from "@/hooks/useFormData";
 import { useFormPersistence } from "@/hooks/useFormPersistence";
 import "@/app/styles/forms-fill.css";
@@ -392,7 +393,7 @@ const BuildingStructureFormFillPage3 = () => {
               className="rpfaas-fill-form rpfaas-fill-form-single space-y-6"
             >
               {/* ROOF SECTION */}
-              <section className="rpfaas-fill-section">
+              <section className="rpfaas-fill-section" data-comment-field="roofing_material">
                 <h2 className="rpfaas-fill-section-title mb-4">Roof Information</h2>
                 <div>
                    <RoofMaterialsForm
@@ -405,7 +406,7 @@ const BuildingStructureFormFillPage3 = () => {
               </section>
               
               {/* FLOORING & WALLS SECTION */}
-              <section className="rpfaas-fill-section">
+              <section className="rpfaas-fill-section" data-comment-field="flooring_material wall_material">
                 <div className="overflow-auto">
                    
                    {/* FLOORING TABLE */}
@@ -506,6 +507,7 @@ const BuildingStructureFormFillPage3 = () => {
           </div>
         </div>
       </SidebarInset>
+      <ReviewCommentsFloat draftId={draftId} />
     </SidebarProvider>
   );
 };

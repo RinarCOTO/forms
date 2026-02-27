@@ -19,8 +19,9 @@ import {
 import "@/app/styles/forms-fill.css";
 import { useState, useCallback, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Loader2, Save, Send, Printer, Lock, AlertTriangle, RotateCcw } from "lucide-react";
+import { Loader2, Save, Send, Printer, Lock, AlertTriangle, RotateCcw, MessageSquare, User, Clock } from "lucide-react";
 import BuildingStructureForm from "@/app/components/forms/RPFAAS/building_structure_form";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -38,6 +39,34 @@ interface PhotoRecord {
   storage_path: string;
   original_name: string;
   signedUrl: string | null;
+}
+
+interface ReviewComment {
+  id: string;
+  field_name?: string | null;
+  comment_text: string;
+  suggested_value?: string | null;
+  author_name: string;
+  created_at: string;
+}
+
+const FIELD_LABELS: Record<string, string> = {
+  owner_name: "Owner Name", admin_care_of: "Admin / Care Of", owner_address: "Owner Address",
+  location_province: "Province", location_municipality: "Municipality", location_barangay: "Barangay",
+  type_of_building: "Type of Building", structure_type: "Structure Type",
+  building_permit_no: "Building Permit No", cct: "CCT",
+  completion_issued_on: "Completion Date", date_constructed: "Date Constructed",
+  date_occupied: "Date Occupied", building_age: "Building Age",
+  number_of_storeys: "No. of Storeys", total_floor_area: "Total Floor Area",
+  unit_cost: "Unit Cost", land_owner: "Land Owner", td_arp_no: "Land TD/ARP No.", land_area: "Land Area",
+  roofing_material: "Roofing Material", flooring_material: "Flooring Material", wall_material: "Wall Material",
+  selected_deductions: "Standard Deductions", market_value: "Market Value",
+  actual_use: "Actual Use", assessment_level: "Assessment Level",
+  assessed_value: "Assessed Value", amount_in_words: "Amount in Words",
+};
+
+function fmtCommentDate(iso: string) {
+  return new Date(iso).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" });
 }
 
 const PHOTO_LABELS: Record<PhotoType, string> = {
@@ -194,6 +223,8 @@ function PreviewFormPage() {
   // draftId: from URL param or localStorage
   const urlId = searchParams.get("id");
   const [draftId, setDraftId] = useState<string | null>(urlId);
+  // When loaded inside the print-preview iframe, suppress the comments panel
+  const isPrintMode = searchParams.get("print") === "1";
 
   useEffect(() => {
     if (!urlId) {
@@ -215,6 +246,50 @@ function PreviewFormPage() {
   const [photos, setPhotos] = useState<PhotoRecord[]>([]);
   const [photosLoading, setPhotosLoading] = useState(false);
 
+  // LAOO revision comments
+  const [comments, setComments] = useState<ReviewComment[]>([]);
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  // Which comment is active (clicked) — drives field highlight + inline annotation
+  const [activeComment, setActiveComment] = useState<ReviewComment | null>(null);
+
+  // Highlight the matching form field and inject inline comment when activeComment changes
+  useEffect(() => {
+    // Clear previous state
+    document.querySelectorAll('.faas-field-highlight').forEach(el => el.classList.remove('faas-field-highlight'));
+    document.getElementById('faas-inline-comment')?.remove();
+
+    if (!activeComment?.field_name) return;
+
+    const fields = activeComment.field_name.split(',').map(f => f.trim()).filter(Boolean);
+    let firstEl: Element | null = null;
+
+    fields.forEach(field => {
+      document.querySelectorAll(`[data-field~="${field}"]`).forEach(el => {
+        el.classList.add('faas-field-highlight');
+        if (!firstEl) firstEl = el;
+      });
+    });
+
+    const anchorEl = firstEl as Element | null;
+    if (anchorEl) {
+      anchorEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+      // Build the inline comment row
+      const noteRow = document.createElement('tr');
+      noteRow.id = 'faas-inline-comment';
+      noteRow.className = 'faas-inline-comment-row';
+      const td = document.createElement('td');
+      td.colSpan = 10;
+      const fieldLabel = FIELD_LABELS[fields[0]] ?? fields[0];
+      td.innerHTML =
+        `💬 <strong>${fieldLabel}:</strong> ${activeComment.comment_text}` +
+        (activeComment.suggested_value ? ` &nbsp;→ <em>Suggested: ${activeComment.suggested_value}</em>` : '') +
+        ` &nbsp;<span style="opacity:0.6">— ${activeComment.author_name}</span>`;
+      noteRow.appendChild(td);
+      anchorEl.insertAdjacentElement('afterend', noteRow);
+    }
+  }, [activeComment]);
+
   // Permission: only roles allowed by the submit API can save/submit
   const SUBMIT_ALLOWED_ROLES = ["tax_mapper", "municipal_tax_mapper", "admin", "super_admin"];
   const [canSubmit, setCanSubmit] = useState(false);
@@ -234,7 +309,9 @@ function PreviewFormPage() {
   const LOCKED_STATUSES = ["submitted", "under_review", "approved"];
   const isLocked = LOCKED_STATUSES.includes(formStatus);
 
-  // Load current form status from DB and seed localStorage with saved p5 fields
+  // Load current form status from DB and seed localStorage
+  // In print mode: always overwrite from DB so print-preview always shows correct data.
+  // In normal mode: only seed keys that are not already set (preserve active edit session).
   useEffect(() => {
     if (!draftId) {
       setFormDataReady(true);
@@ -245,21 +322,81 @@ function PreviewFormPage() {
       .then((r) => r.json())
       .then((result) => {
         if (result.success && result.data) {
-          const data = result.data;
-          if (data.status) setFormStatus(data.status);
-          // Seed p5 localStorage keys from DB so the preview form shows correct values
-          if (data.amount_in_words && !localStorage.getItem("amount_in_words_p5")) {
-            localStorage.setItem("amount_in_words_p5", data.amount_in_words);
+          const d = result.data;
+          if (d.status) setFormStatus(d.status);
+
+          const set = (key: string, val: string | null | undefined) => {
+            if (val == null || val === "") return;
+            if (isPrintMode || !localStorage.getItem(key)) localStorage.setItem(key, val);
+          };
+
+          // ── Step 1: owner / location individual keys ──────────────────
+          set("rpfaas_owner_name",                       d.owner_name);
+          set("rpfaas_admin_careof",                     d.admin_care_of);
+          set("rpfaas_location_street",                  d.property_address);
+          set("rpfaas_owner_address_province_code",      d.owner_province_code);
+          set("rpfaas_owner_address_municipality_code",  d.owner_municipality_code);
+          set("rpfaas_owner_address_barangay_code",      d.owner_barangay_code);
+          set("rpfaas_admin_province_code",              d.admin_province_code);
+          set("rpfaas_admin_municipality_code",          d.admin_municipality_code);
+          set("rpfaas_admin_barangay_code",              d.admin_barangay_code);
+          set("rpfaas_location_province_code",           d.property_province_code);
+          set("rpfaas_location_municipality_code",       d.property_municipality_code);
+          set("rpfaas_location_barangay_code",           d.property_barangay_code);
+
+          // ── Step 2: p2 JSON blob ──────────────────────────────────────
+          if (isPrintMode || !localStorage.getItem("p2")) {
+            localStorage.setItem("p2", JSON.stringify({
+              type_of_building:    d.type_of_building    || "",
+              structure_type:      d.structure_type      || "",
+              building_permit_no:  d.building_permit_no  || "",
+              cct:                 d.cct                 || "",
+              completion_issued_on:d.completion_issued_on|| "",
+              date_constructed:    d.date_constructed    || "",
+              date_occupied:       d.date_occupied       || "",
+              building_age:        d.building_age        || "",
+              number_of_storeys:   d.number_of_storeys   || "",
+              floor_areas:         d.floor_areas         || [],
+              total_floor_area:    d.total_floor_area    || "",
+              land_owner:          d.land_owner          || "",
+              td_arp_no:           d.td_arp_no           || "",
+              land_area:           d.land_area           || "",
+            }));
           }
-          if (data.assessment_level && !localStorage.getItem("assessment_level_p5")) {
-            localStorage.setItem("assessment_level_p5", data.assessment_level);
+          if (d.unit_cost != null) set("unit_cost_p2", String(d.unit_cost));
+
+          // ── Step 3: p3 JSON blob (materials stored as nested JSON) ────
+          if (isPrintMode || !localStorage.getItem("p3")) {
+            const rm = d.roofing_material  || {};
+            const fm = d.flooring_material || {};
+            const wm = d.wall_material     || {};
+            localStorage.setItem("p3", JSON.stringify({
+              roof_materials:           rm.data    || {},
+              roof_materials_other_text:rm.otherText|| "",
+              flooring_grid:            fm.grid    || [],
+              walls_grid:               wm.grid    || [],
+            }));
           }
-          if (data.assessed_value != null && !localStorage.getItem("assessed_value_p5")) {
-            localStorage.setItem("assessed_value_p5", String(data.assessed_value));
+
+          // ── Step 4: p4 JSON blob ──────────────────────────────────────
+          if (isPrintMode || !localStorage.getItem("p4")) {
+            localStorage.setItem("p4", JSON.stringify({
+              selected_deductions:        d.selected_deductions        || [],
+              overall_comments:           d.overall_comments           || "",
+              additional_percentage_choice:d.additional_percentage_choice|| "",
+              additional_percentage_areas: d.additional_percentage_areas || [],
+              additional_flat_rate_choice: d.additional_flat_rate_choice || "",
+              additional_flat_rate_areas:  d.additional_flat_rate_areas  || [],
+              market_value:               d.market_value,
+            }));
           }
-          if (data.actual_use && !localStorage.getItem("actual_use_p5")) {
-            localStorage.setItem("actual_use_p5", data.actual_use);
-          }
+          if (d.market_value != null) set("market_value_p4", String(d.market_value));
+
+          // ── Step 5/6 fields ───────────────────────────────────────────
+          set("amount_in_words_p5",   d.amount_in_words);
+          set("assessment_level_p5",  d.assessment_level);
+          if (d.assessed_value != null) set("assessed_value_p5", String(d.assessed_value));
+          set("actual_use_p5",        d.actual_use);
         }
       })
       .catch(() => {})
@@ -267,7 +404,8 @@ function PreviewFormPage() {
         setStatusLoading(false);
         setFormDataReady(true);
       });
-  }, [draftId]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draftId, isPrintMode]);
 
   // Load photos from the API
   useEffect(() => {
@@ -280,6 +418,19 @@ function PreviewFormPage() {
       })
       .catch(() => {/* non-fatal */})
       .finally(() => setPhotosLoading(false));
+  }, [draftId]);
+
+  // Load LAOO comments (always — so tax mapper can see them on "returned" status)
+  useEffect(() => {
+    if (!draftId) return;
+    setCommentsLoading(true);
+    fetch(`/api/building-other-structure/${draftId}/comments`)
+      .then((r) => r.json())
+      .then((result) => {
+        if (result.data) setComments(result.data as ReviewComment[]);
+      })
+      .catch(() => {/* non-fatal */})
+      .finally(() => setCommentsLoading(false));
   }, [draftId]);
 
   // ── Print: preload all signed-URL images first so they render in print ──
@@ -402,8 +553,11 @@ function PreviewFormPage() {
 
         {/* ── Body ── */}
         <div className="flex-1 p-6 overflow-y-auto print:p-0">
-          <div className="rpfaas-fill max-w-5xl mx-auto">
-            {/* Page title row */}
+          <div className={`rpfaas-fill mx-auto ${!isPrintMode && comments.length > 0 ? "max-w-7xl" : "max-w-5xl"}`}>
+          <div className={`${!isPrintMode && comments.length > 0 ? "flex gap-6 items-start" : ""}`}>
+          <div className={`${!isPrintMode && comments.length > 0 ? "flex-1 min-w-0" : ""}`}>
+            {/* Page title row — hidden when rendered inside the print-preview iframe */}
+            {!isPrintMode && (
             <header className="rpfaas-fill-header flex items-center justify-between gap-4 mb-6 print:hidden">
               <div>
                 <h1 className="rpfaas-fill-title">Preview &amp; Submit</h1>
@@ -420,6 +574,7 @@ function PreviewFormPage() {
                 Print
               </Button>
             </header>
+            )}
 
             {/* ── Form preview (iframe) ── */}
             <div className="bg-white shadow-sm border p-6 mb-6" id="print-area">
@@ -449,7 +604,7 @@ function PreviewFormPage() {
             </div>
 
             {/* ── Status banners ── */}
-            {!statusLoading && (
+            {!statusLoading && !isPrintMode && (
               <div className="print:hidden mb-4 space-y-2">
                 {formStatus === "submitted" && (
                   <div className="flex items-center gap-2 rounded-md border border-yellow-400/50 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
@@ -471,7 +626,7 @@ function PreviewFormPage() {
                   <div className="flex items-center gap-2 rounded-md border border-orange-400/50 bg-orange-50 px-4 py-3 text-sm text-orange-800">
                     <AlertTriangle className="h-4 w-4 shrink-0" />
                     <span>
-                      <strong>Returned for Revision.</strong> The LAOO has reviewed this form and left comments. Please address all comments before resubmitting.
+                      <strong>Returned for Review.</strong> The LAOO has reviewed this form and left comments. Please address all comments before resubmitting.
                     </span>
                   </div>
                 )}
@@ -486,81 +641,166 @@ function PreviewFormPage() {
               </div>
             )}
 
-            {/* ── Action buttons ── */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-between items-center print:hidden">
-              <Button
-                onClick={() =>
-                  router.push(
-                    `/building-other-structure/fill/step-6${draftId ? `?id=${draftId}` : ""}`
-                  )
-                }
-                variant="outline"
-                className="w-full sm:w-auto"
-                disabled={isLocked}
-              >
-                Back to Edit
-              </Button>
-
-              {!isLocked && canSubmit && (
-                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+            {/* ── Action buttons — hidden inside print-preview iframe ── */}
+            {!isPrintMode && (
+              <>
+                <div className="flex flex-col sm:flex-row gap-4 justify-between items-center print:hidden">
                   <Button
-                    onClick={handleSaveDraft}
+                    onClick={() =>
+                      router.push(
+                        `/building-other-structure/fill/step-1${draftId ? `?id=${draftId}` : ""}`
+                      )
+                    }
                     variant="outline"
-                    disabled={isSaving || isSubmitting}
                     className="w-full sm:w-auto"
+                    disabled={isLocked}
                   >
-                    {isSaving ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Saving…
-                      </>
-                    ) : (
-                      <>
-                        <Save className="mr-2 h-4 w-4" />
-                        Save as Draft
-                      </>
-                    )}
+                    Back to Edit
                   </Button>
 
-                  <Button
-                    onClick={handleSubmit}
-                    disabled={isSaving || isSubmitting}
-                    className="w-full sm:w-auto rpfaas-fill-button-primary"
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Submitting…
-                      </>
-                    ) : (
-                      <>
-                        {formStatus === "returned" ? (
-                          <RotateCcw className="mr-2 h-4 w-4" />
+                  {!isLocked && canSubmit && (
+                    <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                      <Button
+                        onClick={handleSaveDraft}
+                        variant="outline"
+                        disabled={isSaving || isSubmitting}
+                        className="w-full sm:w-auto"
+                      >
+                        {isSaving ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Saving…
+                          </>
                         ) : (
-                          <Send className="mr-2 h-4 w-4" />
+                          <>
+                            <Save className="mr-2 h-4 w-4" />
+                            Save as Draft
+                          </>
                         )}
-                        {formStatus === "returned" ? "Resubmit for Review" : "Submit for Review"}
-                      </>
-                    )}
-                  </Button>
-                </div>
-              )}
-            </div>
+                      </Button>
 
-            {!isLocked && canSubmit && (
-              <div className="mt-4 text-sm text-muted-foreground text-center print:hidden">
-                <p>
-                  <strong>Save as Draft:</strong> Save your progress and continue editing later.
-                </p>
-                <p>
-                  <strong>{formStatus === "returned" ? "Resubmit for Review" : "Submit for Review"}:</strong>{" "}
-                  {formStatus === "returned"
-                    ? "Send your revised form back to the LAOO."
-                    : "Send to LAOO for review. The form will be locked until they respond."}
-                </p>
-              </div>
+                      <Button
+                        onClick={handleSubmit}
+                        disabled={isSaving || isSubmitting}
+                        className="w-full sm:w-auto rpfaas-fill-button-primary"
+                      >
+                        {isSubmitting ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Submitting…
+                          </>
+                        ) : (
+                          <>
+                            {formStatus === "returned" ? (
+                              <RotateCcw className="mr-2 h-4 w-4" />
+                            ) : (
+                              <Send className="mr-2 h-4 w-4" />
+                            )}
+                            {formStatus === "returned" ? "Resubmit for Review" : "Submit for Review"}
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
+                {!isLocked && canSubmit && (
+                  <div className="mt-4 text-sm text-muted-foreground text-center print:hidden">
+                    <p>
+                      <strong>Save as Draft:</strong> Save your progress and continue editing later.
+                    </p>
+                    <p>
+                      <strong>{formStatus === "returned" ? "Resubmit for Review" : "Submit for Review"}:</strong>{" "}
+                      {formStatus === "returned"
+                        ? "Send your revised form back to the LAOO."
+                        : "Send to LAOO for review. The form will be locked until they respond."}
+                    </p>
+                  </div>
+                )}
+              </>
             )}
-          </div>
+          </div>{/* end form column */}
+
+          {/* ── LAOO Comments Panel ── */}
+          {!isPrintMode && comments.length > 0 && (
+            <div className="w-80 shrink-0 print:hidden">
+              <Card className="sticky top-6">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <MessageSquare className="h-4 w-4 text-orange-500" />
+                    Reviewer Comments
+                    <span className="ml-auto text-xs font-normal bg-orange-100 text-orange-700 rounded-full px-2 py-0.5">
+                      {comments.length}
+                    </span>
+                  </CardTitle>
+                  {formStatus === "returned" && (
+                    <p className="text-xs text-orange-600 mt-1">
+                      Address all comments before resubmitting.
+                    </p>
+                  )}
+                </CardHeader>
+                <CardContent className="p-0">
+                  {commentsLoading ? (
+                    <div className="flex justify-center py-6">
+                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : (
+                    <div className="divide-y max-h-[calc(100vh-12rem)] overflow-y-auto">
+                      {comments.map((c) => {
+                        const fields = c.field_name
+                          ? c.field_name.split(",").map((f) => f.trim()).filter(Boolean)
+                          : [];
+                        const isActive = activeComment?.id === c.id;
+                        return (
+                          <div
+                            key={c.id}
+                            onClick={() => setActiveComment(isActive ? null : c)}
+                            className={`px-4 py-3 space-y-1.5 cursor-pointer transition-colors ${
+                              isActive
+                                ? "bg-amber-50 border-l-2 border-amber-400"
+                                : "hover:bg-muted/50"
+                            }`}
+                          >
+                            {fields.length > 0 && (
+                              <div className="flex flex-wrap gap-1">
+                                {fields.map((f) => (
+                                  <span
+                                    key={f}
+                                    className={`text-xs font-semibold rounded px-1.5 py-0.5 border ${
+                                      isActive
+                                        ? "bg-amber-100 text-amber-800 border-amber-300"
+                                        : "bg-orange-50 text-orange-700 border-orange-200"
+                                    }`}
+                                  >
+                                    {FIELD_LABELS[f] ?? f}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                            <p className="text-sm text-foreground">{c.comment_text}</p>
+                            {c.suggested_value && (
+                              <p className="text-xs text-green-700 bg-green-50 rounded px-2 py-1">
+                                Suggested: {c.suggested_value}
+                              </p>
+                            )}
+                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                              <User className="h-3 w-3" />
+                              <span>{c.author_name}</span>
+                              <Clock className="h-3 w-3 ml-1" />
+                              <span>{fmtCommentDate(c.created_at)}</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          </div>{/* end flex row */}
+          </div>{/* end max-w wrapper */}
         </div>
       </SidebarInset>
     </SidebarProvider>

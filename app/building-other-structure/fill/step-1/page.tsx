@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useCallback, memo, Suspense, useRef } from "react";
 import { StepPagination } from "@/components/ui/step-pagination";
+import { ReviewCommentsFloat } from "@/components/review-comments-float";
 import "@/app/styles/forms-fill.css";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -439,13 +440,13 @@ function BuildingOtherStructureFillPageContent() {
               {/* OWNER SECTION */}
               <section className="rpfaas-fill-section">
                 <h2 className="rpfaas-fill-section-title mb-4">Owner Information</h2>
-                <div className="rpfaas-fill-field space-y-1">
+                <div className="rpfaas-fill-field space-y-1" data-comment-field="owner_name">
                   <Label className="rpfaas-fill-label">Owner</Label>
                   <Input value={ownerName} onChange={(e) => setOwnerName(e.target.value)} className="rpfaas-fill-input" />
                 </div>
 
                 {/* Owner Address */}
-                <div className="rpfaas-fill-field">
+                <div className="rpfaas-fill-field" data-comment-field="owner_address">
                   <Label className="rpfaas-fill-label">Address</Label>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <LocationSelect
@@ -476,7 +477,7 @@ function BuildingOtherStructureFillPageContent() {
                   </div>
                 </div>
 
-                <div className="rpfaas-fill-field space-y-1 mt-4">
+                <div className="rpfaas-fill-field space-y-1 mt-4" data-comment-field="admin_care_of">
                   <Label className="rpfaas-fill-label">Administration/Care of</Label>
                   <Input value={adminCareOf} onChange={(e) => setAdminCareOf(e.target.value)} className="rpfaas-fill-input" />
                 </div>
@@ -514,7 +515,7 @@ function BuildingOtherStructureFillPageContent() {
               </section>
 
               {/* PROPERTY LOCATION SECTION — Mountain Province only (static, no API) */}
-              <section className="rpfaas-fill-section">
+              <section className="rpfaas-fill-section" data-comment-field="location_municipality location_barangay location_province">
                 <h2 className="rpfaas-fill-section-title mb-4">Location Property</h2>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                   <div className="space-y-1">
@@ -562,6 +563,7 @@ function BuildingOtherStructureFillPageContent() {
           </div>
         </div>
       </SidebarInset>
+      <ReviewCommentsFloat draftId={draftId} />
     </SidebarProvider>
   );
 }
