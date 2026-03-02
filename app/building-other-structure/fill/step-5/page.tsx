@@ -23,6 +23,14 @@ import {
 } from "@/components/ui/sidebar";
 import { Loader2, Upload, X, ImageIcon, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -263,6 +271,8 @@ function BuildingStructureFormFillPage5() {
     Partial<Record<PhotoType, boolean>>
   >({});
   const [isLoading, setIsLoading] = useState(true);
+  const [removeDialogOpen, setRemoveDialogOpen] = useState(false);
+  const [photoToRemove, setPhotoToRemove] = useState<PhotoType | null>(null);
 
   // Ref bag for each hidden file input
   const fileInputRefs = useRef<Partial<Record<PhotoType, HTMLInputElement | null>>>({});
@@ -340,39 +350,44 @@ function BuildingStructureFormFillPage5() {
   );
 
   // ── Remove handler ──
-  const handleRemove = useCallback(
-    async (photoType: PhotoType) => {
-      const photo = photos[photoType];
-      if (!photo) return;
+  const handleRemove = useCallback((photoType: PhotoType) => {
+    setPhotoToRemove(photoType);
+    setRemoveDialogOpen(true);
+  }, []);
 
-      setRemoving((prev) => ({ ...prev, [photoType]: true }));
-      try {
-        const res = await fetch(
-          `/api/building-other-structure/photos/${photo.id}`,
-          { method: "DELETE" }
+  const confirmRemove = useCallback(async () => {
+    if (!photoToRemove) return;
+    const photo = photos[photoToRemove];
+    if (!photo) return;
+
+    setRemoving((prev) => ({ ...prev, [photoToRemove]: true }));
+    setRemoveDialogOpen(false);
+    try {
+      const res = await fetch(
+        `/api/building-other-structure/photos/${photo.id}`,
+        { method: "DELETE" }
+      );
+      const result = await res.json();
+
+      if (result.success) {
+        setPhotos((prev) => {
+          const next = { ...prev };
+          delete next[photoToRemove];
+          return next;
+        });
+        toast.success("Image removed.");
+      } else {
+        toast.error(
+          "Failed to remove image: " + (result.error ?? "Unknown error")
         );
-        const result = await res.json();
-
-        if (result.success) {
-          setPhotos((prev) => {
-            const next = { ...prev };
-            delete next[photoType];
-            return next;
-          });
-          toast.success("Image removed.");
-        } else {
-          toast.error(
-            "Failed to remove image: " + (result.error ?? "Unknown error")
-          );
-        }
-      } catch {
-        toast.error("Error removing image. Please try again.");
-      } finally {
-        setRemoving((prev) => ({ ...prev, [photoType]: false }));
       }
-    },
-    [photos]
-  );
+    } catch {
+      toast.error("Error removing image. Please try again.");
+    } finally {
+      setRemoving((prev) => ({ ...prev, [photoToRemove]: false }));
+      setPhotoToRemove(null);
+    }
+  }, [photoToRemove, photos]);
 
   const navParams = draftId ? `?id=${draftId}` : "";
 
@@ -466,6 +481,25 @@ function BuildingStructureFormFillPage5() {
         </div>
       </SidebarInset>
       <ReviewCommentsFloat draftId={draftId} />
+
+      <Dialog open={removeDialogOpen} onOpenChange={setRemoveDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Remove Image</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to remove this image? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRemoveDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={confirmRemove}>
+              Remove
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </SidebarProvider>
   );
 }

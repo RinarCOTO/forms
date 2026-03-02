@@ -5,6 +5,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
@@ -30,6 +38,9 @@ export default function BuildingOtherStructureDashboard() {
   const [selectedMunicipalities, setSelectedMunicipalities] = useState<string[]>([]);
   const [selectedBarangays, setSelectedBarangays] = useState<string[]>([]);
   const [user, setUser] = useState<{ role: string } | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [submissionToDelete, setSubmissionToDelete] = useState<number | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -93,29 +104,33 @@ export default function BuildingOtherStructureDashboard() {
     router.push(`/building-other-structure/fill/step-1?id=${submissionId}`);
   }, [router]);
 
-  const handleDeleteSubmission = useCallback(async (submissionId: number) => {
-    if (!confirm('Are you sure you want to delete this submission? This action cannot be undone.')) {
-      return;
-    }
+  const handleDeleteSubmission = useCallback((submissionId: number) => {
+    setSubmissionToDelete(submissionId);
+    setDeleteDialogOpen(true);
+  }, []);
 
+  const confirmDelete = useCallback(async () => {
+    if (submissionToDelete === null) return;
+    setDeleteLoading(true);
     try {
-      const response = await fetch(`/api/building-other-structure/${submissionId}`, {
+      const response = await fetch(`/api/building-other-structure/${submissionToDelete}`, {
         method: 'DELETE',
       });
-
       const result = await response.json();
-
       if (response.ok && result.success) {
-        setSubmissions(prev => prev.filter(sub => sub.id !== submissionId));
-        alert('Submission deleted successfully.');
+        setSubmissions(prev => prev.filter(sub => sub.id !== submissionToDelete));
       } else {
         alert(result.message || 'Failed to delete submission.');
       }
     } catch (error) {
       console.error('Delete error:', error);
       alert('Error deleting submission.');
+    } finally {
+      setDeleteLoading(false);
+      setDeleteDialogOpen(false);
+      setSubmissionToDelete(null);
     }
-  }, [router]);
+  }, [submissionToDelete]);
 
   const canDelete = user && (user.role === 'admin' || user.role === 'super_admin');
 
@@ -370,6 +385,26 @@ export default function BuildingOtherStructureDashboard() {
           </div>
         </div>
       </SidebarInset>
+
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete Submission</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this submission? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} disabled={deleteLoading}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={confirmDelete} disabled={deleteLoading}>
+              {deleteLoading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </SidebarProvider>
   );
 }

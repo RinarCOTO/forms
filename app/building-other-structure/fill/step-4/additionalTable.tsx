@@ -143,14 +143,14 @@ export function AdditionalTable({
 
                   {/* AREA INPUT FIELD */}
                   <td className="p-2 text-center">
-                    <div className="relative flex items-center justify-center">
+                    <div className="flex items-center justify-center gap-1">
                       <input
                         type="number"
                         min="0"
                         step="any"
-                        className="w-24 rounded-md border border-input bg-background px-2 py-1 pr-10 text-right focus:outline-none focus:ring-2 focus:ring-ring"
+                        className="w-24 rounded-md border border-input bg-background px-2 py-1 text-right focus:outline-none focus:ring-2 focus:ring-ring"
                         placeholder="0"
-                        value={areas[index] === 0 ? '' : areas[index]} // Avoid showing 0 if you prefer empty
+                        value={areas[index] === 0 ? '' : areas[index]}
                         onChange={e => {
                           const val = parseFloat(e.target.value);
                           const newAreas = [...areas];
@@ -158,7 +158,7 @@ export function AdditionalTable({
                           onAreasChange(newAreas);
                         }}
                       />
-                      <span className="absolute right-2 text-xs text-muted-foreground pointer-events-none">sqm</span>
+                      <span className="text-xs text-muted-foreground">sqm</span>
                     </div>
                   </td>
 

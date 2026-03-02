@@ -266,10 +266,9 @@ function BuildingStructureFormFillPage5() {
                     id="actual_use_p5"
                     name="actual_use_p5"
                     value={actualUse}
-                    readOnly
                     disabled
                     aria-disabled="true"
-                    className="rpfaas-fill-input bg-white"
+                    className="rpfaas-fill-input bg-white text-black disabled:opacity-100"
                   />
                 </div>
 
@@ -282,7 +281,7 @@ function BuildingStructureFormFillPage5() {
                     readOnly
                     disabled
                     aria-disabled="true"
-                    className="rpfaas-fill-input bg-white"
+                    className="rpfaas-fill-input bg-white text-black disabled:opacity-100"
                   />
                 </div>
 
@@ -295,7 +294,7 @@ function BuildingStructureFormFillPage5() {
                     readOnly
                     disabled
                     aria-disabled="true"
-                    className="rpfaas-fill-input bg-white"
+                    className="rpfaas-fill-input bg-white text-black disabled:opacity-100"
                   />
                 </div>
 
@@ -309,7 +308,7 @@ function BuildingStructureFormFillPage5() {
                     readOnly
                     disabled
                     aria-disabled="true"
-                    className="rpfaas-fill-input bg-white"
+                    className="rpfaas-fill-input bg-white text-black disabled:opacity-100"
                   />
                 </div>
 
@@ -322,7 +321,7 @@ function BuildingStructureFormFillPage5() {
                     readOnly
                     disabled
                     aria-disabled="true"
-                    className="rpfaas-fill-input bg-white"
+                    className="rpfaas-fill-input bg-white text-black disabled:opacity-100"
                   />
                 </div>
               </section>
