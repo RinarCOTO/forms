@@ -324,6 +324,9 @@ function BuildingStructureFormFillPage5() {
                     className="rpfaas-fill-input bg-white text-black disabled:opacity-100"
                   />
                 </div>
+                <div className="">
+
+                </div>
               </section>
 
               <StepPagination
