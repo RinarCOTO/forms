@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, useState, useEffect, useMemo, useCallback, Suspense } from "react";
 import { StepPagination } from "@/components/ui/step-pagination";
 import { ReviewCommentsFloat } from "@/components/review-comments-float";
+import DatePicker from "../../../components/dropdowns/date-picker";
 import "@/app/styles/forms-fill.css";
 import { getAssessmentLevel } from "@/config/assessment-level";
 import { AppSidebar } from "@/components/app-sidebar";
@@ -26,6 +27,10 @@ import {
 } from "@/components/ui/sidebar";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import * as React from "react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from "date-fns";
+import { ChevronDownIcon } from "lucide-react";
 
 // Helper function to collect form data from ONLY this step (step 5)
 function collectFormData(
@@ -110,6 +115,7 @@ function BuildingStructureFormFillPage5() {
   const [actualUse, setActualUse] = useState("");
   const [typeOfBuildingLabel, setTypeOfBuildingLabel] = useState("");
   const [marketValue, setMarketValue] = useState<number>(0);
+  const [effectivityDate, setEffectivityDate] = useState<Date | undefined>(undefined);
 
   const assessmentLevel = useMemo(
     () => getAssessmentLevel(typeOfBuildingLabel, actualUse, marketValue) ?? "",
@@ -181,6 +187,10 @@ function BuildingStructureFormFillPage5() {
     try {
       const formData = collectFormData(actualUse, assessedValue, amountInWords, assessmentLevel);
       formData.status = 'draft';
+      if (effectivityDate) {
+        formData.effectivity_of_assessment = effectivityDate.toISOString().split("T")[0];
+        localStorage.setItem("effectivity_of_assessment_p5", formData.effectivity_of_assessment);
+      }
 
       // Save assessment data to localStorage for the RPFAAS form
       localStorage.setItem("assessment_level_p5", assessmentLevel);
@@ -224,12 +234,11 @@ function BuildingStructureFormFillPage5() {
     } finally {
       setIsSaving(false);
     }
-  }, [actualUse, assessedValue, amountInWords, assessmentLevel, draftId, router]);
+  }, [actualUse, assessedValue, amountInWords, assessmentLevel, draftId, router, effectivityDate]);
 
   return (
     <SidebarProvider>
       <AppSidebar />
-
       <SidebarInset>
         <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
           <SidebarTrigger className="-ml-1" />
@@ -262,7 +271,7 @@ function BuildingStructureFormFillPage5() {
 
                 <div className="rpfaas-fill-field space-y-1" data-comment-field="actual_use">
                   <Label className="rpfaas-fill-label" htmlFor="actual_use_p5">Actual Use</Label>
-                  <Input
+                  <Input 
                     id="actual_use_p5"
                     name="actual_use_p5"
                     value={actualUse}
@@ -324,8 +333,9 @@ function BuildingStructureFormFillPage5() {
                     className="rpfaas-fill-input bg-white text-black disabled:opacity-100"
                   />
                 </div>
-                <div className="">
-
+                <div className="rpfaas-fill-field space-y-1" data-comment-field="effectivity_of_assessment">
+                  <Label className="rpfaas-fill-label" htmlFor="effectivity_of_assessment_p5">Effectivity of Assessment</Label>
+                  <DatePicker />
                 </div>
               </section>
 

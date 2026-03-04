@@ -641,7 +641,7 @@ const BuildingStructureForm = () => {
                 </tbody>
             </table>
 
-            <FaasFooter amountInWords={amountInWords} />
+            <FaasFooter amountInWords={amountInWords} locationMunicipality={locationMunicipality} />
         </div>
     );
 };

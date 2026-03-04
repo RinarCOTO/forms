@@ -342,6 +342,7 @@ function PreviewFormPage() {
           set("rpfaas_admin_barangay_code",              d.admin_barangay_code);
           set("rpfaas_location_province_code",           d.property_province_code);
           set("rpfaas_location_municipality_code",       d.property_municipality_code);
+          set("rpfaas_location_municipality",            d.location_municipality);
           set("rpfaas_location_barangay_code",           d.property_barangay_code);
 
           // ── Step 2: p2 JSON blob ──────────────────────────────────────

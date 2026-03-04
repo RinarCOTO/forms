@@ -76,8 +76,8 @@ const PHOTO_CONFIG: { type: PhotoType; label: string; description: string }[] =
     },
     {
       type: "other_certificate",
-      label: "Another Certificate",
-      description: "Any other supporting certificate or document.",
+      label: "Sworn Statement",
+      description: "Upload Sworn Statement or other relevant certificates for this property.",
     },
   ];
 

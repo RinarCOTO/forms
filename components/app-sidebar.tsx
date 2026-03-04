@@ -4,7 +4,7 @@ import * as React from "react"
 import { usePathname } from "next/navigation";
 import "./sidebar-active.css";
 import { UserProfile } from "@/components/user-profile"
-import { ChevronRight, ChevronDown, ClipboardList, ListChecks, PenLine, Calculator, Users, ShieldCheck, StickyNote } from "lucide-react"
+import { ChevronRight, ChevronDown, ClipboardList, ListChecks, PenLine, Calculator, Users, ShieldCheck, StickyNote, Settings} from "lucide-react"
 import { usePermissions } from "@/app/contexts/permissions-context"
 
 import {
@@ -27,6 +27,7 @@ import {
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
   const [rpfaasOpen, setRpfaasOpen] = React.useState(true);
+  const [smvOpen, setSmvOpen] = React.useState(true);
   const { role, permissions: perms, loading: isLoading } = usePermissions();
 
   const can = (feature: string) => perms[feature] === true;
@@ -78,6 +79,53 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     </div>
                   </SidebarMenuButton>
                   {rpfaasOpen && (
+                    <SidebarMenuSub>
+                      {can('building_structures.view') && (
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton asChild>
+                            <a href="/building-other-structure/dashboard" className={pathname.startsWith("/building-other-structure") ? "sidebar-active" : ""}>Building &amp; Structures</a>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      )}
+                      {can('land_improvements.view') && (
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton asChild>
+                            <a href="/land-other-improvements/dashboard" className={pathname.startsWith("/land-other-improvements") ? "sidebar-active" : ""}>Land &amp; Improvements</a>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      )}
+                      {can('machinery.view') && (
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton asChild>
+                            <a href="/machinery/dashboard" className={pathname.startsWith("/machinery") ? "sidebar-active" : ""}>Machinery</a>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      )}
+                    </SidebarMenuSub>
+                  )}
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+        {!isLoading && showLandAssessor && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Land Assessor</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton onClick={(e) => { e.preventDefault(); setSmvOpen((v) => !v); }}>
+                    <div className="flex items-center w-full">
+                      <Settings className="mr-2 w-4 h-4 shrink-0" />
+                      <span className="flex-1 text-left">SMV</span>
+                      {smvOpen ? (
+                      <ChevronDown className="ml-2 w-4 h-4" />
+                      ) : (
+                      <ChevronRight className="ml-2 w-4 h-4" />
+                      )}
+                    </div>
+                  </SidebarMenuButton>
+                  {smvOpen && (
                     <SidebarMenuSub>
                       {can('building_structures.view') && (
                         <SidebarMenuSubItem>

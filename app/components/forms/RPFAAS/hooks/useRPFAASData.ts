@@ -102,7 +102,7 @@ export const useRPFAASData = () => {
             const lBarCode = localStorage.getItem("rpfaas_location_barangay_code");
 
             const locationProvince = getLocationName(lProvCode, DUMMY_PROVINCES);
-            const locationMunicipality = getLocationName(lMunCode, DUMMY_MUNICIPALITIES);
+            const locationMunicipality = localStorage.getItem("rpfaas_location_municipality") || getLocationName(lMunCode, DUMMY_MUNICIPALITIES);
             const locationBarangay = getLocationName(lBarCode, DUMMY_BARANGAYS);
 
             // Data from Step 2 (stored as JSON object under 'p2' key)

@@ -1,4 +1,7 @@
-import { ReactNode } from "react";
+"use client";
+
+import { ReactNode, useEffect, useState } from "react";
+
 type SectionHeaderProps = { children: ReactNode; colSpan?: number; className?: string };
 const SectionHeader = ({ children, colSpan = 3, className = "" }: SectionHeaderProps) => (
   <tr>
@@ -8,7 +11,35 @@ const SectionHeader = ({ children, colSpan = 3, className = "" }: SectionHeaderP
   </tr>
 );
 
-const FaasFooter = ({ amountInWords }: { amountInWords: string }) => {
+const MUNICIPALITY_MAP: Record<string, string> = { paracelis: 'paracellis' };
+
+const FaasFooter = ({ amountInWords, locationMunicipality }: { amountInWords: string; locationMunicipality?: string }) => {
+  const [provincialAssessorName, setProvincialAssessorName] = useState('');
+  const [municipalAssessorName, setMunicipalAssessorName] = useState('');
+
+  useEffect(() => {
+    fetch('/api/users/by-role?role=provincial_assessor')
+      .then(res => res.json())
+      .then(data => {
+        if (data.users?.[0]?.full_name) {
+          setProvincialAssessorName(data.users[0].full_name);
+        }
+      });
+  }, []);
+
+  useEffect(() => {
+    if (!locationMunicipality) return;
+    const normalized = locationMunicipality.toLowerCase();
+    const municipality = MUNICIPALITY_MAP[normalized] ?? normalized;
+    fetch(`/api/users/by-role?role=municipal_tax_mapper&municipality=${municipality}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.users?.[0]?.full_name) {
+          setMunicipalAssessorName(data.users[0].full_name);
+        }
+      });
+  }, [locationMunicipality]);
+
   return (
     <div>
         <div className="w-full flex gap-12">
@@ -43,10 +74,10 @@ const FaasFooter = ({ amountInWords }: { amountInWords: string }) => {
                 <span className="inline-block border-b border-black w-3/4 mx-auto font-bold">Name of ...</span>
             </div>
             <div>
-                <span className="inline-block border-b border-black w-3/4 mx-auto font-bold">Name of Municipal Assessor</span>
+                <span className="inline-block border-b border-black w-3/4 mx-auto font-bold">{municipalAssessorName || 'Name of Municipal Assessor'}</span>
             </div>
             <div>
-                <span className="inline-block border-b border-black w-3/4 mx-auto font-bold">Name of Provincial Assessor</span>
+                <span className="inline-block border-b border-black w-3/4 mx-auto font-bold">{provincialAssessorName || 'Name of Provincial Assessor'}</span>
             </div>
         </div>
         <div className="grid grid-cols-3 mt-{2} text-center">

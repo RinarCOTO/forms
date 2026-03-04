@@ -38,6 +38,7 @@ export default function BuildingOtherStructureDashboard() {
   const [selectedMunicipalities, setSelectedMunicipalities] = useState<string[]>([]);
   const [selectedBarangays, setSelectedBarangays] = useState<string[]>([]);
   const [user, setUser] = useState<{ role: string } | null>(null);
+  const [municipalAssessors, setMunicipalAssessors] = useState<{ full_name: string; municipality: string }[]>([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [submissionToDelete, setSubmissionToDelete] = useState<number | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
@@ -72,8 +73,21 @@ export default function BuildingOtherStructureDashboard() {
       }
     };
 
+    const fetchMunicipalAssessors = async () => {
+      try {
+        const response = await fetch('/api/users/by-role?role=municipal_tax_mapper');
+        if (response.ok) {
+          const data = await response.json();
+          setMunicipalAssessors(data.users ?? []);
+        }
+      } catch (error) {
+        console.error('Failed to fetch municipal assessors:', error);
+      }
+    };
+
     fetchUser();
     fetchSubmissions();
+    fetchMunicipalAssessors();
   }, []);
 
   const handleNewForm = useCallback(async () => {
@@ -131,6 +145,15 @@ export default function BuildingOtherStructureDashboard() {
       setSubmissionToDelete(null);
     }
   }, [submissionToDelete]);
+
+  const getMunicipalAssessor = (locationMunicipality?: string) => {
+    if (!locationMunicipality) return '—';
+    console.log('[MunicipalAssessor] looking for:', locationMunicipality, '| available:', municipalAssessors.map(a => `${a.municipality}=${a.full_name}`));
+    const match = municipalAssessors.find(
+      a => a.municipality?.toLowerCase() === locationMunicipality.toLowerCase()
+    );
+    return match?.full_name ?? '—';
+  };
 
   const canDelete = user && (user.role === 'admin' || user.role === 'super_admin');
 
@@ -297,6 +320,7 @@ export default function BuildingOtherStructureDashboard() {
                         <TableHead>ID</TableHead>
                         <TableHead>Owner Name</TableHead>
                         <TableHead>Municipality</TableHead>
+                        <TableHead>Municipal Assessor</TableHead>
                         <TableHead>Barangay</TableHead>
                         <TableHead>Last Updated</TableHead>
                         <TableHead>Status</TableHead>
@@ -309,6 +333,7 @@ export default function BuildingOtherStructureDashboard() {
                           <TableCell className="font-medium">#{submission.id}</TableCell>
                           <TableCell>{submission.owner_name || submission.title || 'N/A'}</TableCell>
                           <TableCell>{submission.location_municipality || 'N/A'}</TableCell>
+                          <TableCell>{getMunicipalAssessor(submission.location_municipality)}</TableCell>
                           <TableCell>{submission.location_barangay || 'N/A'}</TableCell>
                           <TableCell>{new Date(submission.updated_at).toLocaleDateString()}</TableCell>
                           <TableCell>
