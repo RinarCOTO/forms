@@ -110,7 +110,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         )}
         {!isLoading && showLandAssessor && (
           <SidebarGroup>
-            <SidebarGroupLabel>Land Assessor</SidebarGroupLabel>
+            <SidebarGroupLabel>SMV</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarMenuItem>
@@ -130,21 +130,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                       {can('building_structures.view') && (
                         <SidebarMenuSubItem>
                           <SidebarMenuSubButton asChild>
-                            <a href="/building-other-structure/dashboard" className={pathname.startsWith("/building-other-structure") ? "sidebar-active" : ""}>Building &amp; Structures</a>
+                            <a href="/smv/building-other-structures/dashboard" className={pathname.startsWith("/smv/building-other-structures") ? "sidebar-active" : ""}>Building &amp; Structures</a>
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>
                       )}
                       {can('land_improvements.view') && (
                         <SidebarMenuSubItem>
                           <SidebarMenuSubButton asChild>
-                            <a href="/land-other-improvements/dashboard" className={pathname.startsWith("/land-other-improvements") ? "sidebar-active" : ""}>Land &amp; Improvements</a>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
-                      )}
-                      {can('machinery.view') && (
-                        <SidebarMenuSubItem>
-                          <SidebarMenuSubButton asChild>
-                            <a href="/machinery/dashboard" className={pathname.startsWith("/machinery") ? "sidebar-active" : ""}>Machinery</a>
+                            <a href="/smv/land-other-improvements/dashboard" className={pathname.startsWith("/smv/land-other-improvements") ? "sidebar-active" : ""}>Land &amp; Improvements</a>
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>
                       )}
