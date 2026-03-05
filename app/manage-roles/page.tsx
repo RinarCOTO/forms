@@ -231,7 +231,7 @@ export default function ManageRolesPage() {
   const fetchPermissions = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/role-permissions");
+      const res = await fetch("/api/users/role-permissions");
       if (res.ok) {
         const data = await res.json();
         setPermissions(data.permissions ?? {});
@@ -263,7 +263,7 @@ export default function ManageRolesPage() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const res = await fetch("/api/role-permissions", {
+      const res = await fetch("/api/users/role-permissions", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ permissions }),

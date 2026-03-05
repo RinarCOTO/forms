@@ -157,7 +157,7 @@ function BuildingStructureFormFillPage5() {
     if (!draftId) return;
     const loadDraft = async () => {
       try {
-        const response = await fetch(`/api/building-structure/${draftId}`);
+        const response = await fetch(`/api/faas/building-structures/${draftId}`);
         if (response.ok) {
           const result = await response.json();
           if (result.success && result.data) {
@@ -203,7 +203,7 @@ function BuildingStructureFormFillPage5() {
       const currentDraftId = draftId || localStorage.getItem('draft_id');
 
       if (currentDraftId) {
-        response = await fetch(`/api/building-structure/${currentDraftId}`, {
+        response = await fetch(`/api/faas/building-structures/${currentDraftId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(formData),

@@ -53,7 +53,7 @@ const formsMenu = [
     title: "Building & Structures",
     description: "Property assessment forms for buildings and structures",
     icon: FileText,
-    apiEndpoint: "/api/forms/building-structures",
+    apiEndpoint: "/api/faas/building-structures",
     formRoute: "/building-other-structure/fill/step-1",
     dashboardRoute: "/building-other-structure/dashboard",
   },
@@ -70,7 +70,7 @@ const formsMenu = [
     title: "Machinery",
     description: "Equipment and machinery assessment forms",
     icon: FileText,
-    apiEndpoint: "/api/forms/machinery",
+    apiEndpoint: "/api/faas/machinery",
     formRoute: "/machinery/fill",
   },
   {
@@ -78,7 +78,7 @@ const formsMenu = [
     title: "Notes",
     description: "Additional notes and documentation",
     icon: FileText,
-    apiEndpoint: "/api/forms/notes",
+    apiEndpoint: "/api/faas/notes",
     formRoute: "/notes/create",
   },
 ]
@@ -109,7 +109,7 @@ export default function Page() {
   useEffect(() => {
     const fetchCounts = async () => {
       try {
-        const response = await fetch('/api/forms/counts')
+        const response = await fetch('/api/faas/counts')
         if (response.ok) {
           const data = await response.json()
           setSubmissionCounts(data)

@@ -8,7 +8,19 @@
       "Bash(Select-Object -Last 15)",
       "Bash(powershell -Command \"Get-Content ''C:\\\\Users\\\\rinar\\\\OneDrive\\\\Documents\\\\GitHub\\\\forms\\\\app\\\\building-other-structure\\\\fill\\\\step-5\\\\page.tsx'' | Select-Object -Last 15\")",
       "Bash(powershell -Command \"Get-Content ''C:\\\\Users\\\\rinar\\\\OneDrive\\\\Documents\\\\GitHub\\\\forms\\\\app\\\\building-other-structure\\\\fill\\\\step-6\\\\page.tsx'' | Select-Object -Last 10\")",
-      "Bash(powershell -Command:*)"
+      "Bash(powershell -Command:*)",
+      "Bash(tree -L 3 -I 'node_modules|.next' /Users/rinar/Documents/forms 2>/dev/null || find /Users/rinar/Documents/forms -maxdepth 3 -type d ! -path '*/node_modules/*' ! -path '*/.next/*' ! -path '*/.git/*' | sort)",
+      "Bash(find /Users/rinar/Documents/forms/app/contexts -type f -name \"*.ts\" -o -name \"*.tsx\" 2>/dev/null | head -20)",
+      "Bash(head -50 /Users/rinar/Documents/forms/app/api/machinery/[id]/route.ts)",
+      "Bash(head -40 /Users/rinar/Documents/forms/app/api/land-other-improvements/[id]/route.ts)",
+      "Bash(grep -r \"fetch\\(\\\\`\" /Users/rinar/Documents/forms/app --include=\"*.ts\" --include=\"*.tsx\" -h | grep -o '`/api/[^`$]*' | sort | uniq)",
+      "Bash(rm -rf /Users/rinar/Documents/forms/app/api/building-other-structure\nrm -rf /Users/rinar/Documents/forms/app/api/building-structure\nrm -rf /Users/rinar/Documents/forms/app/api/forms\nrm -rf /Users/rinar/Documents/forms/app/api/land-other-improvements\nrm -rf /Users/rinar/Documents/forms/app/api/machinery\nrm -rf /Users/rinar/Documents/forms/app/api/review-queue\nrm -rf /Users/rinar/Documents/forms/app/api/my-permissions\nrm -rf /Users/rinar/Documents/forms/app/api/role-permissions\nrm -rf /Users/rinar/Documents/forms/app/api/update-role\nrm -rf /Users/rinar/Documents/forms/app/api/fix-db\nrm -rf /Users/rinar/Documents/forms/app/api/setup-db\necho \"Old routes deleted\")",
+      "Bash(npx tsc --noEmit 2>&1 | head -60)",
+      "Bash(rm -rf /Users/rinar/Documents/forms/.next && npx tsc --noEmit 2>&1 | head -80)",
+      "Bash(cd /Users/rinar/Documents/forms/services/faas && npx tsc --noEmit 2>&1 | head -60)",
+      "Bash(cd /Users/rinar/Documents/forms/services/users && npx tsc --noEmit 2>&1 | head -60)",
+      "Bash(cd /Users/rinar/Documents/forms/services/review && npx tsc --noEmit 2>&1 | head -60)",
+      "Bash(cd /Users/rinar/Documents/forms/services/locations && npx tsc --noEmit 2>&1 | head -30 && cd /Users/rinar/Documents/forms/services/notes && npx tsc --noEmit 2>&1 | head -30)"
     ]
   }
 }

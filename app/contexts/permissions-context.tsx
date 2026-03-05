@@ -30,7 +30,7 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
 
   const fetchPerms = useCallback(() => {
     setLoading(true);
-    fetch("/api/my-permissions")
+    fetch("/api/users/permissions")
       .then((res) => res.json())
       .then((data) => {
         setRole(data.role ?? null);

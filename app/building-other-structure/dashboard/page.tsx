@@ -59,7 +59,7 @@ export default function BuildingOtherStructureDashboard() {
     const fetchSubmissions = async () => {
       setLoading(true);
       try {
-        const response = await fetch("/api/forms/building-structures");
+        const response = await fetch("/api/faas/building-structures");
         if (response.ok) {
           const data = await response.json();
           setSubmissions(data);
@@ -93,7 +93,7 @@ export default function BuildingOtherStructureDashboard() {
   const handleNewForm = useCallback(async () => {
     try {
       const now = new Date().toISOString();
-      const response = await fetch("/api/forms/building-structures", {
+      const response = await fetch("/api/faas/building-structures", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "draft", updated_at: now })
@@ -127,7 +127,7 @@ export default function BuildingOtherStructureDashboard() {
     if (submissionToDelete === null) return;
     setDeleteLoading(true);
     try {
-      const response = await fetch(`/api/building-other-structure/${submissionToDelete}`, {
+      const response = await fetch(`/api/faas/building-structures/${submissionToDelete}`, {
         method: 'DELETE',
       });
       const result = await response.json();

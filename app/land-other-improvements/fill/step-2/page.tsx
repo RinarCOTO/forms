@@ -55,7 +55,7 @@ const LandOtherImprovementFormFillPage2 = () => {
             west_property: WestProperty,
         }),
         draftId,
-        apiEndpoint: "/api/forms/land-other-improvements",
+        apiEndpoint: "/api/faas/land-improvements",
     });
 
     const handleSubmit = useCallback((e: { preventDefault(): void }) => {

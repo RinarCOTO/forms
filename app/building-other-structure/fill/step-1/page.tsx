@@ -276,7 +276,7 @@ function BuildingOtherStructureFillPageContent() {
     }
     const loadDraft = async () => {
       try {
-        const response = await fetch(`/api/building-other-structure/${draftId}`);
+        const response = await fetch(`/api/faas/building-structures/${draftId}`);
         if (response.ok) {
           const result = await response.json();
           if (result.success && result.data) {
@@ -320,13 +320,13 @@ function BuildingOtherStructureFillPageContent() {
       const currentDraftId = draftId || localStorage.getItem('draft_id');
 
       if (currentDraftId) {
-        response = await fetch(`/api/building-other-structure/${currentDraftId}`, {
+        response = await fetch(`/api/faas/building-structures/${currentDraftId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(formData),
         });
       } else {
-        response = await fetch('/api/building-other-structure', {
+        response = await fetch('/api/faas/building-structures', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(formData),
@@ -368,13 +368,13 @@ function BuildingOtherStructureFillPageContent() {
       const currentDraftId = draftId || localStorage.getItem('draft_id');
       let response;
       if (currentDraftId) {
-        response = await fetch(`/api/building-other-structure/${currentDraftId}`, {
+        response = await fetch(`/api/faas/building-structures/${currentDraftId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(formData),
         });
       } else {
-        response = await fetch('/api/building-other-structure', {
+        response = await fetch('/api/faas/building-structures', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(formData),

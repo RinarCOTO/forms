@@ -280,8 +280,8 @@ function ReviewDetailInner({ id }: { id: string }) {
   }, [router]);
 
   const apiBase = formType === "building"
-    ? `/api/building-other-structure/${id}`
-    : `/api/building-other-structure/${id}`; // TODO: land endpoint
+    ? `/api/faas/building-structures/${id}`
+    : `/api/faas/building-structures/${id}`; // TODO: land endpoint
 
   // Load form + comments
   const loadData = useCallback(async () => {

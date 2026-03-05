@@ -271,7 +271,7 @@ const BuildingStructureFormFillPage3 = () => {
       const currentDraftId = draftId || localStorage.getItem('draft_id');
       
       if (currentDraftId) {
-        response = await fetch(`/api/building-structure/${currentDraftId}`, {
+        response = await fetch(`/api/faas/building-structures/${currentDraftId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(formData),
@@ -314,7 +314,7 @@ const BuildingStructureFormFillPage3 = () => {
       const currentDraftId = draftId || localStorage.getItem('draft_id');
       let response;
       if (currentDraftId) {
-        response = await fetch(`/api/building-structure/${currentDraftId}`, {
+        response = await fetch(`/api/faas/building-structures/${currentDraftId}`, {
           method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(formData),
         });
       } else {

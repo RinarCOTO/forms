@@ -318,7 +318,7 @@ function PreviewFormPage() {
       return;
     }
     setStatusLoading(true);
-    fetch(`/api/building-other-structure/${draftId}`)
+    fetch(`/api/faas/building-structures/${draftId}`)
       .then((r) => r.json())
       .then((result) => {
         if (result.success && result.data) {
@@ -412,7 +412,7 @@ function PreviewFormPage() {
   useEffect(() => {
     if (!draftId) return;
     setPhotosLoading(true);
-    fetch(`/api/building-other-structure/photos?buildingStructureId=${draftId}`)
+    fetch(`/api/faas/building-structures/photos?buildingStructureId=${draftId}`)
       .then((r) => r.json())
       .then((result) => {
         if (result.success) setPhotos(result.data as PhotoRecord[]);
@@ -425,7 +425,7 @@ function PreviewFormPage() {
   useEffect(() => {
     if (!draftId) return;
     setCommentsLoading(true);
-    fetch(`/api/building-other-structure/${draftId}/comments`)
+    fetch(`/api/faas/building-structures/${draftId}/comments`)
       .then((r) => r.json())
       .then((result) => {
         if (result.data) setComments(result.data as ReviewComment[]);
@@ -461,13 +461,13 @@ function PreviewFormPage() {
       const currentDraftId = draftId ?? localStorage.getItem("draft_id");
       let response;
       if (currentDraftId) {
-        response = await fetch(`/api/building-other-structure/${currentDraftId}`, {
+        response = await fetch(`/api/faas/building-structures/${currentDraftId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(formData),
         });
       } else {
-        response = await fetch("/api/building-other-structure", {
+        response = await fetch("/api/faas/building-structures", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(formData),
@@ -503,7 +503,7 @@ function PreviewFormPage() {
     setIsSubmitting(true);
     try {
       const submitResponse = await fetch(
-        `/api/building-other-structure/${currentDraftId}/submit`,
+        `/api/faas/building-structures/${currentDraftId}/submit`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

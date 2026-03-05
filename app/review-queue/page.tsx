@@ -158,7 +158,7 @@ export default function ReviewQueuePage() {
       // For "pending" we let the API return submitted + under_review (its default)
       if (statusFilter !== "pending") params.set("status", statusFilter);
 
-      const res = await fetch(`/api/review-queue?${params.toString()}`);
+      const res = await fetch(`/api/review?${params.toString()}`);
       if (!res.ok) {
         const err = await res.json();
         toast.error(err.error || "Failed to load review queue.");
@@ -241,7 +241,7 @@ export default function ReviewQueuePage() {
       // Save return reason as a general comment first
       if (dialogAction === "return" && reviewComment.trim()) {
         if (selectedItem.form_type === "building") {
-          await fetch(`/api/building-other-structure/${selectedItem.id}/comments`, {
+          await fetch(`/api/faas/building-structures/${selectedItem.id}/comments`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ comment_text: reviewComment.trim() }),
@@ -252,8 +252,8 @@ export default function ReviewQueuePage() {
       // Status transition
       const apiBase =
         selectedItem.form_type === "building"
-          ? `/api/building-other-structure/${selectedItem.id}/review`
-          : `/api/building-other-structure/${selectedItem.id}/review`; // TODO: land route
+          ? `/api/faas/building-structures/${selectedItem.id}/review`
+          : `/api/faas/building-structures/${selectedItem.id}/review`; // TODO: land route
 
       const res = await fetch(apiBase, {
         method: "POST",

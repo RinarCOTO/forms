@@ -1,0 +1,15 @@
+{
+  "/_global-error/page": "/_global-error",
+  "/_not-found/page": "/_not-found",
+  "/api/building-structures/[id]/comments/route": "/api/building-structures/[id]/comments",
+  "/api/building-structures/[id]/review/route": "/api/building-structures/[id]/review",
+  "/api/building-structures/[id]/route": "/api/building-structures/[id]",
+  "/api/building-structures/[id]/submit/route": "/api/building-structures/[id]/submit",
+  "/api/building-structures/photos/route": "/api/building-structures/photos",
+  "/api/building-structures/route": "/api/building-structures",
+  "/api/counts/route": "/api/counts",
+  "/api/land-improvements/[id]/route": "/api/land-improvements/[id]",
+  "/api/land-improvements/route": "/api/land-improvements",
+  "/api/machinery/[id]/route": "/api/machinery/[id]",
+  "/api/machinery/route": "/api/machinery"
+}

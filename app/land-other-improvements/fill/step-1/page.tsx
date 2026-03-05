@@ -260,7 +260,7 @@ function LandOtherImprovementsFillPageContent() {
     if (!draftId) return;
     const loadDraft = async () => {
       try {
-        const response = await fetch(`/api/forms/land-other-improvements/${draftId}`);
+        const response = await fetch(`/api/faas/land-improvements/${draftId}`);
         if (response.ok) {
           const result = await response.json();
           if (result.success && result.data) {
@@ -300,13 +300,13 @@ function LandOtherImprovementsFillPageContent() {
       const currentDraftId = draftId || localStorage.getItem('draft_id');
 
       if (currentDraftId) {
-        response = await fetch(`/api/forms/land-other-improvements/${currentDraftId}`, {
+        response = await fetch(`/api/faas/land-improvements/${currentDraftId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(formData),
         });
       } else {
-        response = await fetch('/api/forms/land-other-improvements', {
+        response = await fetch('/api/faas/land-improvements', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(formData),

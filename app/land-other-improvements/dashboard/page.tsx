@@ -50,7 +50,7 @@ export default function LandOtherImprovementsDashboard() {
     const fetchSubmissions = async () => {
       setLoading(true);
       try {
-        const response = await fetch("/api/forms/land-other-improvements");
+        const response = await fetch("/api/faas/land-improvements");
         if (response.ok) {
           const data = await response.json();
           setSubmissions(data.data || data || []);
@@ -71,7 +71,7 @@ export default function LandOtherImprovementsDashboard() {
   const handleNewForm = async () => {
     try {
       const now = new Date().toISOString();
-      const response = await fetch("/api/forms/land-other-improvements", {
+      const response = await fetch("/api/faas/land-improvements", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "draft", updated_at: now })
@@ -102,7 +102,7 @@ export default function LandOtherImprovementsDashboard() {
     }
 
     try {
-      const response = await fetch(`/api/forms/land-other-improvements/${submissionId}`, {
+      const response = await fetch(`/api/faas/land-improvements/${submissionId}`, {
         method: 'DELETE',
       });
 

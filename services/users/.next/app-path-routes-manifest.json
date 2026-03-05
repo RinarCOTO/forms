@@ -1,0 +1,10 @@
+{
+  "/_global-error/page": "/_global-error",
+  "/_not-found/page": "/_not-found",
+  "/api/users/[id]/route": "/api/users/[id]",
+  "/api/users/by-role/route": "/api/users/by-role",
+  "/api/users/permissions/route": "/api/users/permissions",
+  "/api/users/role-permissions/route": "/api/users/role-permissions",
+  "/api/users/route": "/api/users",
+  "/api/users/update-role/route": "/api/users/update-role"
+}

@@ -52,7 +52,7 @@ const LandOtherImprovementFormFillPage3 = () => {
     const { handleSave, isSaving } = useSaveDraft({
         getFormData: () => ({ classification, subClassification }),
         draftId,
-        apiEndpoint: "/api/forms/land-other-improvements",
+        apiEndpoint: "/api/faas/land-improvements",
     });
 
     const handleSubmit = useCallback((e: { preventDefault(): void }) => {

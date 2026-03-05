@@ -1,0 +1,135 @@
+{
+  "version": 3,
+  "pages404": true,
+  "appType": "app",
+  "caseSensitive": false,
+  "basePath": "",
+  "redirects": [
+    {
+      "source": "/:path+/",
+      "destination": "/:path+",
+      "internal": true,
+      "priority": true,
+      "statusCode": 308,
+      "regex": "^(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))/$"
+    }
+  ],
+  "headers": [],
+  "rewrites": {
+    "beforeFiles": [],
+    "afterFiles": [],
+    "fallback": []
+  },
+  "dynamicRoutes": [
+    {
+      "page": "/api/building-structures/[id]",
+      "regex": "^/api/building\\-structures/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/building\\-structures/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/api/building-structures/[id]/comments",
+      "regex": "^/api/building\\-structures/([^/]+?)/comments(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/building\\-structures/(?<nxtPid>[^/]+?)/comments(?:/)?$"
+    },
+    {
+      "page": "/api/building-structures/[id]/review",
+      "regex": "^/api/building\\-structures/([^/]+?)/review(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/building\\-structures/(?<nxtPid>[^/]+?)/review(?:/)?$"
+    },
+    {
+      "page": "/api/building-structures/[id]/submit",
+      "regex": "^/api/building\\-structures/([^/]+?)/submit(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/building\\-structures/(?<nxtPid>[^/]+?)/submit(?:/)?$"
+    },
+    {
+      "page": "/api/land-improvements/[id]",
+      "regex": "^/api/land\\-improvements/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/land\\-improvements/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/api/machinery/[id]",
+      "regex": "^/api/machinery/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/machinery/(?<nxtPid>[^/]+?)(?:/)?$"
+    }
+  ],
+  "staticRoutes": [
+    {
+      "page": "/_global-error",
+      "regex": "^/_global\\-error(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/_global\\-error(?:/)?$"
+    },
+    {
+      "page": "/_not-found",
+      "regex": "^/_not\\-found(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/_not\\-found(?:/)?$"
+    },
+    {
+      "page": "/api/building-structures",
+      "regex": "^/api/building\\-structures(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/building\\-structures(?:/)?$"
+    },
+    {
+      "page": "/api/building-structures/photos",
+      "regex": "^/api/building\\-structures/photos(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/building\\-structures/photos(?:/)?$"
+    },
+    {
+      "page": "/api/counts",
+      "regex": "^/api/counts(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/counts(?:/)?$"
+    },
+    {
+      "page": "/api/land-improvements",
+      "regex": "^/api/land\\-improvements(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/land\\-improvements(?:/)?$"
+    },
+    {
+      "page": "/api/machinery",
+      "regex": "^/api/machinery(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/machinery(?:/)?$"
+    }
+  ],
+  "dataRoutes": [],
+  "rsc": {
+    "header": "rsc",
+    "varyHeader": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+    "prefetchHeader": "next-router-prefetch",
+    "didPostponeHeader": "x-nextjs-postponed",
+    "contentTypeHeader": "text/x-component",
+    "suffix": ".rsc",
+    "prefetchSegmentHeader": "next-router-segment-prefetch",
+    "prefetchSegmentSuffix": ".segment.rsc",
+    "prefetchSegmentDirSuffix": ".segments",
+    "clientParamParsing": false,
+    "dynamicRSCPrerender": false
+  },
+  "rewriteHeaders": {
+    "pathHeader": "x-nextjs-rewritten-path",
+    "queryHeader": "x-nextjs-rewritten-query"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "/_global-error/page": "app/_global-error/page.js",
+  "/_not-found/page": "app/_not-found/page.js",
+  "/api/building-structures/[id]/comments/route": "app/api/building-structures/[id]/comments/route.js",
+  "/api/building-structures/[id]/review/route": "app/api/building-structures/[id]/review/route.js",
+  "/api/building-structures/[id]/route": "app/api/building-structures/[id]/route.js",
+  "/api/building-structures/[id]/submit/route": "app/api/building-structures/[id]/submit/route.js",
+  "/api/building-structures/photos/route": "app/api/building-structures/photos/route.js",
+  "/api/building-structures/route": "app/api/building-structures/route.js",
+  "/api/counts/route": "app/api/counts/route.js",
+  "/api/land-improvements/[id]/route": "app/api/land-improvements/[id]/route.js",
+  "/api/land-improvements/route": "app/api/land-improvements/route.js",
+  "/api/machinery/[id]/route": "app/api/machinery/[id]/route.js",
+  "/api/machinery/route": "app/api/machinery/route.js"
+}

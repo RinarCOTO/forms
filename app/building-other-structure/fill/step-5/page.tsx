@@ -281,7 +281,7 @@ function BuildingStructureFormFillPage5() {
   const loadPhotos = useCallback(async (id: string) => {
     try {
       const res = await fetch(
-        `/api/building-other-structure/photos?buildingStructureId=${id}`
+        `/api/faas/building-structures/photos?buildingStructureId=${id}`
       );
       if (!res.ok) return;
       const result = await res.json();
@@ -324,7 +324,7 @@ function BuildingStructureFormFillPage5() {
         formData.append("buildingStructureId", draftId);
         formData.append("photoType", photoType);
 
-        const res = await fetch("/api/building-other-structure/photos", {
+        const res = await fetch("/api/faas/building-structures/photos", {
           method: "POST",
           body: formData,
         });
@@ -364,7 +364,7 @@ function BuildingStructureFormFillPage5() {
     setRemoveDialogOpen(false);
     try {
       const res = await fetch(
-        `/api/building-other-structure/photos/${photo.id}`,
+        `/api/faas/building-structures/photos/${photo.id}`,
         { method: "DELETE" }
       );
       const result = await res.json();

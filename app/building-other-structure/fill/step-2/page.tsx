@@ -294,7 +294,7 @@ const handleNext = useCallback(async () => {
       const currentDraftId = draftId || localStorage.getItem('draft_id');
       const method = currentDraftId ? 'PUT' : 'POST';
       const endpoint = currentDraftId 
-        ? `/api/building-structure/${currentDraftId}` 
+        ? `/api/faas/building-structures/${currentDraftId}` 
         : '/api/building-structure';
       
       response = await fetch(endpoint, {
@@ -345,7 +345,7 @@ const handleNext = useCallback(async () => {
       };
       const currentDraftId = draftId || localStorage.getItem('draft_id');
       const method = currentDraftId ? 'PUT' : 'POST';
-      const endpoint = currentDraftId ? `/api/building-structure/${currentDraftId}` : '/api/building-structure';
+      const endpoint = currentDraftId ? `/api/faas/building-structures/${currentDraftId}` : '/api/building-structure';
       const response = await fetch(endpoint, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(formData) });
       if (response.ok) {
         const result = await response.json();
