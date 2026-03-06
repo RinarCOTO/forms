@@ -46,12 +46,30 @@ export async function POST(request: NextRequest) {
     }
 
     const admin = getAdminClient()
-    const body = await request.json()
+    const raw = await request.json()
 
     // Stamp municipality from the user's profile (non-admins cannot override)
     if (!userCtx.isAdmin && userCtx.municipality) {
-      body.municipality = userCtx.municipality
+      raw.municipality = userCtx.municipality
     }
+
+    const NUMERIC_COLS = new Set([
+      'number_of_storeys', 'total_floor_area', 'building_age',
+      'land_area', 'market_value', 'assessment_level', 'estimated_value',
+      'cost_of_construction',
+    ])
+    const body = Object.fromEntries(
+      Object.entries(raw).filter(([, v]) => v !== '' && v !== undefined).map(([k, v]) => {
+        if (NUMERIC_COLS.has(k)) {
+          const n = typeof v === 'string' ? parseFloat(v as string) : v
+          return [k, isNaN(n as number) ? null : n]
+        }
+        if (k === 'floor_areas' && Array.isArray(v)) {
+          return [k, (v as (number | string)[]).filter(x => x !== '' && x !== null)]
+        }
+        return [k, v]
+      })
+    )
 
     const { data, error } = await admin
       .from('building_structures')

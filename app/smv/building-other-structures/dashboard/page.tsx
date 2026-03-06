@@ -58,7 +58,7 @@ export default function SmvBuildingOtherStructuresDashboard() {
     const fetchSubmissions = async () => {
       setLoading(true);
       try {
-        const response = await fetch("/api/forms/smv/building-other-structures");
+        const response = await fetch("/api/smv/building-structures");
         if (response.ok) {
           const data = await response.json();
           setSubmissions(data.data || data || []);
@@ -79,7 +79,7 @@ export default function SmvBuildingOtherStructuresDashboard() {
   const handleNewForm = useCallback(async () => {
     try {
       const now = new Date().toISOString();
-      const response = await fetch("/api/forms/smv/building-other-structures", {
+      const response = await fetch("/api/smv/building-structures", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "draft", updated_at: now })
@@ -113,7 +113,7 @@ export default function SmvBuildingOtherStructuresDashboard() {
     if (submissionToDelete === null) return;
     setDeleteLoading(true);
     try {
-      const response = await fetch(`/api/forms/smv/building-other-structures/${submissionToDelete}`, {
+      const response = await fetch(`/api/smv/building-structures/${submissionToDelete}`, {
         method: 'DELETE',
       });
       const result = await response.json();

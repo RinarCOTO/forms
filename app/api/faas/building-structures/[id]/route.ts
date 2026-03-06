@@ -71,7 +71,7 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
       );
     }
 
-    const data = await req.json();
+    const raw = await req.json();
 
     // Verify authentication
     const { createClient: createServerClient } = await import('@/lib/supabase/server');
@@ -86,6 +86,25 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
+    // Strip empty strings so typed DB columns (INTEGER, DECIMAL, DATE) don't fail
+    const NUMERIC_COLS = new Set([
+      'number_of_storeys', 'total_floor_area', 'building_age',
+      'land_area', 'market_value', 'assessment_level', 'estimated_value',
+      'cost_of_construction',
+    ]);
+    const data = Object.fromEntries(
+      Object.entries(raw).filter(([, v]) => v !== '' && v !== undefined).map(([k, v]) => {
+        if (NUMERIC_COLS.has(k)) {
+          const n = typeof v === 'string' ? parseFloat(v) : v;
+          return [k, isNaN(n as number) ? null : n];
+        }
+        if (k === 'floor_areas' && Array.isArray(v)) {
+          return [k, (v as (number | string)[]).filter(x => x !== '' && x !== null)];
+        }
+        return [k, v];
+      })
+    );
+
     const { data: updatedRecord, error } = await supabase
       .from('building_structures')
       .update(data)
@@ -94,9 +113,9 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
       .single();
 
     if (error) {
-      console.error('PUT /api/building-other-structure/[id] error:', error.code);
+      console.error('PUT /api/faas/building-structures/[id] error:', error.code, error.message, error.details);
       return NextResponse.json(
-        { success: false, message: 'Failed to update draft' },
+        { success: false, message: error.message || 'Failed to update draft', code: error.code },
         { status: 500 }
       );
     }
@@ -112,9 +131,9 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
     return NextResponse.json({ success: true, data: updatedRecord });
 
   } catch (error) {
-    console.error('PUT /api/building-other-structure/[id] error:', error instanceof Error ? error.message : 'Unknown');
+    console.error('PUT /api/faas/building-structures/[id] unexpected error:', error);
     return NextResponse.json(
-      { success: false, message: 'Server error' },
+      { success: false, message: error instanceof Error ? error.message : 'Server error' },
       { status: 500 }
     );
   }

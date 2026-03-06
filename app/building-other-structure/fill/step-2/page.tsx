@@ -148,7 +148,7 @@ const handleCostOfConstructionChange = useCallback((e: React.ChangeEvent<HTMLInp
 
   // --- 2.1. LOAD EXISTING DATA (if editing) ---
 // --- 2.1. LOAD EXISTING DATA (if editing) ---
-  const { data: loadedData, isLoading: isLoadingData } = useFormData<any>("building-structure", draftId || "");
+  const { data: loadedData, isLoading: isLoadingData } = useFormData<any>("faas/building-structures", draftId || "");
 
   useEffect(() => {
     if (loadedData) {
@@ -295,8 +295,8 @@ const handleNext = useCallback(async () => {
       const method = currentDraftId ? 'PUT' : 'POST';
       const endpoint = currentDraftId 
         ? `/api/faas/building-structures/${currentDraftId}` 
-        : '/api/building-structure';
-      
+        : '/api/faas/building-structures';
+
       response = await fetch(endpoint, {
         method: method,
         headers: { 'Content-Type': 'application/json' },
@@ -312,6 +312,7 @@ const handleNext = useCallback(async () => {
         }
       } else {
         const error = await response.json();
+        console.error('[step-2 PUT error]', error);
         toast.error('Failed to save: ' + (error.message || 'Unknown error'));
       }
     } catch (error) {
@@ -345,7 +346,7 @@ const handleNext = useCallback(async () => {
       };
       const currentDraftId = draftId || localStorage.getItem('draft_id');
       const method = currentDraftId ? 'PUT' : 'POST';
-      const endpoint = currentDraftId ? `/api/faas/building-structures/${currentDraftId}` : '/api/building-structure';
+      const endpoint = currentDraftId ? `/api/faas/building-structures/${currentDraftId}` : '/api/faas/building-structures';
       const response = await fetch(endpoint, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(formData) });
       if (response.ok) {
         const result = await response.json();

@@ -136,7 +136,7 @@ export const FORM_CONSTANTS = {
     BUILDING_STRUCTURE_STEP_4: "building-structure-form-fill-page-4",
   },
   API_ENDPOINTS: {
-    BUILDING_STRUCTURE: "/api/building-structure",
+    BUILDING_STRUCTURE: "/api/faas/building-structures",
   },
 };
 

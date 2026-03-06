@@ -243,7 +243,7 @@ export async function loadFormFromDatabase(
  */
 function getApiEndpoint(formType: string): string {
   const endpoints: Record<string, string> = {
-    'building-structure': '/api/building-structure',
+    'building-structure': '/api/faas/building-structures',
     'land-improvements': '/api/land-improvements',
     'machinery': '/api/machinery',
   };

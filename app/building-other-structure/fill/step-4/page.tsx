@@ -73,7 +73,7 @@ const BuildingStructureFormFillPage4 = () => {
   const [unitCost, setUnitCost] = useState<number>(0);
   const [totalFloorArea, setTotalFloorArea] = useState<number>(0);
 
-  const { data: loadedData } = useFormData<any>("building-structure", draftId || "");
+  const { data: loadedData } = useFormData<any>("faas/building-structures", draftId || "");
 
   const form = useForm({
     resolver: zodResolver(FormSchema),

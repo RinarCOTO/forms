@@ -166,7 +166,7 @@ const BuildingStructureFormFillPage3 = () => {
   }, [draftId]);
 
   // --- Load from DB if editing ---
-  const { data: loadedData, isLoading: isLoadingData } = useFormData<any>("building-structure", draftId || "");
+  const { data: loadedData, isLoading: isLoadingData } = useFormData<any>("faas/building-structures", draftId || "");
 
   useEffect(() => {
     if (loadedData) {
@@ -277,7 +277,7 @@ const BuildingStructureFormFillPage3 = () => {
           body: JSON.stringify(formData),
         });
       } else {
-        response = await fetch('/api/building-structure', {
+        response = await fetch('/api/faas/building-structures', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(formData),
@@ -318,7 +318,7 @@ const BuildingStructureFormFillPage3 = () => {
           method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(formData),
         });
       } else {
-        response = await fetch('/api/building-structure', {
+        response = await fetch('/api/faas/building-structures', {
           method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(formData),
         });
       }

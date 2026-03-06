@@ -15,7 +15,7 @@ export function useLoadDraft() {
     const loadDraft = async () => {
       setIsLoading(true);
       try {
-        const response = await fetch(`/api/building-structure/${draftId}`);
+        const response = await fetch(`/api/faas/building-structures/${draftId}`);
         if (response.ok) {
           const result = await response.json();
           if (result.success && result.data) {

@@ -48,7 +48,7 @@ export function ReviewCommentsFloat({ draftId }: Props) {
 
   useEffect(() => {
     if (!draftId) return;
-    fetch(`/api/building-other-structure/${draftId}/comments`)
+    fetch(`/api/faas/building-structures/${draftId}/comments`)
       .then((r) => r.json())
       .then((result) => {
         if (result.data) {

@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { AppSidebar } from "@/components/app-sidebar";
 import { useSaveDraft } from "@/hooks/useSaveDraft";
-import { LandClassificationForm, LandSubClassificationForm } from "@/app/components/forms/LandClassificationForm";
+import { municipalityData } from "@/app/smv/land-other-improvements/data";
 
 import {
   SidebarInset,
@@ -38,9 +38,32 @@ const LandOtherImprovementFormFillPage3 = () => {
 
     const [classification, setClassification] = useState("");
     const [subClassification, setSubClassification] = useState("");
-
-    //input fields
     const [landArea, setLandArea] = useState("");
+
+    // Load municipality from draft (saved in step 1) to filter SMV categories
+    const [municipality, setMunicipality] = useState("");
+
+    // Derive which categories have SMV data for this municipality
+    const munKey = municipality.toLowerCase();
+    const SMV_CATEGORIES = ["commercial", "residential", "agricultural"] as const;
+    const availableCategories = SMV_CATEGORIES.filter(
+        (cat) => (municipalityData[munKey]?.[cat]?.length ?? 0) > 0
+    );
+
+    // Derive sub-classification options from the selected classification's SMV rows
+    // e.g. besao + residential → ["R-1", "R-2", "R-3", "R-4"]
+    // e.g. besao + commercial  → ["C-1"]
+    const subClassificationOptions = classification
+        ? (municipalityData[munKey]?.[classification as "commercial" | "residential" | "agricultural"] ?? [])
+            .map((row) => row.subClassification)
+        : [];
+
+    // Auto-select when there is only one option (e.g. commercial → C-1)
+    useEffect(() => {
+        if (subClassificationOptions.length === 1) {
+            setSubClassification(subClassificationOptions[0]);
+        }
+    }, [subClassificationOptions.length, classification]);
 
     useEffect(() => {
         const isDataApplied = checkIfDataIsApplied();
@@ -49,8 +72,29 @@ const LandOtherImprovementFormFillPage3 = () => {
         }
     }, []);
 
+    // Load saved values from the draft
+    useEffect(() => {
+        if (!draftId) return;
+        const load = async () => {
+            try {
+                const res = await fetch(`/api/faas/land-improvements/${draftId}`);
+                if (!res.ok) return;
+                const result = await res.json();
+                if (!result.success || !result.data) return;
+                const data = result.data;
+                if (data.location_municipality) setMunicipality(data.location_municipality);
+                if (data.classification) setClassification(data.classification);
+                if (data.sub_classification) setSubClassification(data.sub_classification);
+                if (data.area) setLandArea(String(data.area));
+            } catch (err) {
+                console.error("Failed to load draft for step 3:", err);
+            }
+        };
+        load();
+    }, [draftId]);
+
     const { handleSave, isSaving } = useSaveDraft({
-        getFormData: () => ({ classification, subClassification }),
+        getFormData: () => ({ classification, sub_classification: subClassification, area: landArea }),
         draftId,
         apiEndpoint: "/api/faas/land-improvements",
     });
@@ -100,19 +144,59 @@ const LandOtherImprovementFormFillPage3 = () => {
                         >
                             <section className="rpfaas-fill-section">
                                 <h2 className="rpfaas-fill-section-title mb-4">Land Appraisal</h2>
-                                <LandClassificationForm
-                                    label="Classification"
-                                    value={classification}
-                                    onChange={(val) => {
-                                        setClassification(val);
-                                        setSubClassification("");
-                                    }}
-                                />
-                                <LandSubClassificationForm
-                                    classification={classification}
-                                    value={subClassification}
-                                    onChange={setSubClassification}
-                                />
+
+                                <div className="rpfaas-fill-field space-y-1">
+                                    <Label className="rpfaas-fill-label">Classification</Label>
+                                    <div className="relative">
+                                        <select
+                                            value={classification}
+                                            onChange={(e) => {
+                                                setClassification(e.target.value);
+                                                setSubClassification(""); // reset sub when classification changes
+                                            }}
+                                            disabled={availableCategories.length === 0}
+                                            className="rpfaas-fill-input appearance-none w-full disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            <option value="">
+                                                {availableCategories.length === 0
+                                                    ? "No SMV data for this municipality"
+                                                    : "Select classification"}
+                                            </option>
+                                            {availableCategories.map((cat) => (
+                                                <option key={cat} value={cat}>
+                                                    {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <svg className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M6 9l6 6 6-6" />
+                                        </svg>
+                                    </div>
+                                </div>
+
+                                <div className="rpfaas-fill-field space-y-1">
+                                    <Label className="rpfaas-fill-label">Sub-Classification</Label>
+                                    <div className="relative">
+                                        <select
+                                            value={subClassification}
+                                            onChange={(e) => setSubClassification(e.target.value)}
+                                            disabled={subClassificationOptions.length === 0}
+                                            className="rpfaas-fill-input appearance-none w-full disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            <option value="">
+                                                {subClassificationOptions.length === 0
+                                                    ? "Select classification first"
+                                                    : "Select sub-classification"}
+                                            </option>
+                                            {subClassificationOptions.map((sub) => (
+                                                <option key={sub} value={sub}>{sub}</option>
+                                            ))}
+                                        </select>
+                                        <svg className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M6 9l6 6 6-6" />
+                                        </svg>
+                                    </div>
+                                </div>
 
                                 <div className="rpfaas-fill-field space-y-1">
                                     <Label className="rpfaas-fill-label">Land Area</Label>
