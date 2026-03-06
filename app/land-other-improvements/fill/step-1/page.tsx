@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useCallback, memo, Suspense, useRef } from "react";
 import "@/app/styles/forms-fill.css";
+import { StepPagination, LAND_IMPROVEMENT_STEPS } from "@/components/ui/step-pagination";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -484,18 +485,17 @@ function LandOtherImprovementsFillPageContent() {
                 </div>
               </section>
 
-              <div className="rpfaas-fill-footer border-t border-border pt-4 mt-4">
-                <div className="rpfaas-fill-actions flex gap-2 justify-end">
-                  <Button
-                    type="button"
-                    onClick={handleNext}
-                    disabled={isSaving}
-                    className="rpfaas-fill-button rpfaas-fill-button-primary"
-                  >
-                    {isSaving ? <><Loader2 className="h-4 w-4 animate-spin" />Saving...</> : 'Next'}
-                  </Button>
-                </div>
-              </div>
+              <StepPagination
+                currentStep={1}
+                draftId={draftId}
+                isDirty={false}
+                onNext={handleNext}
+                isNextLoading={isSaving}
+                isNextDisabled={isSaving}
+                basePath="land-other-improvements"
+                steps={LAND_IMPROVEMENT_STEPS}
+                draftStorageKey="land_draft_id"
+              />
             </form>
           </div>
         </div>

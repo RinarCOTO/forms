@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect, useCallback, Suspense } from "react";
 import { checkIfDataIsApplied } from "@/lib/utils";
 import "@/app/styles/forms-fill.css";
+import { StepPagination, LAND_IMPROVEMENT_STEPS } from "@/components/ui/step-pagination";
 
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -136,6 +137,16 @@ const LandOtherImprovementFormFillPage3 = () => {
                             <div>
                                 <h1 className="rpfaas-fill-title">Fill-up form: Classification</h1>
                             </div>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={handleSave}
+                                disabled={isSaving}
+                                className="shrink-0"
+                            >
+                                {isSaving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving...</> : "Save Draft"}
+                            </Button>
                         </header>
                         <form
                             id={`form_${FORM_NAME}_main`}
@@ -204,43 +215,17 @@ const LandOtherImprovementFormFillPage3 = () => {
                                 </div>
                             </section>
 
-                            <div className="rpfaas-fill-footer border-t border-border pt-4 mt-4">
-                                <div className="rpfaas-fill-actions flex gap-2 justify-end">
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        onClick={() => router.push(`/land-other-improvements/fill/step-2${draftId ? `?id=${draftId}` : ""}`)}
-                                        className="rpfaas-fill-button rpfaas-fill-button-secondary"
-                                    >
-                                        Previous
-                                    </Button>
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        onClick={handleSave}
-                                        disabled={isSaving}
-                                        className="rpfaas-fill-button rpfaas-fill-button-secondary"
-                                    >
-                                        {isSaving ? (
-                                            <Loader2 className="h-4 w-4 animate-spin" />
-                                        ) : (
-                                            "Save Draft"
-                                        )}
-                                    </Button>
-                                    <Button
-                                        type="button"
-                                        onClick={handleNext}
-                                        disabled={isSaving}
-                                        className="rpfaas-fill-button rpfaas-fill-button-primary"
-                                    >
-                                        {isSaving ? (
-                                            <Loader2 className="h-4 w-4 animate-spin" />
-                                        ) : (
-                                            "Next"
-                                        )}
-                                    </Button>
-                                </div>
-                            </div>
+                            <StepPagination
+                                currentStep={3}
+                                draftId={draftId}
+                                isDirty={false}
+                                onNext={handleNext}
+                                isNextLoading={isSaving}
+                                isNextDisabled={isSaving}
+                                basePath="land-other-improvements"
+                                steps={LAND_IMPROVEMENT_STEPS}
+                                draftStorageKey="land_draft_id"
+                            />
                         </form>
                     </div>
                 </div>

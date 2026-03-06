@@ -24,6 +24,14 @@ export const FORM_STEPS = [
   { step: 6, label: "Assessment" },
 ] as const;
 
+export const LAND_IMPROVEMENT_STEPS = [
+  { step: 1, label: "Owner & Location" },
+  { step: 2, label: "Property Boundaries" },
+  { step: 3, label: "Land Details" },
+  { step: 4, label: "Deductions" },
+  { step: 5, label: "Assessment" },
+] as const;
+
 interface StepPaginationProps {
   currentStep: number;
   draftId: string | null;
@@ -34,6 +42,12 @@ interface StepPaginationProps {
   nextLabel?: React.ReactNode;
   isNextLoading?: boolean;
   isNextDisabled?: boolean;
+  /** Base path for step URLs, e.g. "building-other-structure" */
+  basePath?: string;
+  /** Step definitions to render */
+  steps?: readonly { step: number; label: string }[];
+  /** localStorage key used to read the draft id (default "draft_id") */
+  draftStorageKey?: string;
 }
 
 export function StepPagination({
@@ -44,6 +58,9 @@ export function StepPagination({
   nextLabel = "Next",
   isNextLoading = false,
   isNextDisabled = false,
+  basePath = "building-other-structure",
+  steps = FORM_STEPS,
+  draftStorageKey = "draft_id",
 }: StepPaginationProps) {
   const router = useRouter();
   const [showModal, setShowModal] = useState(false);
@@ -51,14 +68,14 @@ export function StepPagination({
   // Read localStorage after mount so we can include it in href attributes
   const [localId, setLocalId] = useState<string | null>(null);
   useEffect(() => {
-    const stored = localStorage.getItem("draft_id");
+    const stored = localStorage.getItem(draftStorageKey);
     if (stored) setLocalId(stored);
-  }, []);
+  }, [draftStorageKey]);
 
   const effectiveId = draftId ?? localId;
 
   const stepHref = (step: number) =>
-    `/building-other-structure/fill/step-${step}${effectiveId ? `?id=${effectiveId}` : ""}`;
+    `/${basePath}/fill/step-${step}${effectiveId ? `?id=${effectiveId}` : ""}`;
 
   const navigateTo = useCallback(
     (step: number) => {
@@ -122,7 +139,7 @@ export function StepPagination({
 
         {/* Center: Step number links */}
         <nav className="flex items-center gap-2" aria-label="Form steps">
-          {FORM_STEPS.map(({ step, label }) => {
+          {steps.map(({ step, label }) => {
             const isActive = step === currentStep;
             const isCompleted = step < currentStep;
             return (

@@ -1,6 +1,7 @@
 'use client'
 
 import { MinusIcon, PlusIcon, ChevronDown } from 'lucide-react'
+import React from 'react';
 import {
   Button,
   Group,
@@ -15,29 +16,30 @@ export interface SelectOption {
   id: string | number
   name: string
   percentage?: number
+  pricePerSqm?: number
 }
 
-interface DynamicSelectGroupProps {
+interface AdditionalTableProps {
   label: string
   options: SelectOption[]
   values: (string | number | null)[]
   onChange: (newValues: (string | number | null)[]) => void
+  areas: number[]
+  onAreasChange: (newAreas: number[]) => void
   placeholder?: string
-  unitCost: number // The base value from Step 2 (e.g., 25000)
-  columnLabel?: string
-  valueColumnLabel?: string
+  unitCost?: number
 }
 
-export function DynamicSelectGroup({
+export function AdditionalTable({
   label,
   options,
   values,
   onChange,
+  areas,
+  onAreasChange,
   placeholder = 'Select an option',
-  unitCost,
-  columnLabel = 'Deduction',
-  valueColumnLabel = 'Deduction Value (% of Unit Cost)',
-}: DynamicSelectGroupProps) {
+  unitCost = 0
+}: AdditionalTableProps) {
 
   const handleSelectChange = (index: number, newValue: string | number | null) => {
     const newValues = [...values]
@@ -47,30 +49,34 @@ export function DynamicSelectGroup({
 
   const addRow = () => {
     if (values.length >= options.length) return;
-    onChange([...values, null])
+    onChange([...values, null]);
+    onAreasChange([...areas, 0]);
   }
 
   const removeRow = (index: number) => {
     if (values.length <= 1) {
-      onChange([null])
-      return
+      onChange([null]);
+      onAreasChange([0]);
+      return;
     }
-    const newValues = values.filter((_, i) => i !== index)
-    onChange(newValues)
+    const newValues = values.filter((_, i) => i !== index);
+    const newAreas = areas.filter((_, i) => i !== index);
+    onChange(newValues);
+    onAreasChange(newAreas);
   }
 
   const isLimitReached = values.length >= options.length;
 
   return (
+    <section className='bg-card rounded-lg border p-6 shadow-sm mb-6'>
     <div className="w-full space-y-4">
       <div className="overflow-hidden rounded-lg border border-border">
         <table className="w-full border-collapse text-sm">
           <thead className="bg-muted/50">
             <tr>
-              <th className="border-b px-4 py-2 text-left font-medium text-muted-foreground">{columnLabel}</th>
-              <th className="border-b px-4 py-2 text-center font-medium text-muted-foreground w-48">
-                {valueColumnLabel}
-              </th>
+              <th className="border-b px-4 py-2 text-left font-medium text-muted-foreground">{label}</th>
+              <th className="border-b px-4 py-2 text-left font-medium text-muted-foreground">Area (sqm)</th>
+              <th className="border-b px-4 py-2 text-center font-medium text-muted-foreground w-48">Unit Value</th>
               <th className="border-b px-4 py-2 text-center font-medium text-muted-foreground w-16">Action</th>
             </tr>
           </thead>
@@ -85,10 +91,15 @@ export function DynamicSelectGroup({
               );
 
               const selectedOption = options.find(opt => String(opt.id) === String(value));
-              
-              // Calculation: (Unit Cost * Percentage) / 100
+
               const percentage = selectedOption?.percentage || 0;
-              const computedAmount = (unitCost * percentage) / 100;
+              const flatRate = selectedOption?.pricePerSqm || 0;
+              const computedValue = percentage > 0
+                ? (unitCost * percentage) / 100
+                : flatRate;
+
+              const areaValue = areas[index] || 0;
+              const deductionCost = computedValue * areaValue;
 
               return (
                 <tr key={index} className="hover:bg-muted/20 transition-colors">
@@ -96,7 +107,7 @@ export function DynamicSelectGroup({
                     <Select
                       selectedKey={value === null ? null : String(value)}
                       onSelectionChange={(key) => handleSelectChange(index, key)}
-                      aria-label={`${columnLabel} ${index + 1}`}
+                      aria-label={`Item ${index + 1}`}
                       placeholder={placeholder}
                       className="w-full"
                     >
@@ -109,15 +120,17 @@ export function DynamicSelectGroup({
                       <Popover className="min-w-[--trigger-width] border bg-popover text-popover-foreground shadow-md rounded-md z-50">
                         <ListBox className="max-h-[200px] overflow-auto p-1 outline-none">
                           {availableOptions.map((opt) => (
-                            <ListBoxItem 
-                              key={String(opt.id)} 
-                              id={String(opt.id)} 
+                            <ListBoxItem
+                              key={String(opt.id)}
+                              id={String(opt.id)}
                               textValue={opt.name}
                               className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 outline-none data-[focused]:bg-accent data-[focused]:text-accent-foreground"
                             >
                               <div className="flex justify-between w-full">
                                 <span>{opt.name}</span>
-                                <span className="text-muted-foreground">{opt.percentage}%</span>
+                                <span className="text-muted-foreground">
+                                  {opt.percentage ? `${opt.percentage}%` : opt.pricePerSqm ? `₱${opt.pricePerSqm}/sqm` : ''}
+                                </span>
                               </div>
                             </ListBoxItem>
                           ))}
@@ -126,15 +139,31 @@ export function DynamicSelectGroup({
                     </Select>
                   </td>
 
-                  {/* COMPUTED VALUE DISPLAY */}
+                  <td className="p-2 text-center">
+                    <div className="flex items-center justify-center gap-1">
+                      <input
+                        type="number"
+                        min="0"
+                        step="any"
+                        className="w-24 rounded-md border border-input bg-background px-2 py-1 text-right focus:outline-none focus:ring-2 focus:ring-ring"
+                        placeholder="0"
+                        value={areas[index] === 0 ? '' : areas[index]}
+                        onChange={e => {
+                          const val = parseFloat(e.target.value);
+                          const newAreas = [...areas];
+                          newAreas[index] = isNaN(val) ? 0 : val;
+                          onAreasChange(newAreas);
+                        }}
+                      />
+                      <span className="text-xs text-muted-foreground">sqm</span>
+                    </div>
+                  </td>
+
                   <td className="p-2 text-center">
                     {selectedOption ? (
                       <div className="flex flex-col">
                         <span className="font-mono font-bold text-destructive">
-                          - ₱{computedAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                        </span>
-                        <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                          ({percentage}% of ₱{unitCost.toLocaleString()})
+                          ₱{deductionCost.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                         </span>
                       </div>
                     ) : (
@@ -165,8 +194,9 @@ export function DynamicSelectGroup({
         className="flex w-full items-center justify-center gap-2 rounded-md border border-dashed border-input py-2 text-sm font-medium hover:bg-accent disabled:opacity-50"
       >
         <PlusIcon className="h-4 w-4" />
-        Add another {columnLabel.toLowerCase()}
+        Add another item
       </Button>
     </div>
+    </section>
   )
 }
