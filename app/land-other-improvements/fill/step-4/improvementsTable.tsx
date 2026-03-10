@@ -1,10 +1,19 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { MinusIcon, PlusIcon, ChevronDown } from "lucide-react";
 import { Button, Group, ListBox, ListBoxItem, Popover, Select, SelectValue } from "react-aria-components";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button as ShadButton } from "@/components/ui/button";
 import { SelectOption as BaseSelectOption } from "@/components/dynamicSelectButton";
 
 export interface SelectOption extends BaseSelectOption {
@@ -108,16 +117,16 @@ export default function TotalImprovements({
       };
     }, [unitCost, totalArea, deductionSelections, deductionOptions, addPercentSelections, addPercentAreas, addPercentOptions, addFlatSelections, addFlatAreas, addFlatOptions]);
 
-  const renderRows = (rows: CalculatedRow[]) =>
+  const renderRows = (rows: CalculatedRow[], showArea = true) =>
     rows.map((row, i) => (
-      <tr key={`${row.rowType}-${i}`} className="hover:bg-muted/10">
+      <tr key={`${row.rowType}-${i}`} className="hover:bg-(--chart-2)/10">
         <td className="px-4 py-2 font-medium">
           {row.name}
           <span className="text-xs text-muted-foreground ml-1">
             {row.percentage ? `(${row.percentage}%)` : `(₱${row.pricePerSqm}/sqm)`}
           </span>
         </td>
-        <td className="px-4 py-2 text-center">{row.appliedArea} sqm</td>
+        {showArea && <td className="px-4 py-2 text-center">{row.appliedArea} sqm</td>}
         <td className={`px-4 py-2 text-right font-medium ${row.isDeduction ? "text-destructive" : "text-emerald-600"}`}>
           {row.isDeduction ? "-" : "+"}₱{formatCurrency(row.amount)}
         </td>
@@ -153,16 +162,15 @@ export default function TotalImprovements({
           <thead className="bg-primary/10">
             <tr>
               <th className="px-4 py-2 text-left text-gray-800 font-bold">Description</th>
-              <th className="px-4 py-2 text-center text-gray-800 font-bold">Applied Area</th>
               <th className="px-4 py-2 text-right text-gray-800 font-bold">Value Impact</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border bg-background">
             {percentRows.length === 0 && flatRows.length === 0 && (
-              <tr><td colSpan={3} className="p-4 text-center text-muted-foreground">No additionals applied.</td></tr>
+              <tr><td colSpan={2} className="p-4 text-center text-muted-foreground">No additionals applied.</td></tr>
             )}
-            {renderRows(percentRows)}
-            {renderRows(flatRows)}
+            {renderRows(percentRows, false)}
+            {renderRows(flatRows, false)}
           </tbody>
         </table>
       </div>
@@ -207,13 +215,18 @@ export const DeductionsTable = ({
   const formatCurrency = (value: number) =>
     value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+  const [pendingRemoveIndex, setPendingRemoveIndex] = useState<number | null>(null);
+
   const addRow = () => {
     if (selections.length >= deductionChoices.length && deductionChoices.length > 0) return;
     onSelectionChange([...selections, null]);
     onQuantitiesChange([...quantities, 0]);
   };
 
-  const removeRow = (index: number) => {
+  const confirmRemove = () => {
+    if (pendingRemoveIndex === null) return;
+    const index = pendingRemoveIndex;
+    setPendingRemoveIndex(null);
     if (selections.length <= 1) {
       onSelectionChange([null]);
       onQuantitiesChange([0]);
@@ -268,7 +281,7 @@ export const DeductionsTable = ({
                 const baseMarketValue = unitValue * qty;
 
                 return (
-                  <tr key={index} className="hover:bg-muted/20 transition-colors">
+                  <tr key={index} className="hover:bg-(--chart-2)/10 transition-colors">
                     {/* Col 1: Kind */}
                     <td className="p-2">
                       <Select
@@ -285,7 +298,7 @@ export const DeductionsTable = ({
                           </Button>
                         </Group>
                         <Popover className="min-w-[--trigger-width] border bg-popover text-popover-foreground shadow-md rounded-md z-50">
-                          <ListBox className="max-h-[200px] overflow-auto p-1 outline-none">
+                          <ListBox className="p-1 outline-none">
                             {availableOptions.map((opt) => (
                               <ListBoxItem
                                 key={String(opt.id)}
@@ -293,7 +306,12 @@ export const DeductionsTable = ({
                                 textValue={opt.name}
                                 className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 outline-none data-[focused]:bg-accent data-[focused]:text-accent-foreground"
                               >
-                                {opt.name}
+                                <div className="flex justify-between w-full">
+                                  <span>{opt.name}</span>
+                                  <span className="text-muted-foreground ml-4">
+                                    {opt.percentage ? `${opt.percentage}%` : opt.pricePerSqm ? `₱${opt.pricePerSqm}/sqm` : ""}
+                                  </span>
+                                </div>
                               </ListBoxItem>
                             ))}
                           </ListBox>
@@ -335,8 +353,8 @@ export const DeductionsTable = ({
                     <td className="p-2 text-center">
                       <Button
                         type="button"
-                        onPress={() => removeRow(index)}
-                        className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:text-destructive transition-colors"
+                        onPress={() => setPendingRemoveIndex(index)}
+                        className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-[oklch(0.5800_0.2200_27)]/15 hover:text-[oklch(0.5800_0.2200_27)] transition-colors"
                       >
                         <MinusIcon className="h-4 w-4" />
                       </Button>
@@ -358,6 +376,19 @@ export const DeductionsTable = ({
           Add another improvement
         </Button>
       </div>
+
+      <Dialog open={pendingRemoveIndex !== null} onOpenChange={(open) => { if (!open) setPendingRemoveIndex(null); }}>
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>Remove Improvement</DialogTitle>
+            <DialogDescription>Are you sure you want to remove this improvement? This action cannot be undone.</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <ShadButton variant="outline" onClick={() => setPendingRemoveIndex(null)}>Cancel</ShadButton>
+            <ShadButton variant="destructive" onClick={confirmRemove}>Remove</ShadButton>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 };
@@ -395,12 +426,17 @@ export const AdjustmentTable = ({
     onChange(next);
   };
 
+  const [pendingRemoveIndex, setPendingRemoveIndex] = useState<number | null>(null);
+
   const addRow = () => {
     if (options.length > 0 && values.length >= options.length) return;
     onChange([...values, null]);
   };
 
-  const removeRow = (index: number) => {
+  const confirmRemove = () => {
+    if (pendingRemoveIndex === null) return;
+    const index = pendingRemoveIndex;
+    setPendingRemoveIndex(null);
     if (values.length <= 1) { onChange([null]); return; }
     onChange(values.filter((_, i) => i !== index));
   };
@@ -433,7 +469,7 @@ export const AdjustmentTable = ({
                 const selectedOpt = options.find((o) => String(o.id) === String(value));
 
                 return (
-                  <tr key={index} className="hover:bg-muted/20 transition-colors">
+                  <tr key={index} className="hover:bg-(--chart-2)/10 transition-colors">
                     <td className="p-2">
                       <Select
                         selectedKey={value === null ? null : String(value)}
@@ -449,7 +485,7 @@ export const AdjustmentTable = ({
                           </Button>
                         </Group>
                         <Popover className="min-w-[--trigger-width] border bg-popover text-popover-foreground shadow-md rounded-md z-50">
-                          <ListBox className="max-h-[200px] overflow-auto p-1 outline-none">
+                          <ListBox className="p-1 outline-none">
                             {availableOptions.map((opt) => (
                               <ListBoxItem
                                 key={String(opt.id)}
@@ -479,8 +515,8 @@ export const AdjustmentTable = ({
                     <td className="p-2 text-center">
                       <Button
                         type="button"
-                        onPress={() => removeRow(index)}
-                        className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:text-destructive transition-colors"
+                        onPress={() => setPendingRemoveIndex(index)}
+                        className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-[oklch(0.5800_0.2200_27)]/15 hover:text-[oklch(0.5800_0.2200_27)] transition-colors"
                       >
                         <MinusIcon className="h-4 w-4" />
                       </Button>
@@ -501,6 +537,19 @@ export const AdjustmentTable = ({
           <PlusIcon className="h-4 w-4" />
           Add another adjustment
         </Button>
+
+        <Dialog open={pendingRemoveIndex !== null} onOpenChange={(open) => { if (!open) setPendingRemoveIndex(null); }}>
+          <DialogContent showCloseButton={false}>
+            <DialogHeader>
+              <DialogTitle>Remove Adjustment</DialogTitle>
+              <DialogDescription>Are you sure you want to remove this adjustment? This action cannot be undone.</DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <ShadButton variant="outline" onClick={() => setPendingRemoveIndex(null)}>Cancel</ShadButton>
+              <ShadButton variant="destructive" onClick={confirmRemove}>Remove</ShadButton>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Summary rows */}
         <div className="flex flex-col gap-2 p-4 bg-primary/10 rounded-md border border-primary/20 mt-2">

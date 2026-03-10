@@ -23,8 +23,7 @@ export interface agriculturalImprovementRow {
 export interface MunicipalityData {
   commercial: SmvRow[];
   residential: SmvRow[];
-  agricultural: SmvRow[];
-  agriculturalLand: AgriculturalLandRow[];
+  agricultural: AgriculturalLandRow[];
   agriculturalImprovementRow?: agriculturalImprovementRow[];
 }
 
@@ -33,14 +32,21 @@ export const municipalityData: Record<string, MunicipalityData> = {
     commercial: [],
     residential: [],
     agricultural: [],
-    agriculturalLand: [],
     agriculturalImprovementRow: [],
   },
   bauko: {
     commercial: [],
     residential: [],
-    agricultural: [],
-    agriculturalLand: [],
+    agricultural: [
+  { landType: "Riceland w/ irrigation", first: "₱ 60,810.00", second: "₱ 53,110.00", third: "₱ 38,640.00", fourth: "₱ 31,130.00" },
+  { landType: "Fishpond", first: "₱ 47,260.00", second: "₱ 43,290.00", third: "₱ 27,550.00", fourth: "₱ 23,620.00" },
+  { landType: "Rootcrop Land", first: "₱ 57,150.00", second: "₱ 42,900.00", third: "₱ 28,570.00", fourth: "-" },
+  { landType: "Fruit Land", first: "₱ 66,400.00", second: "₱ 42,360.00", third: "₱ 18,590.00", fourth: "-" },
+  { landType: "Vegetable Land", first: "₱ 45,350.00", second: "₱ 34,050.00", third: "₱ 22,680.00", fourth: "-" },
+  { landType: "Pinetree Land", first: "₱ 14,080.00", second: "-", third: "-", fourth: "-" },
+  { landType: "Pasture Land", first: "₱ 10,880.00", second: "-", third: "-", fourth: "-" },
+  { landType: "Cogon Land", first: "₱ 8,030.00", second: "-", third: "-", fourth: "-" }
+    ],
     agriculturalImprovementRow: [],
   },
   besao: {
@@ -78,8 +84,7 @@ export const municipalityData: Record<string, MunicipalityData> = {
         subClassification: "R-4",
       },
     ],
-    agricultural: [],
-    agriculturalLand: [
+    agricultural: [
       { landType: "Riceland w/ irrigation", first: "₱ 63,480.00", second: "₱ 55,640.00", third: "₱ 40,340.00", fourth: "₱ 32,500.00" },
       { landType: "Fishpond", first: "₱ 47,260.00", second: "₱ 43,290.00", third: "₱ 27,550.00", fourth: "₱ 23,620.00" },
       { landType: "Rootcrop Land", first: "₱ 53,910.00", second: "₱ 40,420.00", third: "₱ 26,920.00", fourth: "-" },
@@ -122,26 +127,25 @@ export const municipalityData: Record<string, MunicipalityData> = {
         subClassification: "R-2",
       }
     ],
-    agricultural: [],
-    agriculturalLand: [
-    { landType: "Riceland w/ irrigation", first: "₱ 91,740.00", second: "₱ 80,410.00", third: "₱ 58,310.00", fourth: "₱ 47,530.00" },
-    { landType: "Fishpond", first: "₱ 47,260.00", second: "₱ 43,290.00", third: "₱ 27,550.00", fourth: "₱ 23,620.00" },
-    { landType: "Rootcrop Land", first: "₱ 65,470.00", second: "₱ 49,050.00", third: "₱ 32,700.00", fourth: "-" },
-    { landType: "Vegetable Land", first: "₱ 45,350.00", second: "₱ 34,050.00", third: "₱ 22,680.00", fourth: "-" },
-    { landType: "Fruit Land", first: "₱ 66,400.00", second: "₱ 42,360.00", third: "₱ 18,590.00", fourth: "-" },
-    { landType: "Pinetree Land", first: "₱ 14,080.00", second: "-", third: "-", fourth: "-" },
-    { landType: "Pasture Land", first: "₱ 10,880.00", second: "-", third: "-", fourth: "-" },
-    { landType: "Cogon Land", first: "₱ 8,030.00", second: "-", third: "-", fourth: "-" }
+    agricultural: [
+      { landType: "Riceland w/ irrigation", first: "₱ 91,740.00", second: "₱ 80,410.00", third: "₱ 58,310.00", fourth: "₱ 47,530.00" },
+      { landType: "Fishpond", first: "₱ 47,260.00", second: "₱ 43,290.00", third: "₱ 27,550.00", fourth: "₱ 23,620.00" },
+      { landType: "Rootcrop Land", first: "₱ 65,470.00", second: "₱ 49,050.00", third: "₱ 32,700.00", fourth: "-" },
+      { landType: "Vegetable Land", first: "₱ 45,350.00", second: "₱ 34,050.00", third: "₱ 22,680.00", fourth: "-" },
+      { landType: "Fruit Land", first: "₱ 66,400.00", second: "₱ 42,360.00", third: "₱ 18,590.00", fourth: "-" },
+      { landType: "Pinetree Land", first: "₱ 14,080.00", second: "-", third: "-", fourth: "-" },
+      { landType: "Pasture Land", first: "₱ 10,880.00", second: "-", third: "-", fourth: "-" },
+      { landType: "Cogon Land", first: "₱ 8,030.00", second: "-", third: "-", fourth: "-" }
     ],
     agriculturalImprovementRow: [
-    { type: "Avocado", first: "₱ 820.00", second: "₱ 580.00", third: "₱ 340.00" },
-    { type: "Banana", first: "₱ 190.00", second: "₱ 130.00", third: "₱ 80.00" },
-    { type: "Calamansi", first: "₱ 160.00", second: "₱ 110.00", third: "₱ 80.00" },
-    { type: "Coconut", first: "₱ 210.00", second: "₱ 130.00", third: "₱ 80.00" },
-    { type: "Coffee/Cacao", first: "₱ 190.00", second: "₱ 140.00", third: "₱ 80.00" },
-    { type: "Mango", first: "₱ 960.00", second: "₱ 600.00", third: "₱ 360.00" },
-    { type: "Orange", first: "₱ 200.00", second: "₱ 150.00", third: "₱ 100.00" }
-],
+      { type: "Avocado", first: "₱ 820.00", second: "₱ 580.00", third: "₱ 340.00" },
+      { type: "Banana", first: "₱ 190.00", second: "₱ 130.00", third: "₱ 80.00" },
+      { type: "Calamansi", first: "₱ 160.00", second: "₱ 110.00", third: "₱ 80.00" },
+      { type: "Coconut", first: "₱ 210.00", second: "₱ 130.00", third: "₱ 80.00" },
+      { type: "Coffee/Cacao", first: "₱ 190.00", second: "₱ 140.00", third: "₱ 80.00" },
+      { type: "Mango", first: "₱ 960.00", second: "₱ 600.00", third: "₱ 360.00" },
+      { type: "Orange", first: "₱ 200.00", second: "₱ 150.00", third: "₱ 100.00" }
+    ],
   },
   natonin: {
     commercial: [{
@@ -149,52 +153,51 @@ export const municipalityData: Record<string, MunicipalityData> = {
       year2006: "34.30",
       year2012: "68.00",
       subClassification: "C-1",
-    },],
+    }],
     residential: [
       {
-      location: "a) Residential lots located along the National Road of Barangay Poblacion, Bananao, Tonglayan, Pudo, Alunogan, Sta. Isabel, Saliok and Banawal; Residential lots located along the Municipal Road within Poblacion.",
-      year2006: "34.30",
-      year2012: "68.00",
-      subClassification: "R-1",
-    },
+        location: "a) Residential lots located along the National Road of Barangay Poblacion, Bananao, Tonglayan, Pudo, Alunogan, Sta. Isabel, Saliok and Banawal; Residential lots located along the Municipal Road within Poblacion.",
+        year2006: "34.30",
+        year2012: "68.00",
+        subClassification: "R-1",
+      },
       {
-      location: "b) Residential lots located within the Barangays of Sta. Isabel, Banawal, Saliok, Tonglayan, Bananao, Pudo ,Butac and Poblacion.",
-      year2006: "27.90",
-      year2012: "55.00",
-      subClassification: "R-2",
-    },
+        location: "b) Residential lots located within the Barangays of Sta. Isabel, Banawal, Saliok, Tonglayan, Bananao, Pudo ,Butac and Poblacion.",
+        year2006: "27.90",
+        year2012: "55.00",
+        subClassification: "R-2",
+      },
       {
-      location: "c) Residential lots located within Barangays of the Alunogan,Balangao, Banawal, Pudo, Sta. Isabel, Bananao, Saliok, Tonglayan with a distance of 1/2 km. to 3km away from the road.",
-      year2006: "20.50",
-      year2012: "39.50",
-      subClassification: "R-3",
-    },
+        location: "c) Residential lots located within Barangays of the Alunogan,Balangao, Banawal, Pudo, Sta. Isabel, Bananao, Saliok, Tonglayan with a distance of 1/2 km. to 3km away from the road.",
+        year2006: "20.50",
+        year2012: "39.50",
+        subClassification: "R-3",
+      },
       {
-      location: "d) Residential lots located within the Barangay of Maducayan",
-      year2006: "12.70",
-      year2012: "25.00",
-      subClassification: "R-4",
-    },
-  ],
-    agricultural: [],
-    agriculturalLand: [
-  { landType: "Riceland w/ irrigation", first: "₱ 63,830.00", second: "₱ 55,750.00", third: "₱ 40,370.00", fourth: "₱ 32,680.00" },
-  { landType: "Fishpond", first: "₱ 47,260.00", second: "₱ 43,290.00", third: "₱ 27,550.00", fourth: "₱ 23,620.00" },
-  { landType: "Fruit Land", first: "₱ 66,400.00", second: "₱ 42,360.00", third: "₱ 18,590.00", fourth: "-" },
-  { landType: "Vegetable Land", first: "₱ 45,350.00", second: "₱ 34,050.00", third: "₱ 22,680.00", fourth: "-" },
-  { landType: "Rootcrop Land", first: "₱ 51,000.00", second: "₱ 38,250.00", third: "₱ 25,470.00", fourth: "-" },
-  { landType: "Pinetree Land", first: "₱ 14,080.00", second: "-", third: "-", fourth: "-" },
-  { landType: "Pasture Land", first: "₱ 10,880.00", second: "-", third: "-", fourth: "-" },
-  { landType: "Cogon Land", first: "₱ 8,030.00", second: "-", third: "-", fourth: "-" }
+        location: "d) Residential lots located within the Barangay of Maducayan",
+        year2006: "12.70",
+        year2012: "25.00",
+        subClassification: "R-4",
+      },
+    ],
+    agricultural: [
+      { landType: "Riceland w/ irrigation", first: "₱ 63,830.00", second: "₱ 55,750.00", third: "₱ 40,370.00", fourth: "₱ 32,680.00" },
+      { landType: "Fishpond", first: "₱ 47,260.00", second: "₱ 43,290.00", third: "₱ 27,550.00", fourth: "₱ 23,620.00" },
+      { landType: "Fruit Land", first: "₱ 66,400.00", second: "₱ 42,360.00", third: "₱ 18,590.00", fourth: "-" },
+      { landType: "Vegetable Land", first: "₱ 45,350.00", second: "₱ 34,050.00", third: "₱ 22,680.00", fourth: "-" },
+      { landType: "Rootcrop Land", first: "₱ 51,000.00", second: "₱ 38,250.00", third: "₱ 25,470.00", fourth: "-" },
+      { landType: "Pinetree Land", first: "₱ 14,080.00", second: "-", third: "-", fourth: "-" },
+      { landType: "Pasture Land", first: "₱ 10,880.00", second: "-", third: "-", fourth: "-" },
+      { landType: "Cogon Land", first: "₱ 8,030.00", second: "-", third: "-", fourth: "-" }
     ],
     agriculturalImprovementRow: [
-  { type: "Avocado", first: "₱ 820.00", second: "₱ 580.00", third: "₱ 340.00" },
-  { type: "Banana", first: "₱ 190.00", second: "₱ 130.00", third: "₱ 80.00" },
-  { type: "Calamansi", first: "₱ 160.00", second: "₱ 110.00", third: "₱ 80.00" },
-  { type: "Coconut", first: "₱ 210.00", second: "₱ 130.00", third: "₱ 80.00" },
-  { type: "Coffee/Cacao", first: "₱ 190.00", second: "₱ 140.00", third: "₱ 80.00" },
-  { type: "Mango", first: "₱ 960.00", second: "₱ 600.00", third: "₱ 360.00" },
-  { type: "Orange", first: "₱ 200.00", second: "₱ 150.00", third: "₱ 100.00" }
+      { type: "Avocado", first: "₱ 820.00", second: "₱ 580.00", third: "₱ 340.00" },
+      { type: "Banana", first: "₱ 190.00", second: "₱ 130.00", third: "₱ 80.00" },
+      { type: "Calamansi", first: "₱ 160.00", second: "₱ 110.00", third: "₱ 80.00" },
+      { type: "Coconut", first: "₱ 210.00", second: "₱ 130.00", third: "₱ 80.00" },
+      { type: "Coffee/Cacao", first: "₱ 190.00", second: "₱ 140.00", third: "₱ 80.00" },
+      { type: "Mango", first: "₱ 960.00", second: "₱ 600.00", third: "₱ 360.00" },
+      { type: "Orange", first: "₱ 200.00", second: "₱ 150.00", third: "₱ 100.00" }
     ],
   },
   paracelis: {
@@ -226,49 +229,47 @@ export const municipalityData: Record<string, MunicipalityData> = {
         subClassification: "R-3",
       },
     ],
-    agricultural: [],
-    agriculturalLand: [
-  { landType: "Riceland w/ irrigation", first: "61,590.00", second: "53,980.00", third: "39,140.00", fourth: "31,530.00" },
-  { landType: "Fishpond", first: "47,260.00", second: "43,290.00", third: "27,550.00", fourth: "23,620.00" },
-  { landType: "Riceland, upland", first: "35,840.00", second: "29,620.00", third: "23,620.00", fourth: "-" },
-  { landType: "Cornland", first: "30,610.00", second: "24,490.00", third: "18,340.00", fourth: "-" },
-  { landType: "Riceland w/o Irrig.", first: "40,620.00", second: "34,910.00", third: "29,200.00", fourth: "-" },
-  { landType: "Fruit Land", first: "66,400.00", second: "43,360.00", third: "18,590.00", fourth: "-" },
-  { landType: "Pasture Land", first: "10,880.00", second: "-", third: "-", fourth: "-" },
-  { landType: "Cogon Land", first: "8,030.00", second: "-", third: "-", fourth: "-" }
+    agricultural: [
+      { landType: "Riceland w/ irrigation", first: "61,590.00", second: "53,980.00", third: "39,140.00", fourth: "31,530.00" },
+      { landType: "Fishpond", first: "47,260.00", second: "43,290.00", third: "27,550.00", fourth: "23,620.00" },
+      { landType: "Riceland, upland", first: "35,840.00", second: "29,620.00", third: "23,620.00", fourth: "-" },
+      { landType: "Cornland", first: "30,610.00", second: "24,490.00", third: "18,340.00", fourth: "-" },
+      { landType: "Riceland w/o Irrig.", first: "40,620.00", second: "34,910.00", third: "29,200.00", fourth: "-" },
+      { landType: "Fruit Land", first: "66,400.00", second: "43,360.00", third: "18,590.00", fourth: "-" },
+      { landType: "Pasture Land", first: "10,880.00", second: "-", third: "-", fourth: "-" },
+      { landType: "Cogon Land", first: "8,030.00", second: "-", third: "-", fourth: "-" }
     ],
     agriculturalImprovementRow: [
-  { type: "Avocado", first: "₱ 820.00", second: "₱ 580.00", third: "₱ 340.00" },
-  { type: "Banana", first: "190.00", second: "130.00", third: "80.00" },
-  { type: "Calamansi", first: "160.00", second: "110.00", third: "80.00" },
-  { type: "Coconut", first: "210.00", second: "130.00", third: "80.00" },
-  { type: "Coffee/Cacao", first: "190.00", second: "140.00", third: "80.00" },
-  { type: "Mango", first: "960.00", second: "600.00", third: "360.00" },
-  { type: "Orange", first: "200.00", second: "150.00", third: "100.00" }
+      { type: "Avocado", first: "₱ 820.00", second: "₱ 580.00", third: "₱ 340.00" },
+      { type: "Banana", first: "190.00", second: "130.00", third: "80.00" },
+      { type: "Calamansi", first: "160.00", second: "110.00", third: "80.00" },
+      { type: "Coconut", first: "210.00", second: "130.00", third: "80.00" },
+      { type: "Coffee/Cacao", first: "190.00", second: "140.00", third: "80.00" },
+      { type: "Mango", first: "960.00", second: "600.00", third: "360.00" },
+      { type: "Orange", first: "200.00", second: "150.00", third: "100.00" }
     ],
   },
   sabangan: {
     commercial: [],
     residential: [],
-    agricultural: [],
-    agriculturalLand: [
-  { landType: "Riceland w/ irrigation", first: "₱ 60,810.00", second: "₱ 53,110.00", third: "₱ 38,640.00", fourth: "₱ 31,130.00" },
-  { landType: "Fishpond", first: "47,260.00", second: "43,290.00", third: "27,550.00", fourth: "23,620.00" },
-  { landType: "Rootcrop Land", first: "57,150.00", second: "42,900.00", third: "28,570.00", fourth: "-" },
-  { landType: "Fruit Land", first: "66,400.00", second: "42,360.00", third: "18,590.00", fourth: "-" },
-  { landType: "Vegetable Land", first: "45,350.00", second: "34,050.00", third: "22,680.00", fourth: "-" },
-  { landType: "Pinetree Land", first: "14,080.00", second: "-", third: "-", fourth: "-" },
-  { landType: "Pasture Land", first: "10,880.00", second: "-", third: "-", fourth: "-" },
-  { landType: "Cogon Land", first: "8,030.00", second: "-", third: "-", fourth: "-" }
+    agricultural: [
+      { landType: "Riceland w/ irrigation", first: "₱ 60,810.00", second: "₱ 53,110.00", third: "₱ 38,640.00", fourth: "₱ 31,130.00" },
+      { landType: "Fishpond", first: "47,260.00", second: "43,290.00", third: "27,550.00", fourth: "23,620.00" },
+      { landType: "Rootcrop Land", first: "57,150.00", second: "42,900.00", third: "28,570.00", fourth: "-" },
+      { landType: "Fruit Land", first: "66,400.00", second: "42,360.00", third: "18,590.00", fourth: "-" },
+      { landType: "Vegetable Land", first: "45,350.00", second: "34,050.00", third: "22,680.00", fourth: "-" },
+      { landType: "Pinetree Land", first: "14,080.00", second: "-", third: "-", fourth: "-" },
+      { landType: "Pasture Land", first: "10,880.00", second: "-", third: "-", fourth: "-" },
+      { landType: "Cogon Land", first: "8,030.00", second: "-", third: "-", fourth: "-" }
     ],
     agriculturalImprovementRow: [
-  { type: "Avocado", first: "₱ 820.00", second: "₱ 580.00", third: "₱ 340.00" },
-  { type: "Banana", first: "190.00", second: "130.00", third: "80.00" },
-  { type: "Calamansi", first: "160.00", second: "110.00", third: "80.00" },
-  { type: "Coconut", first: "210.00", second: "130.00", third: "80.00" },
-  { type: "Coffee/Cacao", first: "190.00", second: "140.00", third: "80.00" },
-  { type: "Mango", first: "960.00", second: "600.00", third: "360.00" },
-  { type: "Orange", first: "200.00", second: "150.00", third: "100.00" }
+      { type: "Avocado", first: "₱ 820.00", second: "₱ 580.00", third: "₱ 340.00" },
+      { type: "Banana", first: "190.00", second: "130.00", third: "80.00" },
+      { type: "Calamansi", first: "160.00", second: "110.00", third: "80.00" },
+      { type: "Coconut", first: "210.00", second: "130.00", third: "80.00" },
+      { type: "Coffee/Cacao", first: "190.00", second: "140.00", third: "80.00" },
+      { type: "Mango", first: "960.00", second: "600.00", third: "360.00" },
+      { type: "Orange", first: "200.00", second: "150.00", third: "100.00" }
     ],
   },
   sadanga: {
@@ -294,36 +295,35 @@ export const municipalityData: Record<string, MunicipalityData> = {
         subClassification: "R-3",
       },
     ],
-    agricultural: [],
-    agriculturalLand: [
-  { landType: "Riceland w/ irrigation", first: "₱ 63,830.00", second: "₱ 55,750.00", third: "₱ 40,370.00", fourth: "₱ 32,680.00" },
-  { landType: "Fishpond", first: "47,260.00", second: "43,290.00", third: "27,550.00", fourth: "23,620.00" },
-  { landType: "Vegetable Land", first: "45,350.00", second: "34,050.00", third: "22,680.00", fourth: "-" },
-  { landType: "Fruit Land", first: "66,400.00", second: "42,360.00", third: "18,590.00", fourth: "-" },
-  { landType: "Rootcrop Land", first: "54,990.00", second: "41,250.00", third: "27,470.00", fourth: "-" },
-  { landType: "Pinetree Land", first: "14,080.00", second: "-", third: "-", fourth: "-" },
-  { landType: "Pasture Land", first: "10,880.00", second: "-", third: "-", fourth: "-" },
-  { landType: "Cogon Land", first: "8,030.00", second: "-", third: "-", fourth: "-" }
+    agricultural: [
+      { landType: "Riceland w/ irrigation", first: "₱ 63,830.00", second: "₱ 55,750.00", third: "₱ 40,370.00", fourth: "₱ 32,680.00" },
+      { landType: "Fishpond", first: "47,260.00", second: "43,290.00", third: "27,550.00", fourth: "23,620.00" },
+      { landType: "Vegetable Land", first: "45,350.00", second: "34,050.00", third: "22,680.00", fourth: "-" },
+      { landType: "Fruit Land", first: "66,400.00", second: "42,360.00", third: "18,590.00", fourth: "-" },
+      { landType: "Rootcrop Land", first: "54,990.00", second: "41,250.00", third: "27,470.00", fourth: "-" },
+      { landType: "Pinetree Land", first: "14,080.00", second: "-", third: "-", fourth: "-" },
+      { landType: "Pasture Land", first: "10,880.00", second: "-", third: "-", fourth: "-" },
+      { landType: "Cogon Land", first: "8,030.00", second: "-", third: "-", fourth: "-" }
     ],
     agriculturalImprovementRow: [
-  { type: "Avocado", first: "₱ 820.00", second: "₱ 580.00", third: "₱ 340.00" },
-  { type: "Banana", first: "190.00", second: "130.00", third: "80.00" },
-  { type: "Calamansi", first: "160.00", second: "110.00", third: "80.00" },
-  { type: "Coconut", first: "210.00", second: "130.00", third: "80.00" },
-  { type: "Coffee/Cacao", first: "190.00", second: "140.00", third: "80.00" },
-  { type: "Mango", first: "960.00", second: "600.00", third: "360.00" },
-  { type: "Orange", first: "200.00", second: "150.00", third: "100.00" }
+      { type: "Avocado", first: "₱ 820.00", second: "₱ 580.00", third: "₱ 340.00" },
+      { type: "Banana", first: "190.00", second: "130.00", third: "80.00" },
+      { type: "Calamansi", first: "160.00", second: "110.00", third: "80.00" },
+      { type: "Coconut", first: "210.00", second: "130.00", third: "80.00" },
+      { type: "Coffee/Cacao", first: "190.00", second: "140.00", third: "80.00" },
+      { type: "Mango", first: "960.00", second: "600.00", third: "360.00" },
+      { type: "Orange", first: "200.00", second: "150.00", third: "100.00" }
     ],
   },
   sagada: {
     commercial: [
       {
-      location: "a) Commercial lots located along all weather roads.",
-      year2006: "96.20",
-      year2012: "179.20",
-      subClassification: "C-1",
-    }
-  ],
+        location: "a) Commercial lots located along all weather roads.",
+        year2006: "96.20",
+        year2012: "179.20",
+        subClassification: "C-1",
+      }
+    ],
     residential: [
       {
         location: "a) Residential lots located along the National Road on both sides of Barangays Patay and Dagdag; Residential lots located along the Provincial Road from Barangay Poblacion to Danom; Residential lots located along the Municipal Road starting from Mrs. Masferri's residence going to Barangay Madongo and Aguid; Residential lots along the Municipal Road from SitioSumaguing to Barangay Suyo; Residential lots located along the Barangay Road of Ambasing to Balugan; Residential lots located along the Barangay Road of Dao-angan to Atey and Residential lots located along the Barangay Road of Demang",
@@ -338,25 +338,24 @@ export const municipalityData: Record<string, MunicipalityData> = {
         subClassification: "R-2",
       },
     ],
-    agricultural: [],
-    agriculturalLand: [
-  { landType: "Riceland w/ irrigation", first: "₱ 65,530.00", second: "₱ 57,440.00", third: "₱ 41,650.00", fourth: "₱ 33,560.00" },
-  { landType: "Fishpond", first: "47,260.00", second: "43,290.00", third: "29,550.00", fourth: "23,620.00" },
-  { landType: "Rootcrop Land", first: "54,990.00", second: "41,250.00", third: "27,470.00", fourth: "-" },
-  { landType: "Vegetable Land", first: "45,350.00", second: "34,050.00", third: "22,680.00", fourth: "-" },
-  { landType: "Fruit Land", first: "66,400.00", second: "42,360.00", third: "18,590.00", fourth: "-" },
-  { landType: "Pinetree Land", first: "14,080.00", second: "-", third: "-", fourth: "-" },
-  { landType: "Pasture Land", first: "10,880.00", second: "-", third: "-", fourth: "-" },
-  { landType: "Cogon Land", first: "8,030.00", second: "-", third: "-", fourth: "-" }
+    agricultural: [
+      { landType: "Riceland w/ irrigation", first: "₱ 65,530.00", second: "₱ 57,440.00", third: "₱ 41,650.00", fourth: "₱ 33,560.00" },
+      { landType: "Fishpond", first: "47,260.00", second: "43,290.00", third: "29,550.00", fourth: "23,620.00" },
+      { landType: "Rootcrop Land", first: "54,990.00", second: "41,250.00", third: "27,470.00", fourth: "-" },
+      { landType: "Vegetable Land", first: "45,350.00", second: "34,050.00", third: "22,680.00", fourth: "-" },
+      { landType: "Fruit Land", first: "66,400.00", second: "42,360.00", third: "18,590.00", fourth: "-" },
+      { landType: "Pinetree Land", first: "14,080.00", second: "-", third: "-", fourth: "-" },
+      { landType: "Pasture Land", first: "10,880.00", second: "-", third: "-", fourth: "-" },
+      { landType: "Cogon Land", first: "8,030.00", second: "-", third: "-", fourth: "-" }
     ],
     agriculturalImprovementRow: [
-  { type: "Avocado", first: "₱ 820.00", second: "₱ 580.00", third: "₱ 340.00" },
-  { type: "Banana", first: "190.00", second: "130.00", third: "80.00" },
-  { type: "Calamansi", first: "160.00", second: "110.00", third: "80.00" },
-  { type: "Coconut", first: "210.00", second: "130.00", third: "80.00" },
-  { type: "Coffee/Cacao", first: "190.00", second: "140.00", third: "80.00" },
-  { type: "Mango", first: "960.00", second: "600.00", third: "360.00" },
-  { type: "Orange", first: "200.00", second: "150.00", third: "100.00" }
+      { type: "Avocado", first: "₱ 820.00", second: "₱ 580.00", third: "₱ 340.00" },
+      { type: "Banana", first: "190.00", second: "130.00", third: "80.00" },
+      { type: "Calamansi", first: "160.00", second: "110.00", third: "80.00" },
+      { type: "Coconut", first: "210.00", second: "130.00", third: "80.00" },
+      { type: "Coffee/Cacao", first: "190.00", second: "140.00", third: "80.00" },
+      { type: "Mango", first: "960.00", second: "600.00", third: "360.00" },
+      { type: "Orange", first: "200.00", second: "150.00", third: "100.00" }
     ],
   },
   tadian: {
@@ -394,25 +393,24 @@ export const municipalityData: Record<string, MunicipalityData> = {
         subClassification: "R-4",
       },
     ],
-    agricultural: [],
-    agriculturalLand: [
-  { landType: "Riceland w/ irrigation", first: "₱ 60,810.00", second: "₱ 53,110.00", third: "₱ 38,640.00", fourth: "₱ 31,110.00" },
-  { landType: "Fishpond", first: "47,260.00", second: "43,290.00", third: "27,550.00", fourth: "23,620.00" },
-  { landType: "Rootcrop Land", first: "57,150.00", second: "42,900.00", third: "28,570.00", fourth: "-" },
-  { landType: "Fruit Land", first: "66,400.00", second: "42,360.00", third: "18,590.00", fourth: "-" },
-  { landType: "Vegetable Land", first: "45,350.00", second: "34,050.00", third: "22,680.00", fourth: "-" },
-  { landType: "Pinetree Land", first: "14,080.00", second: "-", third: "-", fourth: "-" },
-  { landType: "Pasture Land", first: "10,880.00", second: "-", third: "-", fourth: "-" },
-  { landType: "Cogon Land", first: "8,030.00", second: "-", third: "-", fourth: "-" }
+    agricultural: [
+      { landType: "Riceland w/ irrigation", first: "₱ 60,810.00", second: "₱ 53,110.00", third: "₱ 38,640.00", fourth: "₱ 31,110.00" },
+      { landType: "Fishpond", first: "47,260.00", second: "43,290.00", third: "27,550.00", fourth: "23,620.00" },
+      { landType: "Rootcrop Land", first: "57,150.00", second: "42,900.00", third: "28,570.00", fourth: "-" },
+      { landType: "Fruit Land", first: "66,400.00", second: "42,360.00", third: "18,590.00", fourth: "-" },
+      { landType: "Vegetable Land", first: "45,350.00", second: "34,050.00", third: "22,680.00", fourth: "-" },
+      { landType: "Pinetree Land", first: "14,080.00", second: "-", third: "-", fourth: "-" },
+      { landType: "Pasture Land", first: "10,880.00", second: "-", third: "-", fourth: "-" },
+      { landType: "Cogon Land", first: "8,030.00", second: "-", third: "-", fourth: "-" }
     ],
     agriculturalImprovementRow: [
-    { type: "Avocado", first: "₱ 820.00", second: "₱ 580.00", third: "₱ 340.00" },
-  { type: "Banana", first: "190.00", second: "130.00", third: "80.00" },
-  { type: "Calamansi", first: "160.00", second: "110.00", third: "80.00" },
-  { type: "Coconut", first: "210.00", second: "130.00", third: "80.00" },
-  { type: "Coffee/Cacao", first: "190.00", second: "140.00", third: "80.00" },
-  { type: "Mango", first: "960.00", second: "600.00", third: "360.00" },
-  { type: "Orange", first: "200.00", second: "150.00", third: "100.00" }
+      { type: "Avocado", first: "₱ 820.00", second: "₱ 580.00", third: "₱ 340.00" },
+      { type: "Banana", first: "190.00", second: "130.00", third: "80.00" },
+      { type: "Calamansi", first: "160.00", second: "110.00", third: "80.00" },
+      { type: "Coconut", first: "210.00", second: "130.00", third: "80.00" },
+      { type: "Coffee/Cacao", first: "190.00", second: "140.00", third: "80.00" },
+      { type: "Mango", first: "960.00", second: "600.00", third: "360.00" },
+      { type: "Orange", first: "200.00", second: "150.00", third: "100.00" }
     ],
   },
 };

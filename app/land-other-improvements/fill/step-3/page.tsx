@@ -39,6 +39,7 @@ const LandOtherImprovementFormFillPage3 = () => {
 
     const [classification, setClassification] = useState("");
     const [subClassification, setSubClassification] = useState("");
+    const [landClass, setLandClass] = useState("");
     const [landArea, setLandArea] = useState("");
 
     // Load municipality from draft (saved in step 1) to filter SMV categories
@@ -54,10 +55,37 @@ const LandOtherImprovementFormFillPage3 = () => {
     // Derive sub-classification options from the selected classification's SMV rows
     // e.g. besao + residential → ["R-1", "R-2", "R-3", "R-4"]
     // e.g. besao + commercial  → ["C-1"]
+    // e.g. besao + agricultural → ["Riceland w/ irrigation", "Fishpond", ...]
     const subClassificationOptions = classification
-        ? (municipalityData[munKey]?.[classification as "commercial" | "residential" | "agricultural"] ?? [])
-            .map((row) => row.subClassification)
+        ? classification === "agricultural"
+            ? (municipalityData[munKey]?.agricultural ?? []).map((row) => row.landType)
+            : (municipalityData[munKey]?.[classification as "commercial" | "residential"] ?? []).map((row) => row.subClassification)
         : [];
+    // Build land class options (1, 2, 3, 4) from the selected agricultural row.
+    // Only include entries where the price is not "-" (e.g. Cogon Land only has "first").
+    const classKeys = ["first", "second", "third", "fourth"] as const;
+    const landClassOptions = classification === "agricultural" && subClassification
+        ? (() => {
+            const row = (municipalityData[munKey]?.agricultural ?? []).find((r) => r.landType === subClassification);
+            if (!row) return [];
+            return classKeys
+                .map((key, i) => ({ label: String(i + 1), value: key, price: row[key] }))
+                .filter((opt) => opt.price !== "-");
+        })()
+        : [];
+
+    // Derive unit value from the selected sub-classification + land class.
+    // For agricultural: use row[landClass] (e.g. row["first"] = "₱ 63,480.00").
+    // For commercial/residential: use year2012 from the matching sub-classification row.
+    const unitValue = (() => {
+        if (!classification || !subClassification) return "";
+        if (classification === "agricultural") {
+            const row = (municipalityData[munKey]?.agricultural ?? []).find((r) => r.landType === subClassification);
+            return landClass ? (row?.[landClass as typeof classKeys[number]] ?? "") : "";
+        }
+        const row = (municipalityData[munKey]?.[classification as "commercial" | "residential"] ?? []).find((r) => r.subClassification === subClassification);
+        return row?.year2012 ?? "";
+    })();
 
     // Auto-select when there is only one option (e.g. commercial → C-1)
     useEffect(() => {
@@ -86,7 +114,8 @@ const LandOtherImprovementFormFillPage3 = () => {
                 if (data.location_municipality) setMunicipality(data.location_municipality);
                 if (data.classification) setClassification(data.classification);
                 if (data.sub_classification) setSubClassification(data.sub_classification);
-                if (data.area) setLandArea(String(data.area));
+                if (data.land_area) setLandArea(String(data.land_area));
+                if (data.land_class) setLandClass(String(data.land_class));
             } catch (err) {
                 console.error("Failed to load draft for step 3:", err);
             }
@@ -95,7 +124,7 @@ const LandOtherImprovementFormFillPage3 = () => {
     }, [draftId]);
 
     const { handleSave, isSaving } = useSaveDraft({
-        getFormData: () => ({ classification, sub_classification: subClassification, area: landArea }),
+        getFormData: () => ({ classification, sub_classification: subClassification, land_area: landArea, unit_value: unitValue, land_class: landClass }),
         draftId,
         apiEndpoint: "/api/faas/land-improvements",
     });
@@ -104,9 +133,10 @@ const LandOtherImprovementFormFillPage3 = () => {
         e.preventDefault();
     }, []);
 
-    const handleNext = useCallback(() => {
+    const handleNext = useCallback(async () => {
+        await handleSave(); // persist classification, sub_classification, unit_value, area before leaving
         router.push(`/land-other-improvements/fill/step-4${draftId ? `?id=${draftId}` : ""}`);
-    }, [router, draftId]);
+    }, [router, draftId, handleSave]);
 
     return (
         <SidebarProvider>
@@ -163,7 +193,8 @@ const LandOtherImprovementFormFillPage3 = () => {
                                             value={classification}
                                             onChange={(e) => {
                                                 setClassification(e.target.value);
-                                                setSubClassification(""); // reset sub when classification changes
+                                                setSubClassification("");
+                                                setLandClass("");
                                             }}
                                             disabled={availableCategories.length === 0}
                                             className="rpfaas-fill-input appearance-none w-full disabled:opacity-50 disabled:cursor-not-allowed"
@@ -190,7 +221,7 @@ const LandOtherImprovementFormFillPage3 = () => {
                                     <div className="relative">
                                         <select
                                             value={subClassification}
-                                            onChange={(e) => setSubClassification(e.target.value)}
+                                            onChange={(e) => { setSubClassification(e.target.value); setLandClass(""); }}
                                             disabled={subClassificationOptions.length === 0}
                                             className="rpfaas-fill-input appearance-none w-full disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
@@ -207,6 +238,32 @@ const LandOtherImprovementFormFillPage3 = () => {
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M6 9l6 6 6-6" />
                                         </svg>
                                     </div>
+                                </div>
+
+                                {classification === "agricultural" && landClassOptions.length > 0 && (
+                                    <div className="rpfaas-fill-field space-y-1">
+                                        <Label className="rpfaas-fill-label">Land Class</Label>
+                                        <div className="relative">
+                                            <select
+                                                value={landClass}
+                                                onChange={(e) => setLandClass(e.target.value)}
+                                                className="rpfaas-fill-input appearance-none w-full"
+                                            >
+                                                <option value="">Select class</option>
+                                                {landClassOptions.map((opt) => (
+                                                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                                ))}
+                                            </select>
+                                            <svg className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M6 9l6 6 6-6" />
+                                            </svg>
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className="rpfaas-fill-field space-y-1">
+                                    <Label className="rpfaas-fill-label">Unit Value</Label>
+                                    <Input type="text" value={unitValue} readOnly className="rpfaas-fill-input bg-muted cursor-not-allowed" />
                                 </div>
 
                                 <div className="rpfaas-fill-field space-y-1">

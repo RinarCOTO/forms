@@ -18,14 +18,14 @@ export default function MunicipalityPage({ params }: { params: Promise<{ municip
   const router = useRouter();
 
   const displayName = municipality.charAt(0).toUpperCase() + municipality.slice(1);
-  const data = municipalityData[municipality.toLowerCase()] ?? { commercial: [], residential: [], agricultural: [], agriculturalLand: [] };
+  const data = municipalityData[municipality.toLowerCase()] ?? { commercial: [], residential: [], agricultural: [] };
 
   const sections: { label: string; key: keyof MunicipalityData }[] = [
     { label: "Commercial", key: "commercial" },
     { label: "Residential", key: "residential" },
   ];
 
-  const agriculturalLandRows: AgriculturalLandRow[] = data.agriculturalLand;
+  const agriculturalLandRows: AgriculturalLandRow[] = data.agricultural;
   const agriculturalImprovementRows: agriculturalImprovementRow[] = data.agriculturalImprovementRow ?? [];
 
   return (
