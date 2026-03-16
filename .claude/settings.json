@@ -31,7 +31,17 @@
       "WebFetch(domain:www.respicio.ph)",
       "WebFetch(domain:burgoslaunion.gov.ph)",
       "WebFetch(domain:talisaycitycebu.gov.ph)",
-      "Bash(xargs ls:*)"
+      "Bash(xargs ls:*)",
+      "Bash(git log:*)",
+      "Read(//Users/rinar/**)",
+      "Bash(grep -r \"pwa\\\\|PWA\\\\|service-worker\\\\|service_worker\\\\|workbox\" /Users/rinar/Documents/forms --include=*.json --include=*.ts --include=*.tsx --include=*.js)",
+      "Bash(npm run:*)",
+      "Bash(kill 15304)",
+      "Bash(xargs kill:*)",
+      "Bash(pkill -f 'next dev')"
+    ],
+    "additionalDirectories": [
+      "/Users/rinar"
     ]
   }
 }

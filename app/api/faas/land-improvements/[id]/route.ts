@@ -2,29 +2,48 @@ export const dynamic = "force-dynamic";
 
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { getCurrentUserContext } from '@/lib/services/user.service'
+import { z } from 'zod'
+
+const numericField = z.union([z.number(), z.string()]).optional()
+
+const LandImprovementUpdateSchema = z.object({
+  arp_no: z.string().max(50).optional(),
+  pin: z.string().max(50).optional(),
+  owner_name: z.string().max(255).optional(),
+  owner_address: z.string().optional(),
+  improvement_type: z.string().max(100).optional(),
+  description: z.string().optional(),
+  area: numericField,
+  unit_of_measure: z.string().max(20).optional(),
+  market_value: numericField,
+  assessment_level: numericField,
+  assessed_value: numericField,
+  status: z.enum(['draft', 'submitted', 'under_review', 'approved', 'returned', 'rejected']).optional(),
+  created_by: z.string().max(255).optional(),
+  updated_by: z.string().max(255).optional(),
+})
 
 // Helper function to initialize Supabase
 const getSupabaseAdmin = () => {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    // Use Service Role Key for admin tasks
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
-      },
-      // Add schema config to ensure we're connecting to the right database
-      db: {
-        schema: 'public'
-      }
+      auth: { autoRefreshToken: false, persistSession: false },
+      db: { schema: 'public' }
     }
   )
 }
 
 // GET: Fetch single land improvement record by ID
-export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const userCtx = await getCurrentUserContext()
+    if (!userCtx) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+    }
+
     const supabase = getSupabaseAdmin()
     const { id } = await params
     
@@ -62,10 +81,24 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 // PUT: Update existing land improvement record
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const userCtx = await getCurrentUserContext()
+    if (!userCtx) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+    }
+
     const supabase = getSupabaseAdmin()
     const { id } = await params
     const body = await request.json()
-    
+
+    // Validate input
+    const parsed = LandImprovementUpdateSchema.safeParse(body)
+    if (!parsed.success) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid input', details: parsed.error.issues },
+        { status: 400 }
+      )
+    }
+
     // Remove the id from the body to avoid conflicts
     const { id: bodyId, ...updateData } = body
     
@@ -120,8 +153,13 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 }
 
 // DELETE: Delete land improvement record
-export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const userCtx = await getCurrentUserContext()
+    if (!userCtx) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+    }
+
     const supabase = getSupabaseAdmin()
     const { id } = await params
     
