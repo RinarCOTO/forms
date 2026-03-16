@@ -33,11 +33,25 @@ function collectFormData(
   ownerLoc: any,
   adminLoc: any,
   propLoc: any,
+  transactionCode: string,
+  arpNo: string,
+  octTctCloaNo: string,
+  pin: string,
+  surveyNo: string,
+  lotNo: string,
+  blk: string,
 ) {
   const data: any = {
     owner_name: ownerName,
     admin_care_of: adminCareOf,
     property_address: propertyStreet,
+    transaction_code: transactionCode,
+    arp_no: arpNo,
+    oct_tct_cloa_no: octTctCloaNo,
+    pin,
+    survey_no: surveyNo,
+    lot_no: lotNo,
+    blk,
     owner_province_code: ownerLoc.provinceCode,
     owner_municipality_code: ownerLoc.municipalityCode,
     owner_barangay_code: ownerLoc.barangayCode,
@@ -77,6 +91,13 @@ function collectFormData(
 
 // --- Utility Types ---
 type LocationOption = { code: string; name: string };
+
+function formatArpNo(raw: string): string {
+  const digits = raw.replace(/\D/g, '').slice(0, 11);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 6) return `${digits.slice(0, 2)}-${digits.slice(2)}`;
+  return `${digits.slice(0, 2)}-${digits.slice(2, 6)}-${digits.slice(6)}`;
+}
 
 function safeSetLS(key: string, value: string) {
   try { localStorage.setItem(key, value); } catch { /* ignore */ }
@@ -232,6 +253,13 @@ function LandOtherImprovementsFillPageContent() {
   const [ownerName, setOwnerName] = useState("");
   const [adminCareOf, setAdminCareOf] = useState("");
   const [propertyStreet, setPropertyStreet] = useState("");
+  const [transactionCode, setTransactionCode] = useState("");
+  const [arpNo, setArpNo] = useState("");
+  const [octTctCloaNo, setOctTctCloaNo] = useState("");
+  const [pin, setPin] = useState("");
+  const [surveyNo, setSurveyNo] = useState("");
+  const [lotNo, setLotNo] = useState("");
+  const [blk, setBlk] = useState("");
 
   // Assigned municipality from the logged-in user's profile
   const [userMunicipality, setUserMunicipality] = useState("");
@@ -269,6 +297,13 @@ function LandOtherImprovementsFillPageContent() {
             if (data.owner_name) setOwnerName(data.owner_name);
             if (data.admin_care_of) setAdminCareOf(data.admin_care_of);
             if (data.property_address) setPropertyStreet(data.property_address);
+            if (data.transaction_code) setTransactionCode(data.transaction_code);
+            if (data.arp_no) setArpNo(data.arp_no);
+            if (data.oct_tct_cloa_no) setOctTctCloaNo(data.oct_tct_cloa_no);
+            if (data.pin) setPin(data.pin);
+            if (data.survey_no) setSurveyNo(data.survey_no);
+            if (data.lot_no) setLotNo(data.lot_no);
+            if (data.blk) setBlk(data.blk);
             ownerLoc.loadLocation(data.owner_province_code || "", data.owner_municipality_code || "", data.owner_barangay_code || "");
             adminLoc.loadLocation(data.admin_province_code || "", data.admin_municipality_code || "", data.admin_barangay_code || "");
             // Always use current MOUNTAIN_PROVINCE_CODE (old drafts may have stale 9-digit codes)
@@ -294,7 +329,7 @@ function LandOtherImprovementsFillPageContent() {
   const handleNext = useCallback(async () => {
     setIsSaving(true);
     try {
-      const formData = collectFormData(ownerName, adminCareOf, propertyStreet, ownerLoc, adminLoc, propLoc);
+      const formData = collectFormData(ownerName, adminCareOf, propertyStreet, ownerLoc, adminLoc, propLoc, transactionCode, arpNo, octTctCloaNo, pin, surveyNo, lotNo, blk);
       formData.status = 'draft';
 
       let response;
@@ -338,7 +373,7 @@ function LandOtherImprovementsFillPageContent() {
     } finally {
       setIsSaving(false);
     }
-  }, [ownerName, adminCareOf, propertyStreet, ownerLoc, adminLoc, propLoc, draftId, router]);
+  }, [ownerName, adminCareOf, propertyStreet, ownerLoc, adminLoc, propLoc, transactionCode, arpNo, octTctCloaNo, pin, surveyNo, lotNo, blk, draftId, router]);
 
   return (
     <SidebarProvider>
@@ -370,6 +405,49 @@ function LandOtherImprovementsFillPageContent() {
             </header>
 
             <form id={`form_${FORM_NAME}_main`} className="rpfaas-fill-form rpfaas-fill-form-single space-y-6">
+
+              {/* PROPERTY IDENTIFICATION SECTION */}
+              <section className="rpfaas-fill-section">
+                <h2 className="rpfaas-fill-section-title mb-4">Property Identification</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <Label className="rpfaas-fill-label">Transaction Code</Label>
+                    <Input value={transactionCode} onChange={(e) => setTransactionCode(e.target.value)} className="rpfaas-fill-input" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="rpfaas-fill-label">ARP No.</Label>
+                    <Input
+                      value={arpNo}
+                      onChange={(e) => setArpNo(formatArpNo(e.target.value))}
+                      placeholder="02-0001-01525" 
+                      className="rpfaas-fill-input font-mono"
+                      maxLength={13}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="rpfaas-fill-label">OCT/TCT/CLOA No.</Label>
+                    <Input value={octTctCloaNo} onChange={(e) => setOctTctCloaNo(e.target.value)} className="rpfaas-fill-input" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="rpfaas-fill-label">PIN</Label>
+                    <Input value={pin} onChange={(e) => setPin(e.target.value)} className="rpfaas-fill-input" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="rpfaas-fill-label">Survey No.</Label>
+                    <Input value={surveyNo} onChange={(e) => setSurveyNo(e.target.value)} className="rpfaas-fill-input" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label className="rpfaas-fill-label">Lot No.</Label>
+                      <Input value={lotNo} onChange={(e) => setLotNo(e.target.value)} className="rpfaas-fill-input" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="rpfaas-fill-label">BLK</Label>
+                      <Input value={blk} onChange={(e) => setBlk(e.target.value)} className="rpfaas-fill-input" />
+                    </div>
+                  </div>
+                </div>
+              </section>
 
               {/* OWNER SECTION */}
               <section className="rpfaas-fill-section">

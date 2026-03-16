@@ -83,7 +83,9 @@ function LandImprovementsFormFillPage5() {
   const [isSaving, setIsSaving] = useState(false);
   const [classification, setClassification] = useState("");
   const [marketValue, setMarketValue] = useState<number>(0);
-  const [effectivityDate, setEffectivityDate] = useState<Date | undefined>(undefined);
+  const [effectivityDate, setEffectivityDate] = useState<string>(
+    new Date().toISOString().split("T")[0]
+  );
 
   const assessmentLevel = useMemo(
     () => getLandAssessmentLevel(classification),
@@ -144,7 +146,7 @@ function LandImprovementsFormFillPage5() {
       };
 
       if (effectivityDate) {
-        formData.effectivity_of_assessment = effectivityDate.toISOString().split("T")[0];
+        formData.effectivity_of_assessment = effectivityDate;
       }
 
       // Save to localStorage for preview
@@ -262,7 +264,7 @@ function LandImprovementsFormFillPage5() {
                   <Label className="rpfaas-fill-label" htmlFor="assessed_value_p5">Assessed Value</Label>
                   <Input
                     id="assessed_value_p5"
-                    value={assessedValue > 0 ? `₱${formatWithCommas(assessedValue)}` : ""}
+                    value={assessedValue > 0 ? `${formatWithCommas(assessedValue)}` : ""}
                     readOnly
                     disabled
                     aria-disabled="true"
@@ -284,7 +286,7 @@ function LandImprovementsFormFillPage5() {
 
                 <div className="rpfaas-fill-field space-y-1" data-comment-field="effectivity_of_assessment">
                   <Label className="rpfaas-fill-label" htmlFor="effectivity_of_assessment_p5">Effectivity of Assessment</Label>
-                  <DatePicker />
+                  <DatePicker value={effectivityDate} onChange={setEffectivityDate} />
                 </div>
               </section>
 

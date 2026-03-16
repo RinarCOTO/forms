@@ -91,11 +91,14 @@ const LandImprovementsFormFillPage4 = () => {
 
   // Additional Flat Rate (Additions)
   const [additionalFlatRateSelections, setAdditionalFlatRateSelections] = useState<(string | number | null)[]>(() => [null]);
+  const [adjustedMarketValue, setAdjustedMarketValue] = useState(0);
   const [additionalFlatRateAreas, setAdditionalFlatRateAreas] = useState<number[]>([0]);
 
   const [comments, setComments] = useState<string>("");
   const [unitCost, setUnitCost] = useState<number>(0);
   const [totalArea, setTotalArea] = useState<number>(0);
+  const [baseMarketValueP3, setBaseMarketValueP3] = useState<number>(0);
+  const [arpNo, setArpNo] = useState("");
 
   // Loaded from step 3 to conditionally show improvement kind
   const [classification, setClassification] = useState("");
@@ -134,8 +137,9 @@ const LandImprovementsFormFillPage4 = () => {
 
   // ── Data Loading ────────────────────────────────────────────────────────────
   useEffect(() => {
+    isInitializedRef.current = false;
     const savedCost = localStorage.getItem("land_unit_cost_p4");
-    const dbCost = loadedData?.unit_cost;
+    const dbCost = loadedData?.unit_value;
     if (savedCost) setUnitCost(parseFloat(savedCost));
     else if (dbCost) setUnitCost(parseFloat(dbCost));
 
@@ -143,6 +147,12 @@ const LandImprovementsFormFillPage4 = () => {
     const dbArea = loadedData?.land_area;
     if (savedArea) setTotalArea(parseFloat(savedArea));
     else if (dbArea) setTotalArea(parseFloat(dbArea));
+
+    if (loadedData?.base_market_value) setBaseMarketValueP3(parseFloat(loadedData.base_market_value));
+    const arpNoFromDb = loadedData?.arp_no;
+    const arpNoFromStorage = localStorage.getItem('arp_no_p1');
+    if (arpNoFromDb) setArpNo(arpNoFromDb);
+    else if (arpNoFromStorage) setArpNo(arpNoFromStorage);
 
     if (loadedData?.overall_comments) setComments(loadedData.overall_comments);
     if (loadedData?.classification) setClassification(loadedData.classification);
@@ -273,11 +283,7 @@ const LandImprovementsFormFillPage4 = () => {
   const handleNext = useCallback(async (_data: any) => {
     setIsSaving(true);
     try {
-      const { netMarketValue } = financialSummary;
-
-      if (netMarketValue !== undefined && netMarketValue !== null) {
-        localStorage.setItem("land_market_value_p4", netMarketValue.toString());
-      }
+      localStorage.setItem("land_market_value_p4", adjustedMarketValue.toString());
 
       const p4LocalStorageData = {
         selected_deductions: selections.filter(Boolean),
@@ -286,7 +292,7 @@ const LandImprovementsFormFillPage4 = () => {
         additional_percentage_areas: additionalPercentAreas,
         additional_flat_rate_choice: additionalFlatRateSelections.filter(Boolean).join(","),
         additional_flat_rate_areas: additionalFlatRateAreas,
-        market_value: financialSummary.netMarketValue,
+        market_value: adjustedMarketValue,
       };
       localStorage.setItem("land_p4", JSON.stringify(p4LocalStorageData));
 
@@ -302,7 +308,7 @@ const LandImprovementsFormFillPage4 = () => {
         additional_flat_rate_choice: additionalFlatRateSelections.filter(Boolean).join(","),
         additional_flat_rate_value: additionalFlatRateAreas.reduce((a, b) => a + b, 0),
         additional_flat_rate_areas: additionalFlatRateAreas,
-        market_value: financialSummary.netMarketValue,
+        market_value: adjustedMarketValue,
       };
 
       const currentDraftId = draftId || localStorage.getItem("land_draft_id");
@@ -328,17 +334,14 @@ const LandImprovementsFormFillPage4 = () => {
     } finally {
       setIsSaving(false);
     }
-  }, [financialSummary, selections, comments, additionalPercentSelections, additionalPercentAreas, additionalFlatRateSelections, additionalFlatRateAreas, draftId, router]);
+  }, [adjustedMarketValue, financialSummary, selections, comments, additionalPercentSelections, additionalPercentAreas, additionalFlatRateSelections, additionalFlatRateAreas, draftId, router]);
 
   // ── Handle Save Draft ───────────────────────────────────────────────────────
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleSaveDraft = useCallback(async (_data: any) => {
     setIsSavingDraft(true);
     try {
-      const { netMarketValue } = financialSummary;
-      if (netMarketValue !== undefined && netMarketValue !== null) {
-        localStorage.setItem("land_market_value_p4", netMarketValue.toString());
-      }
+      localStorage.setItem("land_market_value_p4", adjustedMarketValue.toString());
       localStorage.setItem("land_p4", JSON.stringify({
         selected_deductions: selections.filter(Boolean),
         overall_comments: comments,
@@ -346,7 +349,7 @@ const LandImprovementsFormFillPage4 = () => {
         additional_percentage_areas: additionalPercentAreas,
         additional_flat_rate_choice: additionalFlatRateSelections.filter(Boolean).join(","),
         additional_flat_rate_areas: additionalFlatRateAreas,
-        market_value: financialSummary.netMarketValue,
+        market_value: adjustedMarketValue,
       }));
 
       const formData = {
@@ -361,7 +364,7 @@ const LandImprovementsFormFillPage4 = () => {
         additional_flat_rate_choice: additionalFlatRateSelections.filter(Boolean).join(","),
         additional_flat_rate_value: additionalFlatRateAreas.reduce((a: number, b: number) => a + b, 0),
         additional_flat_rate_areas: additionalFlatRateAreas,
-        market_value: financialSummary.netMarketValue,
+        market_value: adjustedMarketValue,
       };
 
       const currentDraftId = draftId || localStorage.getItem("land_draft_id");
@@ -387,7 +390,7 @@ const LandImprovementsFormFillPage4 = () => {
     } finally {
       setIsSavingDraft(false);
     }
-  }, [financialSummary, selections, comments, additionalPercentSelections, additionalPercentAreas, additionalFlatRateSelections, additionalFlatRateAreas, draftId]);
+  }, [adjustedMarketValue, financialSummary, selections, comments, additionalPercentSelections, additionalPercentAreas, additionalFlatRateSelections, additionalFlatRateAreas, draftId]);
 
   return (
     <SidebarProvider>
@@ -447,7 +450,9 @@ const LandImprovementsFormFillPage4 = () => {
                 options={ADDITIONAL_FLAT_RATE_CHOICES}
                 values={additionalFlatRateSelections}
                 onChange={setAdditionalFlatRateSelections}
-                baseMarketValue={financialSummary.netMarketValue}
+                baseMarketValue={baseMarketValueP3}
+                isTitled={/^\d{2}-\d{4}-\d{5}$/.test(arpNo)}
+                onMarketValueChange={setAdjustedMarketValue}
               />
 
               <div data-comment-field="market_value">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { MinusIcon, PlusIcon, ChevronDown } from "lucide-react";
@@ -195,7 +195,7 @@ export default function TotalImprovements({
         <Separator className="my-2" />
         <div className="flex justify-between items-center">
           <span className="text-lg font-bold">Market Value:</span>
-          <span className="text-2xl font-bold text-primary">₱{formatCurrency(finalMarketValue)}</span>
+          <span className="text-2xl font-bold text-primary">₱{(Math.round(finalMarketValue / 10) * 10).toLocaleString()}</span>
         </div>
       </div>
     </section>
@@ -400,6 +400,8 @@ interface AdjustmentTableProps {
   values: (string | number | null)[];
   onChange: (newValues: (string | number | null)[]) => void;
   baseMarketValue: number;
+  isTitled?: boolean;
+  onMarketValueChange?: (value: number) => void;
 }
 
 export const AdjustmentTable = ({
@@ -407,18 +409,22 @@ export const AdjustmentTable = ({
   values,
   onChange,
   baseMarketValue,
+  isTitled = false,
+  onMarketValueChange,
 }: AdjustmentTableProps) => {
-  const formatCurrency = (v: number) =>
-    v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
   const totalPercent = values.reduce<number>((acc, id) => {
     if (!id) return acc;
     const opt = options.find((o) => String(o.id) === String(id));
-    return acc + (opt?.percentage ?? 0);
+    return acc + Math.abs(opt?.percentage ?? 0);
   }, 0);
 
-  const valueAdjustment = (baseMarketValue * totalPercent) / 100;
-  const marketValue = baseMarketValue + valueAdjustment;
+  const titleBonus = isTitled ? 35 : 0;
+  const effectiveRate = 100 + titleBonus - totalPercent;
+  const marketValue = Math.round(((baseMarketValue * effectiveRate) / 100) / 10) * 10;
+
+  useEffect(() => {
+    onMarketValueChange?.(marketValue);
+  }, [marketValue, onMarketValueChange]);
 
   const handleSelect = (index: number, key: string | number | null) => {
     const next = [...values];
@@ -480,7 +486,9 @@ export const AdjustmentTable = ({
                       >
                         <Group className="relative flex h-9 w-full items-center overflow-hidden rounded-md border border-input bg-background px-3 transition-shadow focus-within:ring-2 focus-within:ring-ring">
                           <Button className="flex w-full items-center justify-between outline-none">
-                            <SelectValue className="truncate" />
+                            <SelectValue className="truncate">
+                              {({ selectedText }) => <span>{selectedText}</span>}
+                            </SelectValue>
                             <ChevronDown className="h-4 w-4 opacity-50" />
                           </Button>
                         </Group>
@@ -554,15 +562,19 @@ export const AdjustmentTable = ({
         {/* Summary rows */}
         <div className="flex flex-col gap-2 p-4 bg-primary/10 rounded-md border border-primary/20 mt-2">
           <div className="flex justify-between items-center text-sm">
-            <span className="text-muted-foreground">Value Adjustment <span className="font-mono">({totalPercent}%)</span>:</span>
-            <span className={`font-mono font-medium ${valueAdjustment >= 0 ? "text-emerald-600" : "text-destructive"}`}>
-              {valueAdjustment >= 0 ? "+" : ""}₱{formatCurrency(valueAdjustment)}
+            <span className="text-muted-foreground">
+              Adjustment <span className="font-mono">
+                (100%{isTitled ? ` + 35%` : ""}{totalPercent > 0 ? ` − ${totalPercent}%` : ""})
+              </span>:
+            </span>
+            <span className="font-mono font-medium text-destructive">
+              {effectiveRate}%
             </span>
           </div>
           <Separator className="my-1" />
           <div className="flex justify-between items-center">
             <span className="font-bold">Market Value:</span>
-            <span className="text-xl font-bold text-primary">₱{formatCurrency(marketValue)}</span>
+            <span className="text-xl font-bold text-primary">₱{marketValue.toLocaleString()}</span>
           </div>
         </div>
       </div>

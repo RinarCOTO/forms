@@ -87,6 +87,15 @@ const LandOtherImprovementFormFillPage3 = () => {
         return row?.year2012 ?? "";
     })();
 
+    //base market value computation
+const baseMarketValue = (() => {
+    if (!unitValue || !landArea) return "";
+    const parsedUnitValue = parseFloat(unitValue.replace(/[₱,\s]/g, ""));
+    const raw = parseFloat(landArea) * parsedUnitValue;
+    if (isNaN(raw)) return "";
+    return Math.round(raw / 10) * 10;
+})();
+
     // Auto-select when there is only one option (e.g. commercial → C-1)
     useEffect(() => {
         if (subClassificationOptions.length === 1) {
@@ -124,7 +133,7 @@ const LandOtherImprovementFormFillPage3 = () => {
     }, [draftId]);
 
     const { handleSave, isSaving } = useSaveDraft({
-        getFormData: () => ({ classification, sub_classification: subClassification, land_area: landArea, unit_value: unitValue, land_class: landClass }),
+        getFormData: () => ({ classification, sub_classification: subClassification, land_area: landArea, unit_value: unitValue, land_class: landClass, base_market_value: baseMarketValue }),
         draftId,
         apiEndpoint: "/api/faas/land-improvements",
     });
@@ -269,6 +278,11 @@ const LandOtherImprovementFormFillPage3 = () => {
                                 <div className="rpfaas-fill-field space-y-1">
                                     <Label className="rpfaas-fill-label">Land Area</Label>
                                     <Input type="number" value={landArea} onChange={(e) => setLandArea(e.target.value)} className="rpfaas-fill-input" />
+                                </div>
+
+                                <div className="rpfaas-fill-field space-y-1">
+                                    <Label className="rpfaas-fill-label">Base Market Value</Label>
+                                    <Input type="text" value={baseMarketValue} readOnly className="rpfaas-fill-input bg-muted cursor-not-allowed" />
                                 </div>
                             </section>
 

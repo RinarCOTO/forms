@@ -14,7 +14,24 @@
       "Bash(npx vercel alias ls)",
       "Bash(npx vercel --prod)",
       "Bash(npx vercel env ls)",
-      "Bash(npx vercel env add SUPABASE_SERVICE_ROLE_KEY production)"
+      "Bash(npx vercel env add SUPABASE_SERVICE_ROLE_KEY production)",
+      "WebSearch",
+      "WebFetch(domain:blgf.gov.ph)",
+      "WebFetch(domain:www.alaminoscity.gov.ph)",
+      "WebFetch(domain:www.therealestategroupphilippines.com)",
+      "WebFetch(domain:www.yumpu.com)",
+      "WebFetch(domain:elibrary.judiciary.gov.ph)",
+      "WebFetch(domain:angono.gov.ph)",
+      "WebFetch(domain:www.methodfinder.net)",
+      "WebFetch(domain:gslandsurveying.com)",
+      "WebFetch(domain:www.scribd.com)",
+      "WebFetch(domain:paranaquecity.gov.ph)",
+      "WebFetch(domain:www.palanan.gov.ph)",
+      "WebFetch(domain:www.filedocsphil.com)",
+      "WebFetch(domain:www.respicio.ph)",
+      "WebFetch(domain:burgoslaunion.gov.ph)",
+      "WebFetch(domain:talisaycitycebu.gov.ph)",
+      "Bash(xargs ls:*)"
     ]
   }
 }

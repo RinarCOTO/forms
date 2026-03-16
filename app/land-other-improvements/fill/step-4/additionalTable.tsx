@@ -1,7 +1,6 @@
 'use client'
 
 import { MinusIcon, PlusIcon, ChevronDown } from 'lucide-react'
-import React from 'react';
 import {
   Button,
   Group,
@@ -69,7 +68,7 @@ export function AdditionalTable({
 
   return (
     <section className='bg-card rounded-lg border p-6 shadow-sm mb-6'>
-    <div className="w-full space-y-4">
+      <div className="w-full space-y-4">
       <div className="overflow-hidden rounded-lg border border-border">
         <table className="w-full border-collapse text-sm">
           <thead className="bg-muted/50">
@@ -161,11 +160,9 @@ export function AdditionalTable({
 
                   <td className="p-2 text-center">
                     {selectedOption ? (
-                      <div className="flex flex-col">
-                        <span className="font-mono font-bold text-destructive">
-                          ₱{deductionCost.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                        </span>
-                      </div>
+                      <span className="font-mono font-bold text-destructive">
+                        ₱{deductionCost.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      </span>
                     ) : (
                       <span className="text-muted-foreground">—</span>
                     )}
