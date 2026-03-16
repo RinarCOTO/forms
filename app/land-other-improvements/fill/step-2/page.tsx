@@ -48,6 +48,28 @@ const LandOtherImprovementFormFillPage2 = () => {
         }
     }, []);
 
+    useEffect(() => {
+        if (!draftId) return;
+        const loadDraft = async () => {
+            try {
+                const response = await fetch(`/api/faas/land-improvements/${draftId}`);
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.success && result.data) {
+                        const data = result.data;
+                        if (data.north_property) setNorthProperty(data.north_property);
+                        if (data.south_property) setSouthProperty(data.south_property);
+                        if (data.east_property) setEastProperty(data.east_property);
+                        if (data.west_property) setWestProperty(data.west_property);
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to load draft data for step 2', error);
+            }
+        };
+        loadDraft();
+    }, [draftId]);
+
     const { handleSave, isSaving } = useSaveDraft({
         getFormData: () => ({
             north_property: NorthProperty,

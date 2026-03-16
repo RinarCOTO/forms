@@ -22,6 +22,12 @@ const LandImprovementUpdateSchema = z.object({
   status: z.enum(['draft', 'submitted', 'under_review', 'approved', 'returned', 'rejected']).optional(),
   created_by: z.string().max(255).optional(),
   updated_by: z.string().max(255).optional(),
+
+  //basic fields
+  north_property: z.string().optional(),
+  east_property: z.string().optional(),
+  south_property: z.string().optional(),
+  west_property: z.string().optional(),
 })
 
 // Helper function to initialize Supabase
@@ -100,7 +106,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     }
 
     // Remove the id from the body to avoid conflicts
-    const { id: bodyId, ...updateData } = body
+    const updateData = parsed.data
     
     // Clean the data: remove undefined, null, and empty string values
     const cleanedData = Object.entries(updateData).reduce((acc, [key, value]) => {
