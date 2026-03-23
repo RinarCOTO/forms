@@ -18,13 +18,19 @@ export async function GET(request: NextRequest) {
 
   const municipality = request.nextUrl.searchParams.get('municipality');
 
+  const userId = request.nextUrl.searchParams.get('id');
+
   let query = admin
     .from('users')
-    .select('id, full_name, role, municipality')
+    .select('id, full_name, role, municipality, position')
     .eq('role', role);
 
   if (municipality) {
     query = query.ilike('municipality', municipality);
+  }
+
+  if (userId) {
+    query = query.eq('id', userId);
   }
 
   const { data: users, error: dbError } = await query;

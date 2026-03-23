@@ -41,6 +41,9 @@ interface TotalImprovementsProps {
   addFlatSelections: (string | number | null)[];
   addFlatAreas: number[];
   addFlatOptions: SelectOption[];
+  isTitled?: boolean;
+  baseMarketValue?: number;
+  adjustedMarketValue?: number;
 }
 
 interface CalculatedRow extends SelectOption {
@@ -62,17 +65,22 @@ export default function TotalImprovements({
   addFlatSelections,
   addFlatAreas,
   addFlatOptions,
+  isTitled = false,
+  baseMarketValue,
+  adjustedMarketValue,
 }: TotalImprovementsProps) {
   const formatCurrency = (val: number) =>
     val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-  const { standardRows, percentRows, flatRows, totalDeductions, totalAdditions, finalMarketValue, baseCost } =
+  const { standardRows, percentRows, flatRows, finalMarketValue, baseCost } =
     useMemo(() => {
       const sRows: CalculatedRow[] = [];
       const pRows: CalculatedRow[] = [];
       const fRows: CalculatedRow[] = [];
       let deductionSum = 0;
       let additionSum = 0;
+
+      const base = baseMarketValue ?? unitCost * totalArea;
 
       deductionSelections.forEach((id) => {
         if (!id) return;
@@ -95,17 +103,18 @@ export default function TotalImprovements({
         pRows.push({ ...opt, amount, appliedArea: area, rowType: "Add. Percent", isDeduction: false });
       });
 
-      addFlatSelections.forEach((id, idx) => {
+      addFlatSelections.forEach((id) => {
         if (!id) return;
         const opt = addFlatOptions.find((o) => String(o.id) === String(id));
         if (!opt) return;
-        const area = addFlatAreas[idx] || 0;
-        const amount = (opt.pricePerSqm || 0) * area;
-        additionSum += amount;
-        fRows.push({ ...opt, amount, appliedArea: area, rowType: "Add. Flat", isDeduction: false });
+        // These are percentage-based adjustments applied to the base cost
+        const pct = opt.percentage ?? 0;
+        const amount = (base * pct) / 100;
+        if (pct < 0) deductionSum += Math.abs(amount);
+        else additionSum += amount;
+        fRows.push({ ...opt, amount, appliedArea: totalArea, rowType: "Add. Flat", isDeduction: pct < 0 });
       });
 
-      const base = unitCost * totalArea;
       return {
         standardRows: sRows,
         percentRows: pRows,
@@ -115,7 +124,7 @@ export default function TotalImprovements({
         baseCost: base,
         finalMarketValue: base - deductionSum + additionSum,
       };
-    }, [unitCost, totalArea, deductionSelections, deductionOptions, addPercentSelections, addPercentAreas, addPercentOptions, addFlatSelections, addFlatAreas, addFlatOptions]);
+    }, [unitCost, totalArea, baseMarketValue, deductionSelections, deductionOptions, addPercentSelections, addPercentAreas, addPercentOptions, addFlatSelections, addFlatAreas, addFlatOptions]);
 
   const renderRows = (rows: CalculatedRow[], showArea = true) =>
     rows.map((row, i) => (
@@ -127,8 +136,8 @@ export default function TotalImprovements({
           </span>
         </td>
         {showArea && <td className="px-4 py-2 text-center">{row.appliedArea} sqm</td>}
-        <td className={`px-4 py-2 text-right font-medium ${row.isDeduction ? "text-destructive" : "text-emerald-600"}`}>
-          {row.isDeduction ? "-" : "+"}₱{formatCurrency(row.amount)}
+        <td className={`px-4 py-2 text-right font-medium ${row.isDeduction || row.amount < 0 ? "text-destructive" : "text-emerald-600"}`}>
+          {row.isDeduction || row.amount < 0 ? "-" : "+"}₱{formatCurrency(Math.abs(row.amount))}
         </td>
       </tr>
     ));
@@ -137,40 +146,52 @@ export default function TotalImprovements({
     <section className="bg-card rounded-lg border p-6 shadow-sm mt-8 border-l-4 border-l-primary">
       <h3 className="text-lg font-bold mb-4">{label}</h3>
 
-      <div className="mb-1 font-semibold text-base text-muted-foreground">Deductions</div>
+      <div className="mb-1 font-semibold text-base text-muted-foreground">Other Improvements</div>
       <div className="overflow-hidden rounded-md border border-border mb-4">
         <table className="w-full text-sm">
           <thead className="bg-primary/10">
             <tr>
               <th className="px-4 py-2 text-left text-gray-800 font-bold">Description</th>
               <th className="px-4 py-2 text-center text-gray-800 font-bold">Applied Area</th>
-              <th className="px-4 py-2 text-right text-gray-800 font-bold">Value Impact</th>
+              <th className="px-4 py-2 text-right text-gray-800 font-bold">Unit Value</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border bg-background">
             {standardRows.length === 0 && (
-              <tr><td colSpan={3} className="p-4 text-center text-muted-foreground">No deductions applied.</td></tr>
+              <tr><td colSpan={3} className="p-4 text-center text-muted-foreground">No improvements applied.</td></tr>
             )}
             {renderRows(standardRows)}
           </tbody>
         </table>
       </div>
 
-      <div className="mb-1 font-semibold text-base text-muted-foreground">Additionals</div>
+      <div className="mb-1 font-semibold text-base text-muted-foreground">Adjustments</div>
       <div className="overflow-hidden rounded-md border border-border mb-4">
         <table className="w-full text-sm">
           <thead className="bg-primary/10">
             <tr>
               <th className="px-4 py-2 text-left text-gray-800 font-bold">Description</th>
-              <th className="px-4 py-2 text-right text-gray-800 font-bold">Value Impact</th>
+              <th className="px-4 py-2 text-right text-gray-800 font-bold">Adjustment</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border bg-background">
             {percentRows.length === 0 && flatRows.length === 0 && (
-              <tr><td colSpan={2} className="p-4 text-center text-muted-foreground">No additionals applied.</td></tr>
+              <tr><td colSpan={2} className="p-4 text-center text-muted-foreground">No adjustments applied.</td></tr>
             )}
-            {renderRows(percentRows, false)}
-            {renderRows(flatRows, false)}
+            {isTitled && (
+              <tr className="hover:bg-(--chart-2)/10">
+                <td className="px-4 py-2 font-medium">Titled Property</td>
+                <td className="px-4 py-2 text-right font-medium text-emerald-600">+35%</td>
+              </tr>
+            )}
+            {[...percentRows, ...flatRows].map((row, i) => (
+              <tr key={`adj-${i}`} className="hover:bg-(--chart-2)/10">
+                <td className="px-4 py-2 font-medium">{row.name}</td>
+                <td className={`px-4 py-2 text-right font-medium ${(row.percentage ?? 0) < 0 ? "text-destructive" : (row.percentage ?? 0) > 0 ? "text-emerald-600" : "text-muted-foreground"}`}>
+                  {row.percentage !== undefined ? `${row.percentage}%` : "—"}
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
@@ -178,24 +199,12 @@ export default function TotalImprovements({
       <div className="flex flex-col gap-2 p-4 bg-muted/30 rounded-md border">
         <div className="flex justify-between items-center text-sm text-muted-foreground">
           <span>Base Cost:</span>
-          <span>₱{formatCurrency(baseCost)}</span>
+          <span>{formatCurrency(baseCost)}</span>
         </div>
-        {totalDeductions > 0 && (
-          <div className="flex justify-between items-center text-sm text-destructive">
-            <span>Total Deductions:</span>
-            <span>- ₱{formatCurrency(totalDeductions)}</span>
-          </div>
-        )}
-        {totalAdditions > 0 && (
-          <div className="flex justify-between items-center text-sm text-emerald-600">
-            <span>Total Additions:</span>
-            <span>+ ₱{formatCurrency(totalAdditions)}</span>
-          </div>
-        )}
         <Separator className="my-2" />
         <div className="flex justify-between items-center">
           <span className="text-lg font-bold">Market Value:</span>
-          <span className="text-2xl font-bold text-primary">₱{(Math.round(finalMarketValue / 10) * 10).toLocaleString()}</span>
+          <span className="text-2xl font-bold text-primary">{(adjustedMarketValue ?? Math.round(finalMarketValue / 10) * 10).toLocaleString()}</span>
         </div>
       </div>
     </section>

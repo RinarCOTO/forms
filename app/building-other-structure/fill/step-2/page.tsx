@@ -61,7 +61,18 @@ const BuildingStructureFormFillPage2 = () => {
   const FORM_NAME = "building_other_structure_fill_p2";
 
   // --- 1. DEFINE ALL STATES (So the Hook can save them) ---
-  const [typeOfBuilding, setTypeOfBuilding] = useState("");
+  const [buildingCategory, setBuildingCategory] = useState(""); // "Residential" | "Commercial"
+  const [buildingSubType, setBuildingSubType] = useState(""); // label from BUILDING_TYPES[1..]
+  // Derived value saved to DB: "Residential" or "Commercial - <subtype>"
+  const typeOfBuilding =
+    buildingCategory === "Residential"
+      ? "Residential"
+      : buildingSubType
+      ? `Commercial - ${buildingSubType}`
+      : "";
+  // Label passed to unit cost lookup (always the original BUILDING_TYPES label)
+  const typeOfBuildingForCost =
+    buildingCategory === "Residential" ? "Residential" : buildingSubType;
   const [structureType, setStructureType] = useState("");
   const [buildingPermitNo, setBuildingPermitNo] = useState(""); // Added
   const [cct, setCct] = useState(""); // Added
@@ -112,12 +123,12 @@ const handleCostOfConstructionChange = useCallback((e: React.ChangeEvent<HTMLInp
   }, []);
 
   useEffect(() => {
-    const rawValue = getUnitConstructionCost(typeOfBuilding, structureType);
+    const rawValue = getUnitConstructionCost(typeOfBuildingForCost, structureType);
     if (rawValue) {
       setCostOfConstruction(rawValue);
       setCostOfConstructionDisplay(formatPeso(rawValue));
     }
-  }, [typeOfBuilding, structureType]);
+  }, [typeOfBuildingForCost, structureType]);
   const [numberOfStoreys, setNumberOfStoreys] = useState<number | "">(1);
   const [floorAreas, setFloorAreas] = useState<(number | "")[]>([""]);
   const [totalFloorArea, setTotalFloorArea] = useState<number | "">("");
@@ -164,7 +175,18 @@ const handleCostOfConstructionChange = useCallback((e: React.ChangeEvent<HTMLInp
         return strVal.length >= 4 ? Number(strVal.substring(0, 4)) : "";
       };
 
-      setTypeOfBuilding(loadedData.type_of_building || "");
+      const savedType: string = loadedData.type_of_building || "";
+      if (savedType === "Residential") {
+        setBuildingCategory("Residential");
+        setBuildingSubType("");
+      } else if (savedType.startsWith("Commercial - ")) {
+        setBuildingCategory("Commercial");
+        setBuildingSubType(savedType.replace("Commercial - ", ""));
+      } else if (savedType) {
+        // legacy: plain label without prefix → treat as Commercial
+        setBuildingCategory("Commercial");
+        setBuildingSubType(savedType);
+      }
       setStructureType(loadedData.structure_type || "");
       setBuildingPermitNo(loadedData.building_permit_no || "");
       setCct(loadedData.cct || "");
@@ -398,17 +420,38 @@ const handleNext = useCallback(async () => {
                     <Label className="rpfaas-fill-label">Type of Building</Label>
                     <div className="relative group">
                       <select
-                        value={typeOfBuilding}
-                        onChange={(e) => setTypeOfBuilding(e.target.value)}
+                        value={buildingCategory}
+                        onChange={(e) => {
+                          setBuildingCategory(e.target.value);
+                          setBuildingSubType("");
+                        }}
                         className="rpfaas-fill-input appearance-none"
                       >
-                        <option value="">Select Type of Bldg</option>
-                        {BUILDING_TYPES.map(opt => (
-                          <option key={opt.id} value={opt.label}>{opt.label}</option>
-                        ))}
+                        <option value="">Select Category</option>
+                        <option value="Residential">Residential</option>
+                        <option value="Commercial">Commercial</option>
                       </select>
                     </div>
                   </div>
+
+                  {/* COMMERCIAL SUBCATEGORY */}
+                  {buildingCategory === "Commercial" && (
+                    <div className="space-y-1 mt-3" data-comment-field="type_of_building">
+                      <Label className="rpfaas-fill-label">Commercial Type</Label>
+                      <div className="relative group">
+                        <select
+                          value={buildingSubType}
+                          onChange={(e) => setBuildingSubType(e.target.value)}
+                          className="rpfaas-fill-input appearance-none"
+                        >
+                          <option value="">Select Commercial Type</option>
+                          {BUILDING_TYPES.filter(opt => opt.id !== "building_type_1").map(opt => (
+                            <option key={opt.id} value={opt.label}>{opt.label}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div className="grid grid-cols-2 gap-3">
 

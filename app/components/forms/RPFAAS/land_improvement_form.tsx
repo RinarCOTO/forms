@@ -69,19 +69,19 @@ export interface LandImprovementFormData {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function fmt(val: string | number | undefined | null): string {
-  if (val == null || val === "") return "—";
+  if (val == null || val === "") return "";
   return String(val);
 }
 
 function fmtMoney(val: string | number | undefined | null): string {
-  if (val == null || val === "") return "—";
+  if (val == null || val === "") return "";
   const n = typeof val === "string" ? parseFloat(val) : val;
   if (isNaN(n)) return String(val);
   return `₱${n.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 function cap(val: string | undefined | null): string {
-  if (!val) return "—";
+  if (!val) return "";
   return val.charAt(0).toUpperCase() + val.slice(1);
 }
 
@@ -210,7 +210,7 @@ const LandImprovementForm = ({ data }: { data: LandImprovementFormData }) => {
             <td className="font-bold">{fmt(data.location_municipality)}</td>
             <td>Province:</td>
             <td className="font-bold">
-              {fmt(data.location_province) === "—"
+              {fmt(data.location_province) === ""
                 ? "Mountain Province"
                 : fmt(data.location_province)}
             </td>
@@ -345,7 +345,7 @@ const LandImprovementForm = ({ data }: { data: LandImprovementFormData }) => {
                 ? String(data.assessment_level).includes("%")
                   ? String(data.assessment_level)
                   : `${data.assessment_level}%`
-                : "—"}
+                : ""}
             </td>
             <td className="font-bold">{(assessedValue)}</td>
           </tr>
@@ -356,6 +356,7 @@ const LandImprovementForm = ({ data }: { data: LandImprovementFormData }) => {
       <FaasFooter
         amountInWords={data.amount_in_words ?? ""}
         locationMunicipality={data.location_municipality}
+        effectivityOfAssessment={data.effectivity_of_assessment ?? ""}
       />
     </div>
   );

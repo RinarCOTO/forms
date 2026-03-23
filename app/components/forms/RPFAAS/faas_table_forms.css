@@ -93,6 +93,16 @@ table.no-border td {
     margin-bottom: 0.75rem;
   }
 
+  /* Strip vertical padding from cells that contain an inner grid so dividers reach edge to edge */
+  td:has(.rpfaas-inner-grid) {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+  }
+
+  .rpfaas-inner-grid {
+    height: 100%;
+  }
+
   /* Subtle hover tint on data rows for scannability */
   tbody tr:hover > td {
     background-color: rgba(243, 244, 246, 0.6);
@@ -128,7 +138,7 @@ table.no-border td {
 
 @page {
   size: A4 portrait;
-  margin: 2mm 8mm 12mm 8mm;
+  margin: 6mm 8mm 8mm 8mm;
 }
 
 @media print {
@@ -138,7 +148,7 @@ table.no-border td {
     background: white !important;
   }
   body .floor-area-print {
-    font-size: 10px !important;
+    font-size: 7.5pt !important;
     padding-left: 2px !important;
   }
   /* Remove all scrollbars — overflow containers render scroll gutters in print */
@@ -179,40 +189,36 @@ table.no-border td {
   }
   .rpfaas-print {
     width: 100%;
-    font-size: 9pt !important;
+    font-size: 10pt !important;
+    font-family: Helvetica, Arial, sans-serif;
     line-height: 1;
     color: #000;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
 
-  /* Force ALL text inside the print form to uniform size */
-
-
-  /* Prevent browser from shrinking superscripts (1st, 2nd, etc.) */
-
   .rpfaas-print-small {
-    font-size: 12px !important;
+    font-size: 7.5pt !important;
     line-height: 1 !important;
-    padding-top: 2px !important;
-    padding-bottom: 2px !important;
+    padding-top: 1px !important;
+    padding-bottom: 1px !important;
   }
 
   h1 {
-    font-size: 12pt !important;
-    margin-bottom: 4mm;
+    font-size: 10pt !important;
+    margin-bottom: 2mm;
   }
 
   table {
     width: 100%;
     border-collapse: collapse;
-    margin-bottom: 2mm; /* Tighter space between tables */
-    border: 2px solid #000 !important;
+    margin-bottom: 0.5mm;
+    border: 1.5px solid #000 !important;
   }
 
   td, th {
     border: 1px solid #000 !important;
-    padding: 1px 2px !important; /* Minimized padding */
+    padding: 2px 4px !important;
     vertical-align: middle;
   }
   
@@ -227,11 +233,14 @@ table.no-border td {
     border-color: #000 !important;
   }
 
-  /* Inner column grids: fill full td height, compensate for td's 1px vertical padding */
+  /* Strip vertical padding from cells that contain an inner grid so dividers reach edge to edge */
+  td:has(.rpfaas-inner-grid) {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+  }
+
   .rpfaas-inner-grid {
-    height: calc(100% + 3px) !important;
-    margin-top: -1px !important;
-    margin-bottom: -1px !important;
+    height: 100%;
   }
 
   /* Allow applying no-border to any element */
@@ -257,29 +266,6 @@ table.no-border td {
     display: none !important;
   }
 
-  /* Checkboxes: small square, show check mark for checked state */
-  input[type="checkbox"] {
-    appearance: none;
-    -webkit-appearance: none;
-    display: inline-block;
-    width: 10px;
-    height: 10px;
-    border: 1px solid #000;
-    vertical-align: middle;
-    flex-shrink: 0;
-    position: relative;
-  }
-
-  input[type="checkbox"]:checked::after {
-    content: "✓";
-    position: absolute;
-    top: -2px;
-    left: 0px;
-    font-size: 9px;
-    line-height: 1;
-    color: #000;
-  }
-
   .underline-amount {
     border-bottom: 2px solid #000 !important;
     padding: 2px 4px !important;
@@ -294,10 +280,13 @@ table.no-border td {
   }
 
   .sectionHeader {
-    background-color: #e6e6e6 !important; 
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-    padding: 4px !important; /* Control header padding */
+    background-color: white !important;
+    padding: 2px 4px !important;
+  }
+
+  /* Remove background colors from Tailwind utility classes */
+  .bg-gray-50, .bg-gray-100 {
+    background-color: white !important;
   }
 
   .section-divider {
@@ -351,8 +340,8 @@ table.no-border td {
   }
 
   .photo-page-filename {
-    font-size: 8pt;
-    color: #555;
+    font-size: 10pt;
+    color: #000;
     margin-top: 4mm;
     text-align: center;
   }

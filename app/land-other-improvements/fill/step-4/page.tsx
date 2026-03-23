@@ -460,6 +460,9 @@ const LandImprovementsFormFillPage4 = () => {
                   label="Market Value Summary"
                   unitCost={unitCost}
                   totalArea={totalArea}
+                  isTitled={/^\d{2}-\d{4}-\d{5}$/.test(arpNo)}
+                  baseMarketValue={baseMarketValueP3}
+                  adjustedMarketValue={adjustedMarketValue}
 
                   deductionSelections={selections}
                   deductionOptions={effectiveDeductionChoices}

@@ -243,9 +243,20 @@ if (loadedData?.additional_flat_rate_areas?.length > 0) {
         localStorage.setItem("market_value_p4", netMarketValue.toString());
       }
 
+      // Build per-deduction amount map for display-only rendering
+      const baseCostForAmounts = unitCost * totalFloorArea;
+      const deductionAmounts: Record<string, number> = {};
+      selections.filter(Boolean).forEach((id) => {
+        const opt = DEDUCTION_CHOICES.find((c) => String(c.id) === String(id)) as any;
+        if (!opt) return;
+        if (opt.percentage) deductionAmounts[id] = (baseCostForAmounts * opt.percentage) / 100;
+        else if (opt.pricePerSqm) deductionAmounts[id] = opt.pricePerSqm * totalFloorArea;
+      });
+
       // Save p4 data to localStorage for the RPFAAS form
       const p4LocalStorageData = {
         selected_deductions: selections.filter(Boolean),
+        deduction_amounts: deductionAmounts,
         overall_comments: comments,
         additional_percentage_choice: additionalPercentSelections.filter(Boolean).join(","),
         additional_percentage_areas: additionalPercentAreas,
@@ -258,12 +269,13 @@ if (loadedData?.additional_flat_rate_areas?.length > 0) {
       const formData = {
         status: "draft",
         selected_deductions: selections.filter(Boolean),
+        deduction_amounts: deductionAmounts,
         overall_comments: comments,
-        
+
         // Saving the financial summary directly
         additional_percentage_choice: additionalPercentSelections.filter(Boolean).join(","),
         additional_percentage_value: financialSummary.totalAdditions,
-        additional_percentage_areas: additionalPercentAreas,   // ✅ ADD
+        additional_percentage_areas: additionalPercentAreas,
 
         // Additional Flat Rate
         additional_flat_rate_choice: additionalFlatRateSelections.filter(Boolean).join(","),
@@ -308,8 +320,18 @@ if (loadedData?.additional_flat_rate_areas?.length > 0) {
       if (netMarketValue !== undefined && netMarketValue !== null) {
         localStorage.setItem('market_value_p4', netMarketValue.toString());
       }
+      const baseCostDraft = unitCost * totalFloorArea;
+      const deductionAmountsDraft: Record<string, number> = {};
+      selections.filter(Boolean).forEach((id) => {
+        const opt = DEDUCTION_CHOICES.find((c) => String(c.id) === String(id)) as any;
+        if (!opt) return;
+        if (opt.percentage) deductionAmountsDraft[id] = (baseCostDraft * opt.percentage) / 100;
+        else if (opt.pricePerSqm) deductionAmountsDraft[id] = opt.pricePerSqm * totalFloorArea;
+      });
+
       localStorage.setItem('p4', JSON.stringify({
         selected_deductions: selections.filter(Boolean),
+        deduction_amounts: deductionAmountsDraft,
         overall_comments: comments,
         additional_percentage_choice: additionalPercentSelections.filter(Boolean).join(','),
         additional_percentage_areas: additionalPercentAreas,
@@ -320,6 +342,7 @@ if (loadedData?.additional_flat_rate_areas?.length > 0) {
       const formData = {
         status: 'draft',
         selected_deductions: selections.filter(Boolean),
+        deduction_amounts: deductionAmountsDraft,
         overall_comments: comments,
         additional_percentage_choice: additionalPercentSelections.filter(Boolean).join(','),
         additional_percentage_value: financialSummary.totalAdditions,

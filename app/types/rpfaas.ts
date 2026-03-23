@@ -67,6 +67,7 @@ export interface RPFAASFormData {
     
     // Deductions from Step 4
     selectedDeductions: string[];
+    deductionAmounts: Record<string, number>;
     deductionComments: string;
     
     // Additional items from Step 4
@@ -85,7 +86,10 @@ export interface RPFAASFormData {
     marketValue: number;
     
     // Assessment calculations
+    actualUse: string;
     assessmentLevel: string;
     assessedValue: number;
     amountInWords: string;
+    effectivityOfAssessment: string;
+    appraisedById: string;
 }

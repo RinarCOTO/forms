@@ -44,6 +44,7 @@ export const useRPFAASData = () => {
         flooringGrid: [],
         wallsGrid: [],
         selectedDeductions: [],
+        deductionAmounts: {},
         deductionComments: "",
         // Additional items
         additionalPercentageChoice: "",
@@ -60,9 +61,12 @@ export const useRPFAASData = () => {
         marketValue: 0,
         
         // Assessment calculations
+        actualUse: "",
         assessmentLevel: "20%",
         assessedValue: 0,
         amountInWords: "",
+        effectivityOfAssessment: "",
+        appraisedById: "",
     });
 
     const loadDataFromStorage = useCallback(() => {
@@ -78,32 +82,32 @@ export const useRPFAASData = () => {
             const adminCareOfName = localStorage.getItem("rpfaas_admin_careof") || "";
             const locationStreet = localStorage.getItem("rpfaas_location_street") || "";
 
-            // Owner Address (Convert Code -> Name)
+            // Owner Address — use pre-built string from DB if available, fall back to code lookup
+            const ownerAddressRaw = localStorage.getItem("rpfaas_owner_address");
             const oProvCode = localStorage.getItem("rpfaas_owner_address_province_code");
             const oMunCode = localStorage.getItem("rpfaas_owner_address_municipality_code");
             const oBarCode = localStorage.getItem("rpfaas_owner_address_barangay_code");
-            
-            const ownerAddressProvince = getLocationName(oProvCode, DUMMY_PROVINCES);
-            const ownerAddressMunicipality = getLocationName(oMunCode, DUMMY_MUNICIPALITIES);
-            const ownerAddressBarangay = getLocationName(oBarCode, DUMMY_BARANGAYS);
+            const ownerAddressProvince = ownerAddressRaw ? "" : getLocationName(oProvCode, DUMMY_PROVINCES);
+            const ownerAddressMunicipality = ownerAddressRaw ? "" : getLocationName(oMunCode, DUMMY_MUNICIPALITIES);
+            const ownerAddressBarangay = ownerAddressRaw || getLocationName(oBarCode, DUMMY_BARANGAYS);
 
-            // Admin Address (Convert Code -> Name)
+            // Admin Address — use pre-built string from DB if available, fall back to code lookup
+            const adminAddressRaw = localStorage.getItem("rpfaas_admin_address");
             const aProvCode = localStorage.getItem("rpfaas_admin_province_code");
             const aMunCode = localStorage.getItem("rpfaas_admin_municipality_code");
             const aBarCode = localStorage.getItem("rpfaas_admin_barangay_code");
+            const adminProvinceName = adminAddressRaw ? "" : getLocationName(aProvCode, DUMMY_PROVINCES);
+            const adminMunicipalityName = adminAddressRaw ? "" : getLocationName(aMunCode, DUMMY_MUNICIPALITIES);
+            const adminBarangayName = adminAddressRaw || getLocationName(aBarCode, DUMMY_BARANGAYS);
 
-            const adminProvinceName = getLocationName(aProvCode, DUMMY_PROVINCES);
-            const adminMunicipalityName = getLocationName(aMunCode, DUMMY_MUNICIPALITIES);
-            const adminBarangayName = getLocationName(aBarCode, DUMMY_BARANGAYS);
-
-            // Property Location (Convert Code -> Name)
+            // Property Location — prefer stored names, fall back to code lookup
             const lProvCode = localStorage.getItem("rpfaas_location_province_code");
             const lMunCode = localStorage.getItem("rpfaas_location_municipality_code");
             const lBarCode = localStorage.getItem("rpfaas_location_barangay_code");
 
-            const locationProvince = getLocationName(lProvCode, DUMMY_PROVINCES);
+            const locationProvince = localStorage.getItem("rpfaas_location_province") || getLocationName(lProvCode, DUMMY_PROVINCES);
             const locationMunicipality = localStorage.getItem("rpfaas_location_municipality") || getLocationName(lMunCode, DUMMY_MUNICIPALITIES);
-            const locationBarangay = getLocationName(lBarCode, DUMMY_BARANGAYS);
+            const locationBarangay = localStorage.getItem("rpfaas_location_barangay") || getLocationName(lBarCode, DUMMY_BARANGAYS);
 
             // Data from Step 2 (stored as JSON object under 'p2' key)
             const p2Data = localStorage.getItem("p2");
@@ -132,6 +136,7 @@ export const useRPFAASData = () => {
             const landArea = step2Data.land_area || "";
 
             // Data from Step 3 (stored as JSON object under 'p3' key)
+            // Falls back to the individual keys written by useFormPersistence in step-3
             const p3Data = localStorage.getItem("p3");
             let step3Data: any = {};
             if (p3Data) {
@@ -150,20 +155,50 @@ export const useRPFAASData = () => {
                 aluminum: false,
                 others: false,
             };
-            if (step3Data.roof_materials) {
-                roofMaterials = step3Data.roof_materials;
+
+            // Helper: check if a roof object has at least one material checked
+            const hasAnyRoof = (r: any) =>
+                r && typeof r === 'object' && Object.values(r).some(Boolean);
+
+            if (hasAnyRoof(step3Data.roof_materials)) {
+                roofMaterials = { ...roofMaterials, ...step3Data.roof_materials };
+            } else {
+                // Fallback: read from step-3 useFormPersistence key (flat boolean map)
+                const roofRaw = localStorage.getItem("roofing_material_json");
+                if (roofRaw) {
+                    try {
+                        const parsed = JSON.parse(roofRaw);
+                        // parsed may be the flat map directly, or wrapped in { data: ... }
+                        const flatMap = parsed?.data && typeof parsed.data === 'object' ? parsed.data : parsed;
+                        roofMaterials = { ...roofMaterials, ...flatMap };
+                    } catch {}
+                }
             }
             
-            const roofMaterialsOtherText = step3Data.roof_materials_other_text || "";
+            const roofMaterialsOtherText = step3Data.roof_materials_other_text
+                || localStorage.getItem("roofing_material_other_text")
+                || "";
             
             let flooringGrid: boolean[][] = [];
-            if (step3Data.flooring_grid) {
+            if (step3Data.flooring_grid && step3Data.flooring_grid.length > 0) {
                 flooringGrid = step3Data.flooring_grid;
+            } else {
+                // Fallback: read from step-3 useFormPersistence key
+                const floorRaw = localStorage.getItem("flooring_material_json");
+                if (floorRaw) {
+                    try { flooringGrid = JSON.parse(floorRaw); } catch {}
+                }
             }
             
             let wallsGrid: boolean[][] = [];
-            if (step3Data.walls_grid) {
+            if (step3Data.walls_grid && step3Data.walls_grid.length > 0) {
                 wallsGrid = step3Data.walls_grid;
+            } else {
+                // Fallback: read from step-3 useFormPersistence key
+                const wallRaw = localStorage.getItem("wall_material_json");
+                if (wallRaw) {
+                    try { wallsGrid = JSON.parse(wallRaw); } catch {}
+                }
             }
 
             // Data from Step 4 (stored as JSON object under 'p4' key)
@@ -189,6 +224,7 @@ export const useRPFAASData = () => {
             }
 
             const selectedDeductions = step4Data.selected_deductions || [];
+            const deductionAmounts: Record<string, number> = step4Data.deduction_amounts || {};
             const deductionComments = step4Data.overall_comments || "";
 
             // Additional items data from step 4
@@ -220,6 +256,9 @@ export const useRPFAASData = () => {
             }
 
             const amountInWords = localStorage.getItem("amount_in_words_p5") || "";
+            const actualUse = localStorage.getItem("actual_use_p5") || "";
+            const effectivityOfAssessment = localStorage.getItem("effectivity_of_assessment_p5") || "";
+            const appraisedById = localStorage.getItem("appraised_by_p5") || "";
             
             // Calculate financial summary similar to step-4
             const baseCost = unitCostFromStorage && step2Data.total_floor_area 
@@ -269,6 +308,7 @@ export const useRPFAASData = () => {
                 flooringGrid,
                 wallsGrid,
                 selectedDeductions,
+                deductionAmounts,
                 deductionComments,
                 // Additional items data
                 additionalPercentageChoice,
@@ -285,9 +325,12 @@ export const useRPFAASData = () => {
                 marketValue: parseFloat(marketValue || "0"),
                 
                 // Assessment calculations
+                actualUse,
                 assessmentLevel: assessmentLevelValue,
                 assessedValue: assessedValueFromStorage,
                 amountInWords,
+                effectivityOfAssessment,
+                appraisedById,
             });
         } catch (e) {
             console.error("Error loading RPFAAS data", e);

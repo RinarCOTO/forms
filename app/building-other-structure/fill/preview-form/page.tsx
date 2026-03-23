@@ -337,13 +337,17 @@ function PreviewFormPage() {
           set("rpfaas_owner_address_province_code",      d.owner_province_code);
           set("rpfaas_owner_address_municipality_code",  d.owner_municipality_code);
           set("rpfaas_owner_address_barangay_code",      d.owner_barangay_code);
+          set("rpfaas_owner_address",                    d.owner_address);
           set("rpfaas_admin_province_code",              d.admin_province_code);
           set("rpfaas_admin_municipality_code",          d.admin_municipality_code);
           set("rpfaas_admin_barangay_code",              d.admin_barangay_code);
+          set("rpfaas_admin_address",                    d.admin_address);
           set("rpfaas_location_province_code",           d.property_province_code);
           set("rpfaas_location_municipality_code",       d.property_municipality_code);
           set("rpfaas_location_municipality",            d.location_municipality);
           set("rpfaas_location_barangay_code",           d.property_barangay_code);
+          set("rpfaas_location_barangay",               d.location_barangay);
+          set("rpfaas_location_province",               d.location_province);
 
           // ── Step 2: p2 JSON blob ──────────────────────────────────────
           if (isPrintMode || !localStorage.getItem("p2")) {
@@ -383,6 +387,7 @@ function PreviewFormPage() {
           if (isPrintMode || !localStorage.getItem("p4")) {
             localStorage.setItem("p4", JSON.stringify({
               selected_deductions:        d.selected_deductions        || [],
+              deduction_amounts:          d.deduction_amounts          || {},
               overall_comments:           d.overall_comments           || "",
               additional_percentage_choice:d.additional_percentage_choice|| "",
               additional_percentage_areas: d.additional_percentage_areas || [],
@@ -398,6 +403,8 @@ function PreviewFormPage() {
           set("assessment_level_p5",  d.assessment_level);
           if (d.assessed_value != null) set("assessed_value_p5", String(d.assessed_value));
           set("actual_use_p5",        d.actual_use);
+          if (d.effectivity_of_assessment != null) set("effectivity_of_assessment_p5", String(d.effectivity_of_assessment));
+          if (d.appraised_by) set("appraised_by_p5", d.appraised_by);
         }
       })
       .catch(() => {})

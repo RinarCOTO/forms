@@ -34,13 +34,15 @@ ALTER TABLE public.building_structures
   ADD COLUMN IF NOT EXISTS construction_type         VARCHAR(100),
 
   -- Step 6 (assessment)
+  ADD COLUMN IF NOT EXISTS appraised_by             UUID REFERENCES auth.users(id),
   ADD COLUMN IF NOT EXISTS actual_use                VARCHAR(100),
   ADD COLUMN IF NOT EXISTS market_value              DECIMAL(15,2),
   ADD COLUMN IF NOT EXISTS assessment_level          DECIMAL(5,2),
   ADD COLUMN IF NOT EXISTS estimated_value           DECIMAL(15,2),
   ADD COLUMN IF NOT EXISTS amount_in_words           TEXT,
-  ADD COLUMN IF NOT EXISTS effectivity_of_assessment DATE,
+  ADD COLUMN IF NOT EXISTS effectivity_of_assessment INTEGER,
   ADD COLUMN IF NOT EXISTS selected_deductions       JSONB,
+  ADD COLUMN IF NOT EXISTS deduction_amounts         JSONB,
   ADD COLUMN IF NOT EXISTS unit_cost                 DECIMAL(15,2),
 
   -- Review workflow

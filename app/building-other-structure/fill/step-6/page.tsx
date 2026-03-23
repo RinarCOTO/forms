@@ -1,10 +1,10 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { FormEvent, useState, useEffect, useMemo, useCallback, Suspense } from "react";
+import { useState, useEffect, useMemo, useCallback, Suspense } from "react";
 import { StepPagination } from "@/components/ui/step-pagination";
 import { ReviewCommentsFloat } from "@/components/review-comments-float";
-import DatePicker from "../../../components/dropdowns/date-picker";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import "@/app/styles/forms-fill.css";
 import { getAssessmentLevel } from "@/config/assessment-level";
 import { AppSidebar } from "@/components/app-sidebar";
@@ -19,18 +19,12 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import * as React from "react";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { format } from "date-fns";
-import { ChevronDownIcon } from "lucide-react";
 
 // Helper function to collect form data from ONLY this step (step 5)
 function collectFormData(
@@ -49,8 +43,12 @@ function collectFormData(
 
   return data;
 }
-
-const FORM_NAME = "building-structure-form-fill-page-5";
+    const formatCurrency = (value: number) =>
+        value.toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        });
+const FORM_NAME = "building-structure-form-fill-page-6";
 const PAGE_DESCRIPTION = "Final notes and summary of the property assessment.";
 
 // Pure helper at module scope — no state/props, never recreated on render
@@ -106,7 +104,7 @@ function numberToWords(num: number): string {
   return word.trim();
 }
 
-function BuildingStructureFormFillPage5() {
+function BuildingStructureFormFillPage6() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const draftId = searchParams.get('id');
@@ -115,7 +113,10 @@ function BuildingStructureFormFillPage5() {
   const [actualUse, setActualUse] = useState("");
   const [typeOfBuildingLabel, setTypeOfBuildingLabel] = useState("");
   const [marketValue, setMarketValue] = useState<number>(0);
-  const [effectivityDate, setEffectivityDate] = useState<Date | undefined>(undefined);
+  const [effectivityYear, setEffectivityYear] = useState<string>("");
+  const [appraisedBy, setAppraisedBy] = useState<string>("");
+  const [taxMappers, setTaxMappers] = useState<{ id: string; full_name: string }[]>([]);
+  const [taxMappersLoading, setTaxMappersLoading] = useState(false);
 
   const assessmentLevel = useMemo(
     () => getAssessmentLevel(typeOfBuildingLabel, actualUse, marketValue) ?? "",
@@ -146,10 +147,33 @@ function BuildingStructureFormFillPage5() {
 
       const savedMarketValue = parseFloat(localStorage.getItem("market_value_p4") || "0");
       setMarketValue(savedMarketValue);
+
+      // Restore effectivity year and appraised by from localStorage (persisted from a previous visit)
+      const savedEffectivity = localStorage.getItem("effectivity_of_assessment_p5");
+      if (savedEffectivity) setEffectivityYear(savedEffectivity);
+
+      const savedAppraisedBy = localStorage.getItem("appraised_by_p5");
+      if (savedAppraisedBy) setAppraisedBy(savedAppraisedBy);
     } catch (error) {
       console.error("Failed to load data from localStorage", error);
       setActualUse("Residential");
     }
+  }, []);
+
+  // Fetch tax mappers based on the property's location municipality
+  useEffect(() => {
+    setTaxMappersLoading(true);
+    const municipality = localStorage.getItem("rpfaas_location_municipality") || "";
+    const params = municipality
+      ? `role=tax_mapper&municipality=${encodeURIComponent(municipality)}`
+      : `role=tax_mapper`;
+    fetch(`/api/users/by-role?${params}`)
+      .then(r => r.json())
+      .then(data => {
+        if (Array.isArray(data.users)) setTaxMappers(data.users);
+      })
+      .catch(() => {/* non-fatal */})
+      .finally(() => setTaxMappersLoading(false));
   }, []);
 
   // Load draft data if editing
@@ -163,6 +187,8 @@ function BuildingStructureFormFillPage5() {
           if (result.success && result.data) {
             const data = result.data;
             if (data.actual_use) setActualUse(data.actual_use);
+            if (data.effectivity_of_assessment != null) setEffectivityYear(String(data.effectivity_of_assessment));
+            if (data.appraised_by) setAppraisedBy(data.appraised_by);
             Object.entries(data).forEach(([key, value]) => {
               if (value !== null && value !== undefined) {
                 localStorage.setItem(`${key}_p5`, String(value));
@@ -177,7 +203,7 @@ function BuildingStructureFormFillPage5() {
     loadDraft();
   }, [draftId]);
 
-  const handleSubmit = useCallback((e: FormEvent) => {
+  const handleSubmit = useCallback((e: { preventDefault: () => void }) => {
     e.preventDefault();
     router.push("/building-other-structure");
   }, [router]);
@@ -187,9 +213,13 @@ function BuildingStructureFormFillPage5() {
     try {
       const formData = collectFormData(actualUse, assessedValue, amountInWords, assessmentLevel);
       formData.status = 'draft';
-      if (effectivityDate) {
-        formData.effectivity_of_assessment = effectivityDate.toISOString().split("T")[0];
-        localStorage.setItem("effectivity_of_assessment_p5", formData.effectivity_of_assessment);
+      if (effectivityYear) {
+        formData.effectivity_of_assessment = parseInt(effectivityYear);
+        localStorage.setItem("effectivity_of_assessment_p5", effectivityYear);
+      }
+      if (appraisedBy) {
+        formData.appraised_by = appraisedBy;
+        localStorage.setItem("appraised_by_p5", appraisedBy);
       }
 
       // Save assessment data to localStorage for the RPFAAS form
@@ -234,7 +264,7 @@ function BuildingStructureFormFillPage5() {
     } finally {
       setIsSaving(false);
     }
-  }, [actualUse, assessedValue, amountInWords, assessmentLevel, draftId, router, effectivityDate]);
+  }, [actualUse, assessedValue, amountInWords, assessmentLevel, draftId, router, effectivityYear, appraisedBy]);
 
   return (
     <SidebarProvider>
@@ -265,7 +295,7 @@ function BuildingStructureFormFillPage5() {
               </div>
             </header>
 
-            <form id={`form_${FORM_NAME}`} data-form-name={FORM_NAME} onSubmit={handleSubmit} className="rpfaas-fill-form rpfaas-fill-form-single space-y-6">
+            <form id={`form_${FORM_NAME}`} data-form-name={FORM_NAME} onSubmit={handleSubmit} className="rpfaas-fill-form rpfaas-fill-form-single space-y-6 px-4 py-6">
               <section className="rpfaas-fill-section">
                 <h2 className="rpfaas-fill-section-title mb-4">Property Assessment</h2>
 
@@ -286,7 +316,7 @@ function BuildingStructureFormFillPage5() {
                   <Input
                     id="market_value_p5"
                     name="market_value_p5"
-                    value={marketValue > 0 ? `₱${formatNumberWithCommas(marketValue)}` : ""}
+                    value={marketValue > 0 ? `₱${formatCurrency(marketValue)}` : ""}
                     readOnly
                     disabled
                     aria-disabled="true"
@@ -335,7 +365,36 @@ function BuildingStructureFormFillPage5() {
                 </div>
                 <div className="rpfaas-fill-field space-y-1" data-comment-field="effectivity_of_assessment">
                   <Label className="rpfaas-fill-label" htmlFor="effectivity_of_assessment_p5">Effectivity of Assessment</Label>
-                  <DatePicker />
+                  <Select value={effectivityYear} onValueChange={setEffectivityYear}>
+                    <SelectTrigger id="effectivity_of_assessment_p5" className="rpfaas-fill-input">
+                      <SelectValue placeholder="Select year" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 30 }, (_, i) => new Date().getFullYear() - 10 + i).map((year) => (
+                        <SelectItem key={year} value={String(year)}>{year}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </section>
+              <section className="rpfaas-fill-section">
+                <div className="rpfaas-fill-field space-y-1" data-comment-field="appraised_by">
+                  <Label className="rpfaas-fill-label" htmlFor="appraised_by_p5">Assessed/Appraised by:</Label>
+                  <Select value={appraisedBy} onValueChange={setAppraisedBy} disabled={taxMappersLoading}>
+                    <SelectTrigger id="appraised_by_p5" className="rpfaas-fill-input">
+                      <SelectValue placeholder={taxMappersLoading ? "Loading..." : "Select tax mapper"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {taxMappers.map((mapper) => (
+                        <SelectItem key={mapper.id} value={mapper.id}>
+                          {mapper.full_name}
+                        </SelectItem>
+                      ))}
+                      {!taxMappersLoading && taxMappers.length === 0 && (
+                        <SelectItem value="__none__" disabled>No tax mappers found</SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
                 </div>
               </section>
 
@@ -360,7 +419,7 @@ function BuildingStructureFormFillPage5() {
 export default function BuildingStructureFormFillPage6Wrapper() {
   return (
     <Suspense fallback={<div>Loading...</div>}>
-      <BuildingStructureFormFillPage5 />
+      <BuildingStructureFormFillPage6 />
     </Suspense>
   );
 }
