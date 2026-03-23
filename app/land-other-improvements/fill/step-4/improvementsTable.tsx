@@ -325,7 +325,8 @@ export const DeductionsTable = ({
                         type="number"
                         min="0"
                         step="1"
-                        className="w-24 rounded-md border border-input bg-background px-2 py-1 text-right focus:outline-none focus:ring-2 focus:ring-ring"
+                        disabled={!selectedOpt || deductionChoices.length === 0}
+                        className="w-24 rounded-md border border-input bg-background px-2 py-1 text-right focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
                         placeholder="0"
                         value={qty === 0 ? "" : qty}
                         onChange={(e) => {

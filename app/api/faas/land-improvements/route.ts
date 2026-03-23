@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     const admin = getAdminClient()
     let query = admin
       .from('land_improvements')
-      .select('id, owner_name, updated_at, status, municipality')
+      .select('id, owner_name, updated_at, status, municipality, arp_no, location_municipality, location_barangay')
       .order('updated_at', { ascending: false })
 
     if (!userCtx.isAdmin && userCtx.municipality) {

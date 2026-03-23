@@ -20,7 +20,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { FileText, Plus, ArrowLeft, Loader2, Eye, Edit, Trash2, MoreHorizontal, ChevronLeft, ChevronRight } from "lucide-react";
+import { FileText, Plus, ArrowLeft, Loader2, Eye, Edit, Trash2, MoreHorizontal, ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { AppSidebar } from "@/components/app-sidebar";
@@ -37,6 +38,7 @@ export default function BuildingOtherStructureDashboard() {
   const PAGE_SIZE = 10;
   const [selectedMunicipalities, setSelectedMunicipalities] = useState<string[]>([]);
   const [selectedBarangays, setSelectedBarangays] = useState<string[]>([]);
+  const [search, setSearch] = useState("");
   const [user, setUser] = useState<{ role: string } | null>(null);
   const [municipalAssessors, setMunicipalAssessors] = useState<{ full_name: string; municipality: string }[]>([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -199,10 +201,15 @@ export default function BuildingOtherStructureDashboard() {
     setCurrentPage(1);
   };
 
+  const q = search.toLowerCase();
   const filteredSubmissions = submissions.filter(s => {
     const muniMatch = selectedMunicipalities.length === 0 || selectedMunicipalities.includes(s.location_municipality || '');
     const barangayMatch = selectedBarangays.length === 0 || selectedBarangays.includes(s.location_barangay || '');
-    return muniMatch && barangayMatch;
+    const searchMatch = q === '' ||
+      String(s.owner_name ?? '').toLowerCase().includes(q) ||
+      String(s.location_municipality ?? '').toLowerCase().includes(q) ||
+      String(s.location_barangay ?? '').toLowerCase().includes(q);
+    return muniMatch && barangayMatch && searchMatch;
   });
 
   const totalPages = Math.max(1, Math.ceil(filteredSubmissions.length / PAGE_SIZE));
@@ -241,59 +248,66 @@ export default function BuildingOtherStructureDashboard() {
         </header>
         <div className="flex-1 p-6 overflow-y-auto">
           <div className="max-w-5xl mx-auto">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <Button variant="ghost" size="sm" onClick={() => router.push("/dashboard")}>
-                  <ArrowLeft className="h-4 w-4 mr-2" /> Back to Building Dashboard
-                </Button>
+            <div className="flex items-center justify-between mb-3">
+              <Button variant="ghost" size="sm" onClick={() => router.push("/dashboard")}>
+                <ArrowLeft className="h-4 w-4 mr-2" /> Back to Building Dashboard
+              </Button>
+              <Button onClick={handleNewForm}><Plus className="h-4 w-4 mr-2" /> New Submission</Button>
+            </div>
+            <div className="flex items-center gap-2 bg-white p-2 rounded-xl border shadow-sm mb-4">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search owner, municipality…"
+                  value={search}
+                  onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
+                  className="pl-8 w-56 h-9"
+                />
               </div>
-              <div className="flex items-center gap-2">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant={selectedMunicipalities.length > 0 ? 'default' : 'outline'} size="sm">
-                      Municipality{selectedMunicipalities.length > 0 ? ` (${selectedMunicipalities.length})` : ''}
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent className="max-h-64 overflow-y-auto">
-                    {uniqueMunicipalities.length === 0 ? (
-                      <DropdownMenuItem disabled>No municipalities</DropdownMenuItem>
-                    ) : (
-                      uniqueMunicipalities.map(muni => (
-                        <DropdownMenuCheckboxItem
-                          key={muni}
-                          checked={selectedMunicipalities.includes(muni)}
-                          onCheckedChange={() => toggleMunicipality(muni)}
-                        >
-                          {muni}
-                        </DropdownMenuCheckboxItem>
-                      ))
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant={selectedBarangays.length > 0 ? 'default' : 'outline'} size="sm">
-                      Barangay{selectedBarangays.length > 0 ? ` (${selectedBarangays.length})` : ''}
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent className="max-h-64 overflow-y-auto">
-                    {uniqueBarangays.length === 0 ? (
-                      <DropdownMenuItem disabled>No barangays</DropdownMenuItem>
-                    ) : (
-                      uniqueBarangays.map(barangay => (
-                        <DropdownMenuCheckboxItem
-                          key={barangay}
-                          checked={selectedBarangays.includes(barangay)}
-                          onCheckedChange={() => toggleBarangay(barangay)}
-                        >
-                          {barangay}
-                        </DropdownMenuCheckboxItem>
-                      ))
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                <Button onClick={handleNewForm}> <Plus className="h-4 w-4 mr-2" /> New Submission </Button>
-              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant={selectedMunicipalities.length > 0 ? 'default' : 'outline'} size="sm">
+                    Municipality{selectedMunicipalities.length > 0 ? ` (${selectedMunicipalities.length})` : ''}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="max-h-64 overflow-y-auto">
+                  {uniqueMunicipalities.length === 0 ? (
+                    <DropdownMenuItem disabled>No municipalities</DropdownMenuItem>
+                  ) : (
+                    uniqueMunicipalities.map(muni => (
+                      <DropdownMenuCheckboxItem
+                        key={muni}
+                        checked={selectedMunicipalities.includes(muni)}
+                        onCheckedChange={() => toggleMunicipality(muni)}
+                      >
+                        {muni}
+                      </DropdownMenuCheckboxItem>
+                    ))
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant={selectedBarangays.length > 0 ? 'default' : 'outline'} size="sm">
+                    Barangay{selectedBarangays.length > 0 ? ` (${selectedBarangays.length})` : ''}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="max-h-64 overflow-y-auto">
+                  {uniqueBarangays.length === 0 ? (
+                    <DropdownMenuItem disabled>No barangays</DropdownMenuItem>
+                  ) : (
+                    uniqueBarangays.map(barangay => (
+                      <DropdownMenuCheckboxItem
+                        key={barangay}
+                        checked={selectedBarangays.includes(barangay)}
+                        onCheckedChange={() => toggleBarangay(barangay)}
+                      >
+                        {barangay}
+                      </DropdownMenuCheckboxItem>
+                    ))
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
             <Card>
               <CardHeader>

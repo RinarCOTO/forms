@@ -1,0 +1,32 @@
+@page {
+  size: A4 portrait;
+  margin-top: 0.5in;
+  margin-right: 0.5in;
+  margin-bottom: 0;
+  margin-left: 1in;
+}
+
+@font-face {
+  font-family: 'Algerian';
+  src: url('/fonts/Algerian.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+.tax-dec-title {
+  font-family: 'Algerian', fantasy;
+}
+
+.tax-dec-body {
+  font-family: 'Times New Roman', Times, serif;
+}
+
+.tax-dec-note {
+  font-family: 'Monotype Corsiva', 'Lucida Calligraphy', 'Brush Script MT', cursive;
+}
+
+/* @media print {
+  .tax-dec-body .grid {
+    gap: revert !important;
+  }
+} */

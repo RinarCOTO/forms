@@ -4,7 +4,7 @@ import * as React from "react"
 import { usePathname } from "next/navigation";
 import "./sidebar-active.css";
 import { UserProfile } from "@/components/user-profile"
-import { ChevronRight, ChevronDown, ClipboardList, ListChecks, PenLine, Calculator, Users, ShieldCheck, StickyNote, Settings} from "lucide-react"
+import { ChevronRight, ChevronDown, ClipboardList, ListChecks, PenLine, Calculator, Users, ShieldCheck, StickyNote, Settings, ScrollText } from "lucide-react"
 import { usePermissions } from "@/app/contexts/permissions-context"
 
 import {
@@ -233,6 +233,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     <a href="/notes" className={pathname.startsWith("/notes") ? "sidebar-active" : ""}><StickyNote className="w-4 h-4 shrink-0" />Notes</a>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
+                {role && ['laoo', 'admin', 'super_admin', 'assistant_provincial_assessor', 'provincial_assessor'].includes(role) && (
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <a href="/tax-declaration" className={pathname.startsWith("/tax-declaration") ? "sidebar-active" : ""}><ScrollText className="w-4 h-4 shrink-0" />Tax Declaration</a>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>

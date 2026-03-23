@@ -5,29 +5,83 @@ import { createClient } from '@supabase/supabase-js'
 import { getCurrentUserContext } from '@/lib/services/user.service'
 import { z } from 'zod'
 
-const numericField = z.union([z.number(), z.string()]).optional()
+const numericField = z.union([z.number(), z.string()]).nullish()
 
 const LandImprovementUpdateSchema = z.object({
-  arp_no: z.string().max(50).optional(),
-  pin: z.string().max(50).optional(),
-  owner_name: z.string().max(255).optional(),
-  owner_address: z.string().optional(),
-  improvement_type: z.string().max(100).optional(),
-  description: z.string().optional(),
-  area: numericField,
-  unit_of_measure: z.string().max(20).optional(),
-  market_value: numericField,
-  assessment_level: numericField,
-  assessed_value: numericField,
   status: z.enum(['draft', 'submitted', 'under_review', 'approved', 'returned', 'rejected']).optional(),
   created_by: z.string().max(255).optional(),
   updated_by: z.string().max(255).optional(),
 
-  //basic fields
+  // step 1 — property identification
+  arp_no: z.string().max(50).optional(),
+  pin: z.string().max(50).optional(),
+  transaction_code: z.string().optional(),
+  oct_tct_cloa_no: z.string().optional(),
+  survey_no: z.string().optional(),
+  lot_no: z.string().optional(),
+  blk: z.string().optional(),
+
+  // step 1 — owner / admin
+  owner_name: z.string().max(255).optional(),
+  owner_address: z.string().optional(),
+  owner_province_code: z.string().optional(),
+  owner_municipality_code: z.string().optional(),
+  owner_barangay_code: z.string().optional(),
+  admin_care_of: z.string().optional(),
+  admin_address: z.string().optional(),
+  admin_province_code: z.string().optional(),
+  admin_municipality_code: z.string().optional(),
+  admin_barangay_code: z.string().optional(),
+
+  // step 1 — property location
+  property_address: z.string().optional(),
+  property_province_code: z.string().optional(),
+  property_municipality_code: z.string().optional(),
+  property_barangay_code: z.string().optional(),
+  location_province: z.string().optional(),
+  location_municipality: z.string().optional(),
+  location_barangay: z.string().optional(),
+  municipality: z.string().optional(),
+
+  // step 2 — boundaries
   north_property: z.string().optional(),
   east_property: z.string().optional(),
   south_property: z.string().optional(),
   west_property: z.string().optional(),
+
+  // step 3 — appraisal
+  classification: z.string().optional(),
+  sub_classification: z.string().optional(),
+  land_class: z.string().optional(),
+  land_area: numericField,
+  unit_value: numericField,
+  base_market_value: numericField,
+
+  // step 4 — improvements / adjustments
+  selected_deductions: z.array(z.union([z.string(), z.number()])).optional(),
+  improvement_kind: z.union([z.array(z.union([z.string(), z.number()])), z.string()]).optional(),
+  quantities: z.array(z.union([z.number(), z.string()])).optional(),
+  overall_comments: z.string().optional(),
+  additional_percentage_choice: z.string().optional(),
+  additional_percentage_value: numericField,
+  additional_percentage_areas: z.array(z.union([z.number(), z.string()])).optional(),
+  additional_flat_rate_choice: z.string().optional(),
+  additional_flat_rate_value: numericField,
+  additional_flat_rate_areas: z.array(z.union([z.number(), z.string()])).optional(),
+  market_value: numericField,
+
+  // step 5 — assessment
+  actual_use: z.string().optional(),
+  assessment_level: numericField,
+  assessed_value: numericField,
+  amount_in_words: z.string().optional(),
+  effectivity_of_assessment: z.string().optional(),
+
+  // legacy / misc
+  improvement_type: z.string().max(100).optional(),
+  description: z.string().optional(),
+  area: numericField,
+  unit_of_measure: z.string().max(20).optional(),
 })
 
 // Helper function to initialize Supabase
@@ -99,6 +153,8 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     // Validate input
     const parsed = LandImprovementUpdateSchema.safeParse(body)
     if (!parsed.success) {
+      console.error('Zod validation failed:', JSON.stringify(parsed.error.issues, null, 2))
+      console.error('Body keys sent:', Object.keys(body))
       return NextResponse.json(
         { success: false, error: 'Invalid input', details: parsed.error.issues },
         { status: 400 }
@@ -112,7 +168,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     const cleanedData = Object.entries(updateData).reduce((acc, [key, value]) => {
       if (value !== undefined && value !== null && value !== '' && value !== 'undefined') {
         // Convert numeric strings to numbers for decimal fields
-        if (['area', 'market_value', 'assessment_level', 'assessed_value'].includes(key)) {
+        if (['area', 'market_value', 'assessment_level', 'assessed_value', 'land_area', 'unit_value', 'base_market_value', 'additional_percentage_value', 'additional_flat_rate_value'].includes(key)) {
           const numValue = parseFloat(value as string)
           if (!isNaN(numValue)) {
             acc[key] = numValue

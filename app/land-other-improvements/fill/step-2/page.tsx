@@ -86,9 +86,10 @@ const LandOtherImprovementFormFillPage2 = () => {
         router.push("/building-other-structure");
     }, [router]);
 
-    const handleNext = useCallback(() => {
+    const handleNext = useCallback(async () => {
+        await handleSave();
         router.push(`/land-other-improvements/fill/step-3${draftId ? `?id=${draftId}` : ''}`);
-    }, [router, draftId]);
+    }, [handleSave, router, draftId]);
 
     return (
         <SidebarProvider>

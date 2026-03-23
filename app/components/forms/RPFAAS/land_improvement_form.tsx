@@ -219,19 +219,19 @@ const LandImprovementForm = ({ data }: { data: LandImprovementFormData }) => {
 
           {/* Boundaries — all 4 directions in one row */}
           <SectionHeader colSpan={4}>PROPERTY BOUNDARIES</SectionHeader>
-          <tr data-field="north_property">
+          <tr data-field="north_property" style={{ height: "2rem" }}>
             <td>North:</td>
             <td colSpan={3} className="font-bold">{fmt(data.north_property)}</td>
           </tr>
-          <tr data-field="south_property">
+          <tr data-field="south_property" style={{ height: "2rem" }}>
             <td>South:</td>
             <td colSpan={3} className="font-bold">{fmt(data.south_property)}</td>
           </tr>
-          <tr data-field="east_property">
+          <tr data-field="east_property" style={{ height: "2rem" }}>
             <td>East:</td>
             <td colSpan={3} className="font-bold">{fmt(data.east_property)}</td>
           </tr>
-          <tr data-field="west_property">
+          <tr data-field="west_property" style={{ height: "2rem" }}>
             <td>West:</td>
             <td colSpan={3} className="font-bold">{fmt(data.west_property)}</td>
           </tr>

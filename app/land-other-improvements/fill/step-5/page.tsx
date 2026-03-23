@@ -141,7 +141,7 @@ function LandImprovementsFormFillPage5() {
         actual_use: classification,
         market_value: marketValue,
         assessment_level: parseFloat(assessmentLevel) || 0,
-        estimated_value: assessedValue,
+        assessed_value: assessedValue,
         amount_in_words: amountInWords,
       };
 

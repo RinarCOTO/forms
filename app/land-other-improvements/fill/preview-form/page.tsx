@@ -21,7 +21,7 @@ import { useState, useCallback, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Loader2, Save, Send, Printer, Lock, AlertTriangle, RotateCcw,
-  MessageSquare, User, Clock,
+  MessageSquare, User, Clock, FileText,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import LandImprovementForm from "@/app/components/forms/RPFAAS/land_improvement_form";
@@ -380,6 +380,19 @@ function PreviewFormPage() {
                         </span>
                       </div>
                     )}
+                  </div>
+                )}
+
+                {/* Tax Declaration button — approved forms only */}
+                {!isPrintMode && formStatus === "approved" && draftId && (
+                  <div className="print:hidden mb-4">
+                    <Button
+                      onClick={() => router.push(`/land-other-improvements/tax-declaration?id=${draftId}`)}
+                      className="w-full sm:w-auto gap-2"
+                    >
+                      <FileText className="h-4 w-4" />
+                      Print Tax Declaration
+                    </Button>
                   </div>
                 )}
 

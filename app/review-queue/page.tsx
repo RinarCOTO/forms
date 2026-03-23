@@ -238,22 +238,25 @@ export default function ReviewQueuePage() {
     const action = actionMap[dialogAction];
 
     try {
+      const commentsBase =
+        selectedItem.form_type === "building"
+          ? `/api/faas/building-structures/${selectedItem.id}/comments`
+          : `/api/faas/land-improvements/${selectedItem.id}/comments`;
+
       // Save return reason as a general comment first
       if (dialogAction === "return" && reviewComment.trim()) {
-        if (selectedItem.form_type === "building") {
-          await fetch(`/api/faas/building-structures/${selectedItem.id}/comments`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ comment_text: reviewComment.trim() }),
-          });
-        }
+        await fetch(commentsBase, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ comment_text: reviewComment.trim() }),
+        });
       }
 
       // Status transition
       const apiBase =
         selectedItem.form_type === "building"
           ? `/api/faas/building-structures/${selectedItem.id}/review`
-          : `/api/faas/building-structures/${selectedItem.id}/review`; // TODO: land route
+          : `/api/faas/land-improvements/${selectedItem.id}/review`;
 
       const res = await fetch(apiBase, {
         method: "POST",
