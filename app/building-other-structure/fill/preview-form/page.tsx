@@ -19,7 +19,7 @@ import {
 import "@/app/styles/forms-fill.css";
 import { useState, useCallback, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Loader2, Save, Send, Printer, Lock, AlertTriangle, RotateCcw, MessageSquare, User, Clock } from "lucide-react";
+import { Loader2, Save, Send, Printer, Lock, AlertTriangle, RotateCcw, MessageSquare, User, Clock, FileText } from "lucide-react";
 import BuildingStructureForm from "@/app/components/forms/RPFAAS/building_structure_form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -405,6 +405,7 @@ function PreviewFormPage() {
           set("actual_use_p5",        d.actual_use);
           if (d.effectivity_of_assessment != null) set("effectivity_of_assessment_p5", String(d.effectivity_of_assessment));
           if (d.appraised_by) set("appraised_by_p5", d.appraised_by);
+          if (d.tax_status) set("tax_status_p5", d.tax_status);
         }
       })
       .catch(() => {})
@@ -646,6 +647,19 @@ function PreviewFormPage() {
                     </span>
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Tax Declaration button — approved forms only */}
+            {!isPrintMode && formStatus === "approved" && draftId && (
+              <div className="print:hidden mb-4">
+                <Button
+                  onClick={() => router.push(`/tax-declaration/building?id=${draftId}`)}
+                  className="w-full sm:w-auto gap-2"
+                >
+                  <FileText className="h-4 w-4" />
+                  Print Tax Declaration
+                </Button>
               </div>
             )}
 

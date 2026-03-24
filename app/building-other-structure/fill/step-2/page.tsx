@@ -259,7 +259,12 @@ const handleCostOfConstructionChange = useCallback((e: React.ChangeEvent<HTMLInp
     const storeys = e.target.value ? parseInt(e.target.value, 10) : "";
     setNumberOfStoreys(storeys);
     if (typeof storeys === 'number' && storeys > 0) {
-      setFloorAreas(Array(storeys).fill(""));
+      // Preserve existing values; extend with empty strings if adding floors
+      setFloorAreas(prev => {
+        const next = Array(storeys).fill("") as (number | "")[];
+        for (let i = 0; i < Math.min(storeys, prev.length); i++) next[i] = prev[i];
+        return next;
+      });
     } else {
       setFloorAreas([]);
     }
@@ -301,7 +306,7 @@ const handleNext = useCallback(async () => {
         date_occupied: formatYearToDate(dateOccupied),
         building_age: buildingAge,
         number_of_storeys: numberOfStoreys,
-        floor_areas: floorAreas,
+        floor_areas: typeof numberOfStoreys === 'number' ? floorAreas.slice(0, numberOfStoreys) : floorAreas,
         total_floor_area: totalFloorArea,
         land_owner: landOwner,
         td_arp_no: tdArpNo,
@@ -361,7 +366,8 @@ const handleNext = useCallback(async () => {
         date_constructed: formatYearToDate(dateConstructed),
         date_occupied: formatYearToDate(dateOccupied),
         building_age: buildingAge, number_of_storeys: numberOfStoreys,
-        floor_areas: floorAreas, total_floor_area: totalFloorArea,
+        floor_areas: typeof numberOfStoreys === 'number' ? floorAreas.slice(0, numberOfStoreys) : floorAreas,
+        total_floor_area: totalFloorArea,
         land_owner: landOwner, td_arp_no: tdArpNo, land_area: landArea,
         cost_of_construction: rawCostValue === '0' ? null : rawCostValue,
         status: 'draft',

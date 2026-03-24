@@ -6,6 +6,13 @@ import { DEDUCTION_CHOICES } from "@/config/form-options";
 
 export const useRPFAASData = () => {
     const [formData, setFormData] = useState<RPFAASFormData>({
+        transactionCode: "",
+        arpNo: "",
+        octTctCloaNo: "",
+        pin: "",
+        surveyNo: "",
+        lotNo: "",
+        blk: "",
         ownerName: "",
         adminCareOfName: "",
         ownerAddressBarangay: "",
@@ -61,12 +68,14 @@ export const useRPFAASData = () => {
         marketValue: 0,
         
         // Assessment calculations
+        taxStatus: "taxable",
         actualUse: "",
         assessmentLevel: "20%",
         assessedValue: 0,
         amountInWords: "",
         effectivityOfAssessment: "",
         appraisedById: "",
+        memoranda: "",
     });
 
     const loadDataFromStorage = useCallback(() => {
@@ -77,6 +86,17 @@ export const useRPFAASData = () => {
             console.log('p2 data:', localStorage.getItem("p2"));
             console.log('p3 data:', localStorage.getItem("p3"));
             
+            // Property Identification from Step 1
+            const transactionCode = localStorage.getItem("rpfaas_transaction_code") || "";
+            const arpNo = localStorage.getItem("rpfaas_arp_no") || "";
+            const titleType = localStorage.getItem("rpfaas_title_type") || "";
+            const titleNo = localStorage.getItem("rpfaas_title_no") || "";
+            const octTctCloaNo = titleType && titleType !== 'None' ? `${titleType} ${titleNo}`.trim() : '';
+            const pin = localStorage.getItem("rpfaas_pin") || "";
+            const surveyNo = localStorage.getItem("rpfaas_survey_no") || "";
+            const lotNo = localStorage.getItem("rpfaas_lot_no") || "";
+            const blk = localStorage.getItem("rpfaas_blk") || "";
+
             // Direct Strings from Step 1
             const ownerName = localStorage.getItem("rpfaas_owner_name") || "";
             const adminCareOfName = localStorage.getItem("rpfaas_admin_careof") || "";
@@ -257,8 +277,10 @@ export const useRPFAASData = () => {
 
             const amountInWords = localStorage.getItem("amount_in_words_p5") || "";
             const actualUse = localStorage.getItem("actual_use_p5") || "";
+            const taxStatus = localStorage.getItem("tax_status_p5") || "taxable";
             const effectivityOfAssessment = localStorage.getItem("effectivity_of_assessment_p5") || "";
             const appraisedById = localStorage.getItem("appraised_by_p5") || "";
+            const memoranda = localStorage.getItem("memoranda_p5") || "";
             
             // Calculate financial summary similar to step-4
             const baseCost = unitCostFromStorage && step2Data.total_floor_area 
@@ -277,6 +299,13 @@ export const useRPFAASData = () => {
             const netUnitCost = baseCost - standardDeductionTotal;
 
             setFormData({
+                transactionCode,
+                arpNo,
+                octTctCloaNo,
+                pin,
+                surveyNo,
+                lotNo,
+                blk,
                 ownerName,
                 adminCareOfName,
                 ownerAddressBarangay,
@@ -326,11 +355,13 @@ export const useRPFAASData = () => {
                 
                 // Assessment calculations
                 actualUse,
+                taxStatus,
                 assessmentLevel: assessmentLevelValue,
                 assessedValue: assessedValueFromStorage,
                 amountInWords,
                 effectivityOfAssessment,
                 appraisedById,
+                memoranda,
             });
         } catch (e) {
             console.error("Error loading RPFAAS data", e);

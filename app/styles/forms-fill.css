@@ -113,6 +113,13 @@
   color: var(--text);
 }
 
+input.rpfaas-fill-input,
+.rpfaas-fill-field select {
+  height: 2.25rem;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
 .rpfaas-fill-input::placeholder,
 .rpfaas-fill-field textarea::placeholder {
   color: #94a3b8; /* visible placeholder */

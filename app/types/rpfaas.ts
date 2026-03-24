@@ -21,6 +21,15 @@ export interface RoofMaterials {
 }
 
 export interface RPFAASFormData {
+    // Property Identification
+    transactionCode: string;
+    arpNo: string;
+    octTctCloaNo: string;
+    pin: string;
+    surveyNo: string;
+    lotNo: string;
+    blk: string | number;
+
     // Owner Info
     ownerName: string;
     adminCareOfName: string;
@@ -86,10 +95,12 @@ export interface RPFAASFormData {
     marketValue: number;
     
     // Assessment calculations
+    taxStatus: string;
     actualUse: string;
     assessmentLevel: string;
     assessedValue: number;
     amountInWords: string;
     effectivityOfAssessment: string;
     appraisedById: string;
+    memoranda: string;
 }

@@ -67,13 +67,13 @@ const TABS: { key: Tab; label: string; api: string; viewRoute: (id: number) => s
     key: "land",
     label: "Land & Other Improvements",
     api: "/api/faas/land-improvements",
-    viewRoute: (id) => `/land-other-improvements/tax-declaration?id=${id}`,
+    viewRoute: (id) => `/tax-declaration/land?id=${id}`,
   },
   {
     key: "building",
     label: "Building & Structures",
     api: "/api/faas/building-structures",
-    viewRoute: (id) => `/building-structures/tax-declaration?id=${id}`,
+    viewRoute: (id) => `/tax-declaration/building?id=${id}`,
   },
   {
     key: "machinery",

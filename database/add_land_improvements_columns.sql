@@ -55,6 +55,7 @@ ALTER TABLE public.land_improvements
   ADD COLUMN IF NOT EXISTS actual_use                VARCHAR(100),
   ADD COLUMN IF NOT EXISTS amount_in_words           TEXT,
   ADD COLUMN IF NOT EXISTS effectivity_of_assessment DATE,
+  ADD COLUMN IF NOT EXISTS memoranda                 TEXT,
 
   -- Review workflow
   ADD COLUMN IF NOT EXISTS submitted_at              TIMESTAMPTZ,

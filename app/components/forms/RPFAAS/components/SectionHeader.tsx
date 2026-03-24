@@ -14,7 +14,7 @@ export const SectionHeader = ({
     "data-field": dataField,
 }: SectionHeaderProps) => (
     <tr data-field={dataField}>
-        <td colSpan={colSpan} className={`font-bold sectionHeader ${className}`}>
+        <td colSpan={colSpan} className={`font-bold sectionHeader rpfaas-table-header ${className}`}>
             {children}
         </td>
     </tr>

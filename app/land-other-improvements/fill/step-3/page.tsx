@@ -27,8 +27,19 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { Loader2 } from "lucide-react";
+import { Loader2, Info } from "lucide-react";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Separator } from "@/components/ui/separator";
+
+const LAND_CLASSIFICATION_DESCRIPTIONS: Record<string, string> = {
+  residential: "R – Residential: Land principally devoted to habitation or housing.",
+  agricultural: "A – Agricultural: Land devoted principally to planting trees, raising crops, livestock, poultry, dairying, salt making, inland fishing, and similar aquaculture activities.",
+  commercial: "C – Commercial: Land devoted principally to the object of profit (business, trade, etc.) and not classified as agricultural, industrial, mineral, timber, or residential.",
+  industrial: "I – Industrial: Land devoted principally to industrial activity (manufacturing, processing, factories) as a capital investment.",
+  mineral: "M – Mineral: Lands in which minerals, metallic or non-metallic, exist in sufficient quantity or grade to justify the necessary expenditures to extract and utilize them.",
+  timberland: "T – Timberland: Lands officially declared by the government (usually the DENR) as forest land or timberland.",
+  special: "S – Special Purpose: Lands actually, directly, and exclusively used for educational, cultural, scientific, hospital, religious, charitable, or government purposes — often granted a lower assessment level or are tax-exempt.",
+};
 
 const FORM_NAME = "land-other-improvements-fill-3";
 
@@ -196,7 +207,19 @@ const baseMarketValue = (() => {
                                 <h2 className="rpfaas-fill-section-title mb-4">Land Appraisal</h2>
 
                                 <div className="rpfaas-fill-field space-y-1">
-                                    <Label className="rpfaas-fill-label">Classification</Label>
+                                    <div className="flex items-center gap-1.5">
+                                        <Label className="rpfaas-fill-label">Classification</Label>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Info className="w-3.5 h-3.5 text-muted-foreground cursor-help shrink-0" />
+                                            </TooltipTrigger>
+                                            <TooltipContent side="top" className="max-w-xs">
+                                                {classification
+                                                    ? LAND_CLASSIFICATION_DESCRIPTIONS[classification] ?? classification
+                                                    : "Select a classification to see its description."}
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </div>
                                     <div className="relative">
                                         <select
                                             value={classification}

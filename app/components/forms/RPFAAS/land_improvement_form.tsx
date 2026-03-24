@@ -64,6 +64,9 @@ export interface LandImprovementFormData {
   assessed_value?: string | number;
   amount_in_words?: string;
   effectivity_of_assessment?: string;
+  appraised_by?: string;
+  memoranda?: string;
+  tax_status?: string;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -167,12 +170,12 @@ const LandImprovementForm = ({ data }: { data: LandImprovementFormData }) => {
 
           </tr>
 
-          {/* Owner | value | PIN label | PIN value */}
+          {/* Owner | value | Lot No. label | Lot No. value */}
           <tr data-field="owner_name">
             <td>Owner:</td>
             <td className="font-bold uppercase">{fmt(data.owner_name)}</td>
             <td>Lot No.:</td>
-
+            <td className="font-bold">{fmt(data.lot_no)}</td>
           </tr>
 
           {/* Address | value | Survey No. label | Survey value */}
@@ -221,19 +224,19 @@ const LandImprovementForm = ({ data }: { data: LandImprovementFormData }) => {
           <SectionHeader colSpan={4}>PROPERTY BOUNDARIES</SectionHeader>
           <tr data-field="north_property" style={{ height: "2rem" }}>
             <td>North:</td>
-            <td colSpan={3} className="font-bold">{fmt(data.north_property)}</td>
+            <td colSpan={3}>{fmt(data.north_property)}</td>
           </tr>
           <tr data-field="south_property" style={{ height: "2rem" }}>
             <td>South:</td>
-            <td colSpan={3} className="font-bold">{fmt(data.south_property)}</td>
+            <td colSpan={3}>{fmt(data.south_property)}</td>
           </tr>
           <tr data-field="east_property" style={{ height: "2rem" }}>
             <td>East:</td>
-            <td colSpan={3} className="font-bold">{fmt(data.east_property)}</td>
+            <td colSpan={3}>{fmt(data.east_property)}</td>
           </tr>
           <tr data-field="west_property" style={{ height: "2rem" }}>
             <td>West:</td>
-            <td colSpan={3} className="font-bold">{fmt(data.west_property)}</td>
+            <td colSpan={3}>{fmt(data.west_property)}</td>
           </tr>
         </tbody>
       </table>
@@ -263,7 +266,7 @@ const LandImprovementForm = ({ data }: { data: LandImprovementFormData }) => {
               {fmt(data.unit_value)}
             </td>
             <td data-field="base_market_value" className="font-bold">
-              {(data.base_market_value)}
+              {fmtMoney(data.base_market_value)}
             </td>
           </tr>
         </tbody>
@@ -339,7 +342,7 @@ const LandImprovementForm = ({ data }: { data: LandImprovementFormData }) => {
           </tr>
           <tr data-field="actual_use market_value assessment_level assessed_value" className="text-center">
             <td className="font-bold capitalize">{cap(data.actual_use)}</td>
-            <td className="font-bold">{(marketValue)}</td>
+            <td className="font-bold">{fmtMoney(marketValue)}</td>
             <td className="font-bold">
               {data.assessment_level
                 ? String(data.assessment_level).includes("%")
@@ -347,7 +350,7 @@ const LandImprovementForm = ({ data }: { data: LandImprovementFormData }) => {
                   : `${data.assessment_level}%`
                 : ""}
             </td>
-            <td className="font-bold">{(assessedValue)}</td>
+            <td className="font-bold">{fmtMoney(assessedValue)}</td>
           </tr>
         </tbody>
       </table>
@@ -355,8 +358,11 @@ const LandImprovementForm = ({ data }: { data: LandImprovementFormData }) => {
       {/* ── Footer ── */}
       <FaasFooter
         amountInWords={data.amount_in_words ?? ""}
+        taxStatus={data.tax_status}
         locationMunicipality={data.location_municipality}
         effectivityOfAssessment={data.effectivity_of_assessment ?? ""}
+        appraisedById={data.appraised_by}
+        memoranda={data.memoranda}
       />
     </div>
   );

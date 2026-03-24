@@ -48,3 +48,6 @@ next-env.d.ts
 # Local documentation
 docs/
 SCOPE_OF_WORK.md
+
+# Claude settings
+.claude/

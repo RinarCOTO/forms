@@ -4,7 +4,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect, useMemo, useCallback, Suspense } from "react";
 import { StepPagination, LAND_IMPROVEMENT_STEPS } from "@/components/ui/step-pagination";
 import { ReviewCommentsFloat } from "@/components/review-comments-float";
-import DatePicker from "../../../components/dropdowns/date-picker";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import "@/app/styles/forms-fill.css";
 import { AppSidebar } from "@/components/app-sidebar";
 import {
@@ -81,10 +82,16 @@ function LandImprovementsFormFillPage5() {
   const draftId = searchParams.get("id");
 
   const [isSaving, setIsSaving] = useState(false);
+  const [taxStatus, setTaxStatus] = useState<"taxable" | "exempt">("taxable");
   const [classification, setClassification] = useState("");
   const [marketValue, setMarketValue] = useState<number>(0);
-  const [effectivityDate, setEffectivityDate] = useState<string>(
-    new Date().toISOString().split("T")[0]
+  const [appraisedBy, setAppraisedBy] = useState<string>("");
+  const [memoranda, setMemoranda] = useState<string>("");
+  const [propertyMunicipality, setPropertyMunicipality] = useState<string>("");
+  const [taxMappers, setTaxMappers] = useState<{ id: string; full_name: string }[]>([]);
+  const [taxMappersLoading, setTaxMappersLoading] = useState(false);
+  const [effectivityYear, setEffectivityYear] = useState<string>(
+    String(new Date().getFullYear() + 1)
   );
 
   const assessmentLevel = useMemo(
@@ -109,10 +116,25 @@ function LandImprovementsFormFillPage5() {
     try {
       const savedMarketValue = parseFloat(localStorage.getItem("land_market_value_p4") || "0");
       if (savedMarketValue) setMarketValue(savedMarketValue);
+      const savedAppraisedBy = localStorage.getItem("land_appraised_by_p5");
+      if (savedAppraisedBy) setAppraisedBy(savedAppraisedBy);
     } catch {
       // ignore
     }
   }, []);
+
+  // Fetch tax mappers filtered by the property's municipality once it's known
+  useEffect(() => {
+    setTaxMappersLoading(true);
+    const params = propertyMunicipality
+      ? `role=tax_mapper&municipality=${encodeURIComponent(propertyMunicipality)}`
+      : `role=tax_mapper`;
+    fetch(`/api/users/by-role?${params}`)
+      .then(r => r.json())
+      .then(data => { if (Array.isArray(data.users)) setTaxMappers(data.users); })
+      .catch(() => {})
+      .finally(() => setTaxMappersLoading(false));
+  }, [propertyMunicipality]);
 
   // Load draft data if editing
   useEffect(() => {
@@ -125,7 +147,13 @@ function LandImprovementsFormFillPage5() {
         if (!result.success || !result.data) return;
         const data = result.data;
         if (data.classification) setClassification(data.classification);
+        if (data.actual_use) setClassification(data.actual_use);
+        if (data.location_municipality) setPropertyMunicipality(data.location_municipality);
         if (data.market_value) setMarketValue(parseFloat(data.market_value));
+        if (data.appraised_by) setAppraisedBy(String(data.appraised_by));
+        if (data.memoranda) setMemoranda(data.memoranda);
+        if (data.effectivity_of_assessment) setEffectivityYear(String(data.effectivity_of_assessment));
+        if (data.tax_status === "taxable" || data.tax_status === "exempt") setTaxStatus(data.tax_status);
       } catch {
         // ignore
       }
@@ -133,52 +161,70 @@ function LandImprovementsFormFillPage5() {
     load();
   }, [draftId]);
 
-  const handlePreview = useCallback(async () => {
+  const saveData = useCallback(async (): Promise<string | null> => {
+    const formData: Record<string, unknown> = {
+      status: "draft",
+      actual_use: classification,
+      market_value: marketValue,
+      assessment_level: parseFloat(assessmentLevel) || 0,
+      assessed_value: assessedValue,
+      amount_in_words: amountInWords,
+      tax_status: taxStatus,
+    };
+
+    if (appraisedBy) formData.appraised_by = appraisedBy;
+    if (memoranda) formData.memoranda = memoranda;
+    if (effectivityYear) {
+      formData.effectivity_of_assessment = effectivityYear;
+      localStorage.setItem("land_effectivity_of_assessment_p5", effectivityYear);
+    }
+
+    localStorage.setItem("land_assessment_level_p5", assessmentLevel);
+    localStorage.setItem("land_assessed_value_p5", assessedValue.toString());
+    localStorage.setItem("land_actual_use_p5", classification);
+    localStorage.setItem("land_tax_status_p5", taxStatus);
+    if (appraisedBy) localStorage.setItem("land_appraised_by_p5", appraisedBy);
+
+    const currentDraftId = draftId || localStorage.getItem("land_draft_id");
+    const method = currentDraftId ? "PUT" : "POST";
+    const url = currentDraftId ? `${API_ENDPOINT}/${currentDraftId}` : API_ENDPOINT;
+
+    const response = await fetch(url, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(formData),
+    });
+
+    if (!response.ok) throw new Error("Failed to save assessment.");
+    const result = await response.json();
+    const id = result.data?.id?.toString() ?? null;
+    if (id) localStorage.setItem("land_draft_id", id);
+    return id;
+  }, [classification, taxStatus, marketValue, assessmentLevel, assessedValue, amountInWords, effectivityYear, appraisedBy, memoranda, draftId]);
+
+  const handleSaveDraft = useCallback(async () => {
     setIsSaving(true);
     try {
-      const formData: Record<string, unknown> = {
-        status: "draft",
-        actual_use: classification,
-        market_value: marketValue,
-        assessment_level: parseFloat(assessmentLevel) || 0,
-        assessed_value: assessedValue,
-        amount_in_words: amountInWords,
-      };
-
-      if (effectivityDate) {
-        formData.effectivity_of_assessment = effectivityDate;
-      }
-
-      // Save to localStorage for preview
-      localStorage.setItem("land_assessment_level_p5", assessmentLevel);
-      localStorage.setItem("land_assessed_value_p5", assessedValue.toString());
-      localStorage.setItem("land_actual_use_p5", classification);
-
-      const currentDraftId = draftId || localStorage.getItem("land_draft_id");
-      const method = currentDraftId ? "PUT" : "POST";
-      const url = currentDraftId ? `${API_ENDPOINT}/${currentDraftId}` : API_ENDPOINT;
-
-      const response = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        if (result.data?.id) {
-          localStorage.setItem("land_draft_id", result.data.id.toString());
-          router.push(`/land-other-improvements/fill/preview-form?id=${result.data.id}`);
-        }
-      } else {
-        toast.error("Failed to save assessment.");
-      }
+      await saveData();
+      toast.success("Draft saved successfully.");
     } catch {
       toast.error("Error saving. Please try again.");
     } finally {
       setIsSaving(false);
     }
-  }, [classification, marketValue, assessmentLevel, assessedValue, amountInWords, effectivityDate, draftId, router]);
+  }, [saveData]);
+
+  const handlePreview = useCallback(async () => {
+    setIsSaving(true);
+    try {
+      const id = await saveData();
+      if (id) router.push(`/land-other-improvements/fill/preview-form?id=${id}`);
+    } catch {
+      toast.error("Error saving. Please try again.");
+    } finally {
+      setIsSaving(false);
+    }
+  }, [saveData, router]);
 
   return (
     <SidebarProvider>
@@ -213,7 +259,7 @@ function LandImprovementsFormFillPage5() {
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={handlePreview}
+                onClick={handleSaveDraft}
                 disabled={isSaving}
                 className="shrink-0"
               >
@@ -234,6 +280,34 @@ function LandImprovementsFormFillPage5() {
                     aria-disabled="true"
                     className="rpfaas-fill-input bg-white text-black disabled:opacity-100"
                   />
+                </div>
+
+                <div className="rpfaas-fill-field space-y-2">
+                  <Label className="rpfaas-fill-label">Tax Status</Label>
+                  <div className="flex gap-6">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="tax_status"
+                        value="taxable"
+                        checked={taxStatus === "taxable"}
+                        onChange={() => setTaxStatus("taxable")}
+                        className="w-4 h-4"
+                      />
+                      <span>Taxable</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="tax_status"
+                        value="exempt"
+                        checked={taxStatus === "exempt"}
+                        onChange={() => setTaxStatus("exempt")}
+                        className="w-4 h-4"
+                      />
+                      <span>Exempt</span>
+                    </label>
+                  </div>
                 </div>
 
                 <div className="rpfaas-fill-field space-y-1" data-comment-field="market_value">
@@ -286,7 +360,49 @@ function LandImprovementsFormFillPage5() {
 
                 <div className="rpfaas-fill-field space-y-1" data-comment-field="effectivity_of_assessment">
                   <Label className="rpfaas-fill-label" htmlFor="effectivity_of_assessment_p5">Effectivity of Assessment</Label>
-                  <DatePicker value={effectivityDate} onChange={setEffectivityDate} />
+                  <Select value={effectivityYear} onValueChange={setEffectivityYear}>
+                    <SelectTrigger id="effectivity_of_assessment_p5" className="rpfaas-fill-input">
+                      <SelectValue placeholder="Select year" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 16 }, (_, i) => new Date().getFullYear() - 5 + i).map((year) => (
+                        <SelectItem key={year} value={String(year)}>{year}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </section>
+
+              <section className="rpfaas-fill-section">
+                <div className="rpfaas-fill-field space-y-1 mt-4" data-comment-field="appraised_by">
+                  <Label className="rpfaas-fill-label" htmlFor="appraised_by_p5">Assessed/Appraised by:</Label>
+                  <Select value={appraisedBy} onValueChange={setAppraisedBy} disabled={taxMappersLoading}>
+                    <SelectTrigger id="appraised_by_p5" className="rpfaas-fill-input">
+                      <SelectValue placeholder={taxMappersLoading ? "Loading..." : "Select tax mapper"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {taxMappers.map((mapper) => (
+                        <SelectItem key={mapper.id} value={mapper.id}>
+                          {mapper.full_name}
+                        </SelectItem>
+                      ))}
+                      {!taxMappersLoading && taxMappers.length === 0 && (
+                        <SelectItem value="__none__" disabled>No tax mappers found</SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="rpfaas-fill-field space-y-1 mt-4" data-comment-field="memoranda">
+                  <Label className="rpfaas-fill-label" htmlFor="memoranda_p5">Memoranda</Label>
+                  <Textarea
+                    id="memoranda_p5"
+                    value={memoranda}
+                    onChange={(e) => setMemoranda(e.target.value)}
+                    placeholder="Enter any memoranda or notes..."
+                    className="rpfaas-fill-input"
+                    rows={3}
+                  />
                 </div>
               </section>
 

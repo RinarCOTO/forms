@@ -124,6 +124,25 @@ if (loadedData?.additional_flat_rate_areas?.length > 0) {
   setAdditionalFlatRateAreas(loadedData.additional_flat_rate_areas.map(Number));  // ✅ ADD
 }
 
+    // Sync DB data to localStorage so the RPFAAS preview form can read it
+    if (loadedData) {
+      if (dbCost && !savedCost) {
+        localStorage.setItem("unit_cost_p2", String(dbCost));
+      }
+      const existingP4 = localStorage.getItem("p4");
+      const existingP4Data = existingP4 ? JSON.parse(existingP4) : {};
+      localStorage.setItem("p4", JSON.stringify({
+        ...existingP4Data,
+        selected_deductions: loadedData.selected_deductions || loadedData.deductions || existingP4Data.selected_deductions || [],
+        deduction_amounts: loadedData.deduction_amounts || existingP4Data.deduction_amounts || {},
+        overall_comments: loadedData.overall_comments || existingP4Data.overall_comments || "",
+        additional_percentage_choice: loadedData.additional_percentage_choice || existingP4Data.additional_percentage_choice || "",
+        additional_percentage_areas: loadedData.additional_percentage_areas?.map(Number) || existingP4Data.additional_percentage_areas || [],
+        additional_flat_rate_choice: loadedData.additional_flat_rate_choice || existingP4Data.additional_flat_rate_choice || "",
+        additional_flat_rate_areas: loadedData.additional_flat_rate_areas?.map(Number) || existingP4Data.additional_flat_rate_areas || [],
+        market_value: loadedData.market_value || existingP4Data.market_value || 0,
+      }));
+    }
 
     if (savedDeductions.length > 0) {
       const recoveredSelections = savedDeductions

@@ -26,8 +26,9 @@ export function calculateAge(year: number): number | string {
  * Sum an array of numbers (ignores non-numeric values).
  */
 export function calculateTotalFloorArea(areas: (number | string)[]): number {
-  return areas.reduce((sum: number, val) => {
+  const sum = areas.reduce((acc: number, val) => {
     const num = typeof val === "number" ? val : parseFloat(val);
-    return !isNaN(num) ? sum + Number(num) : sum;
+    return !isNaN(num) ? acc + num : acc;
   }, 0);
+  return Math.round(sum * 100) / 100;
 }

@@ -180,22 +180,28 @@ const BuildingStructureFormFillPage3 = () => {
       const parsedWall = safeParse(loadedData.wall_material);
       const parsedRoof = safeParse(loadedData.roofing_material);
 
+      // Helper: ensure grid has exactly `cols` columns, preserving existing data
+      const resizeGrid = (grid: boolean[][], rows: number, cols: number): boolean[][] =>
+        Array.from({ length: rows }, (_, r) =>
+          Array.from({ length: cols }, (_, c) => grid[r]?.[c] ?? false)
+        );
+
       // 2. Handle Flooring
       if (parsedFloor?.grid && Array.isArray(parsedFloor.grid)) {
-         setFlooringGrid(parsedFloor.grid);
+        setFlooringGrid(resizeGrid(parsedFloor.grid, 6, storeys));
       } else if (Array.isArray(parsedFloor)) {
-         setFlooringGrid(parsedFloor); 
-      } else if (flooringGrid.length === 0 || (flooringGrid[0] && flooringGrid[0].length !== storeys)) {
-         setFlooringGrid(Array.from({ length: 6 }, () => Array(storeys).fill(false)));
+        setFlooringGrid(resizeGrid(parsedFloor, 6, storeys));
+      } else {
+        setFlooringGrid(Array.from({ length: 6 }, () => Array(storeys).fill(false)));
       }
 
       // 3. Handle Walls
       if (parsedWall?.grid && Array.isArray(parsedWall.grid)) {
-         setWallsGrid(parsedWall.grid);
+        setWallsGrid(resizeGrid(parsedWall.grid, 5, storeys));
       } else if (Array.isArray(parsedWall)) {
-         setWallsGrid(parsedWall); 
-      } else if (wallsGrid.length === 0 || (wallsGrid[0] && wallsGrid[0].length !== storeys)) {
-         setWallsGrid(Array.from({ length: 5 }, () => Array(storeys).fill(false)));
+        setWallsGrid(resizeGrid(parsedWall, 5, storeys));
+      } else {
+        setWallsGrid(Array.from({ length: 5 }, () => Array(storeys).fill(false)));
       }
 
       // 4. Handle Roof

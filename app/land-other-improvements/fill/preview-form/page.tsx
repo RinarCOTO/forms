@@ -76,10 +76,13 @@ interface LandImprovementData {
   market_value?: string | number;
   // Step 5 — assessment
   actual_use?: string;
+  tax_status?: string;
   assessment_level?: string | number;
   assessed_value?: string | number;
   amount_in_words?: string;
   effectivity_of_assessment?: string;
+  appraised_by?: string;
+  memoranda?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -133,13 +136,15 @@ function PreviewFormPage() {
   const searchParams = useSearchParams();
 
   const urlId = searchParams.get("id");
-  const [draftId, setDraftId] = useState<string | null>(urlId);
   const isPrintMode = searchParams.get("print") === "1";
+
+  const [localDraftId, setLocalDraftId] = useState<string | null>(null);
+  const draftId = urlId || localDraftId;
 
   useEffect(() => {
     if (!urlId) {
       const stored = localStorage.getItem("land_draft_id");
-      if (stored) setDraftId(stored);
+      if (stored) setLocalDraftId(stored);
     }
   }, [urlId]);
 
@@ -174,12 +179,27 @@ function PreviewFormPage() {
   useEffect(() => {
     if (!draftId) return;
     setStatusLoading(true);
-    fetch(`/api/faas/land-improvements/${draftId}`)
+    fetch(`/api/faas/land-improvements/${draftId}`, { cache: 'no-store' })
       .then((r) => r.json())
       .then((result) => {
         if (result.success && result.data) {
-          setData(result.data);
-          if (result.data.status) setFormStatus(result.data.status);
+          const dbData = result.data;
+          // Supplement null/empty step-1 fields from localStorage (written by step 1)
+          const p1Fields = [
+            'pin', 'arp_no', 'transaction_code', 'oct_tct_cloa_no', 'survey_no',
+            'lot_no', 'blk', 'owner_name', 'owner_address', 'admin_care_of',
+            'admin_address', 'property_address', 'location_province',
+            'location_municipality', 'location_barangay',
+          ];
+          const merged = { ...dbData };
+          p1Fields.forEach((field) => {
+            if (merged[field] === undefined) {
+              const fromLS = localStorage.getItem(`${field}_p1`);
+              if (fromLS) merged[field] = fromLS;
+            }
+          });
+          setData(merged);
+          if (dbData.status) setFormStatus(dbData.status);
         }
       })
       .catch(() => {})
@@ -387,7 +407,7 @@ function PreviewFormPage() {
                 {!isPrintMode && formStatus === "approved" && draftId && (
                   <div className="print:hidden mb-4">
                     <Button
-                      onClick={() => router.push(`/land-other-improvements/tax-declaration?id=${draftId}`)}
+                      onClick={() => router.push(`/tax-declaration/land?id=${draftId}`)}
                       className="w-full sm:w-auto gap-2"
                     >
                       <FileText className="h-4 w-4" />

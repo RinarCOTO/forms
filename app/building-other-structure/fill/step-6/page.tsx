@@ -25,6 +25,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { toast } from "sonner";
+import { TextArea } from "react-aria-components";
 
 // Helper function to collect form data from ONLY this step (step 5)
 function collectFormData(
@@ -111,9 +112,11 @@ function BuildingStructureFormFillPage6() {
 
   const [isSaving, setIsSaving] = useState(false);
   const [actualUse, setActualUse] = useState("");
+  const [taxStatus, setTaxStatus] = useState<"taxable" | "exempt">("taxable");
+  const [memoranda, setMemoranda] = useState("");
   const [typeOfBuildingLabel, setTypeOfBuildingLabel] = useState("");
   const [marketValue, setMarketValue] = useState<number>(0);
-  const [effectivityYear, setEffectivityYear] = useState<string>("");
+  const [effectivityYear, setEffectivityYear] = useState<string>(String(new Date().getFullYear() + 1));
   const [appraisedBy, setAppraisedBy] = useState<string>("");
   const [taxMappers, setTaxMappers] = useState<{ id: string; full_name: string }[]>([]);
   const [taxMappersLoading, setTaxMappersLoading] = useState(false);
@@ -154,6 +157,12 @@ function BuildingStructureFormFillPage6() {
 
       const savedAppraisedBy = localStorage.getItem("appraised_by_p5");
       if (savedAppraisedBy) setAppraisedBy(savedAppraisedBy);
+
+      const savedMemoranda = localStorage.getItem("memoranda_p5");
+      if (savedMemoranda) setMemoranda(savedMemoranda);
+
+      const savedTaxStatus = localStorage.getItem("tax_status_p5");
+      if (savedTaxStatus === "taxable" || savedTaxStatus === "exempt") setTaxStatus(savedTaxStatus);
     } catch (error) {
       console.error("Failed to load data from localStorage", error);
       setActualUse("Residential");
@@ -189,6 +198,7 @@ function BuildingStructureFormFillPage6() {
             if (data.actual_use) setActualUse(data.actual_use);
             if (data.effectivity_of_assessment != null) setEffectivityYear(String(data.effectivity_of_assessment));
             if (data.appraised_by) setAppraisedBy(data.appraised_by);
+            if (data.memoranda) setMemoranda(data.memoranda);
             Object.entries(data).forEach(([key, value]) => {
               if (value !== null && value !== undefined) {
                 localStorage.setItem(`${key}_p5`, String(value));
@@ -222,10 +232,19 @@ function BuildingStructureFormFillPage6() {
         localStorage.setItem("appraised_by_p5", appraisedBy);
       }
 
+      if (memoranda) {
+        formData.memoranda = memoranda;
+        localStorage.setItem("memoranda_p5", memoranda);
+      } else {
+        localStorage.removeItem("memoranda_p5");
+      }
+
       // Save assessment data to localStorage for the RPFAAS form
       localStorage.setItem("assessment_level_p5", assessmentLevel);
       localStorage.setItem("assessed_value_p5", assessedValue.toString());
       localStorage.setItem("actual_use_p5", actualUse);
+      localStorage.setItem("tax_status_p5", taxStatus);
+      formData.tax_status = taxStatus;
 
       console.log('Saving Step 5 form data to Supabase:', formData);
 
@@ -254,9 +273,11 @@ function BuildingStructureFormFillPage6() {
           router.push(`/building-other-structure/fill/preview-form?id=${result.data.id}`);
         }
       } else {
-        const error = await response.json();
-        console.error('Save error:', error);
-        toast.error('Failed to save: ' + (error.message || 'Unknown error'));
+        const raw = await response.text();
+        console.error('Save error — status:', response.status, 'body:', raw);
+        let message = 'Unknown error';
+        try { message = JSON.parse(raw)?.message || raw || message; } catch { message = raw || message; }
+        toast.error(`Failed to save (${response.status}): ` + message);
       }
     } catch (error) {
       console.error('Error saving:', error);
@@ -264,7 +285,7 @@ function BuildingStructureFormFillPage6() {
     } finally {
       setIsSaving(false);
     }
-  }, [actualUse, assessedValue, amountInWords, assessmentLevel, draftId, router, effectivityYear, appraisedBy]);
+  }, [actualUse, assessedValue, amountInWords, assessmentLevel, draftId, router, effectivityYear, appraisedBy, memoranda]);
 
   return (
     <SidebarProvider>
@@ -309,6 +330,34 @@ function BuildingStructureFormFillPage6() {
                     aria-disabled="true"
                     className="rpfaas-fill-input bg-white text-black disabled:opacity-100"
                   />
+                </div>
+
+                <div className="rpfaas-fill-field space-y-2">
+                  <Label className="rpfaas-fill-label">Tax Status</Label>
+                  <div className="flex gap-6">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="tax_status"
+                        value="taxable"
+                        checked={taxStatus === "taxable"}
+                        onChange={() => setTaxStatus("taxable")}
+                        className="w-4 h-4"
+                      />
+                      <span>Taxable</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="tax_status"
+                        value="exempt"
+                        checked={taxStatus === "exempt"}
+                        onChange={() => setTaxStatus("exempt")}
+                        className="w-4 h-4"
+                      />
+                      <span>Exempt</span>
+                    </label>
+                  </div>
                 </div>
 
                 <div className="rpfaas-fill-field space-y-1" data-comment-field="market_value">
@@ -395,6 +444,19 @@ function BuildingStructureFormFillPage6() {
                       )}
                     </SelectContent>
                   </Select>
+                </div>
+
+                <div className="rpfaas-fill-field space-y-1 mt-4" data-comment-field="memoranda">
+                  <Label className="rpfaas-fill-label" htmlFor="memoranda_p5">Memoranda</Label>
+                  <TextArea
+                    id="memoranda_p5"
+                    name="memoranda_p5"
+                    value={memoranda}
+                    onChange={(e) => setMemoranda(e.target.value)}
+                    placeholder="Enter memoranda notes..."
+                    className="rpfaas-fill-input"
+                    rows={3}
+                  />
                 </div>
               </section>
 

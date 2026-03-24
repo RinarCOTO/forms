@@ -16,7 +16,7 @@ const LandImprovementUpdateSchema = z.object({
   arp_no: z.string().max(50).optional(),
   pin: z.string().max(50).optional(),
   transaction_code: z.string().optional(),
-  oct_tct_cloa_no: z.string().optional(),
+  oct_tct_cloa_no: z.string().nullish(),
   survey_no: z.string().optional(),
   lot_no: z.string().optional(),
   blk: z.string().optional(),
@@ -72,6 +72,7 @@ const LandImprovementUpdateSchema = z.object({
 
   // step 5 — assessment
   actual_use: z.string().optional(),
+  tax_status: z.enum(['taxable', 'exempt']).optional(),
   assessment_level: numericField,
   assessed_value: numericField,
   amount_in_words: z.string().optional(),
@@ -164,18 +165,18 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     // Remove the id from the body to avoid conflicts
     const updateData = parsed.data
     
-    // Clean the data: remove undefined, null, and empty string values
+    // Clean the data: remove undefined and empty string values; allow explicit null to clear fields
+    const numericFields = ['area', 'market_value', 'assessment_level', 'assessed_value', 'land_area', 'unit_value', 'base_market_value', 'additional_percentage_value', 'additional_flat_rate_value']
     const cleanedData = Object.entries(updateData).reduce((acc, [key, value]) => {
-      if (value !== undefined && value !== null && value !== '' && value !== 'undefined') {
-        // Convert numeric strings to numbers for decimal fields
-        if (['area', 'market_value', 'assessment_level', 'assessed_value', 'land_area', 'unit_value', 'base_market_value', 'additional_percentage_value', 'additional_flat_rate_value'].includes(key)) {
-          const numValue = parseFloat(value as string)
-          if (!isNaN(numValue)) {
-            acc[key] = numValue
-          }
-        } else {
-          acc[key] = value
-        }
+      if (value === undefined || value === 'undefined' || value === '') return acc
+      if (value === null) {
+        // Explicit null clears the field in DB
+        acc[key] = null
+      } else if (numericFields.includes(key)) {
+        const numValue = parseFloat(value as string)
+        if (!isNaN(numValue)) acc[key] = numValue
+      } else {
+        acc[key] = value
       }
       return acc
     }, {} as any)

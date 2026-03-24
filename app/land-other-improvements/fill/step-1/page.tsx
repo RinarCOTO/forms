@@ -22,7 +22,8 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { Loader2 } from "lucide-react";
+import { Loader2, Info } from "lucide-react";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { PH_PROVINCES, MOUNTAIN_PROVINCE_CODE } from "@/app/components/forms/RPFAAS/constants/philippineLocations";
 
 // Helper function to collect form data from ONLY this step (step 1)
@@ -35,7 +36,8 @@ function collectFormData(
   propLoc: any,
   transactionCode: string,
   arpNo: string,
-  octTctCloaNo: string,
+  titleType: string,
+  titleNo: string,
   pin: string,
   surveyNo: string,
   lotNo: string,
@@ -47,7 +49,7 @@ function collectFormData(
     property_address: propertyStreet,
     transaction_code: transactionCode,
     arp_no: arpNo,
-    oct_tct_cloa_no: octTctCloaNo,
+    oct_tct_cloa_no: titleType === 'None' || !titleType ? null : `${titleType} ${titleNo}`.trim(),
     pin,
     survey_no: surveyNo,
     lot_no: lotNo,
@@ -91,6 +93,21 @@ function collectFormData(
 
 // --- Utility Types ---
 type LocationOption = { code: string; name: string };
+
+// Auto-insert dashes for Land PIN format: 046-20-001-01-005 (digits only, no extension)
+function formatPin(value: string): string {
+  const digits = value.replace(/\D/g, '');
+  const sizes = [3, 2, 3, 2, 3];
+  const parts: string[] = [];
+  let pos = 0;
+  for (const size of sizes) {
+    const chunk = digits.slice(pos, pos + size);
+    if (!chunk) break;
+    parts.push(chunk);
+    pos += size;
+  }
+  return parts.join('-');
+}
 
 function formatArpNo(raw: string): string {
   const digits = raw.replace(/\D/g, '').slice(0, 11);
@@ -241,6 +258,16 @@ const LocationSelect = memo(({
   </div>
 ));
 
+const TRANSACTION_CODES = [
+  { code: "DC", label: "DC – Discovery / Newly Discovered", description: "Used for newly constructed buildings, or for existing structures that were previously undeclared and are being assessed for the very first time." },
+  { code: "TR", label: "TR – Transfer", description: "Used when the ownership of the building is being transferred to a new owner." },
+  { code: "PC", label: "PC – Physical Change", description: "Used when an existing building undergoes structural changes that affect its market value, such as major renovations, extensions, additions, or partial demolitions." },
+  { code: "RC", label: "RC – Reassessment / Reclassification", description: "Used when there is a change in the building's actual use (e.g., a residential house is converted into a commercial establishment) or when an owner requests a value review outside of a general revision period." },
+  { code: "DM", label: "DM – Demolition / Destruction", description: "Used to cancel or lower an assessment when a building is entirely torn down, condemned, or destroyed by a calamity (like a fire or typhoon)." },
+  { code: "GR", label: "GR – General Revision", description: "Used during the LGU's mandated, periodic city-wide or municipality-wide updating of property assessments and fair market values." },
+  { code: "DP", label: "DP – Depreciation", description: "Used when a tax declaration is updated specifically to apply the allowable physical depreciation to the building's value based on its age and condition." },
+];
+
 const FORM_NAME = "land_other_improvements_fill";
 
 function LandOtherImprovementsFillPageContent() {
@@ -255,7 +282,8 @@ function LandOtherImprovementsFillPageContent() {
   const [propertyStreet, setPropertyStreet] = useState("");
   const [transactionCode, setTransactionCode] = useState("");
   const [arpNo, setArpNo] = useState("");
-  const [octTctCloaNo, setOctTctCloaNo] = useState("");
+  const [titleType, setTitleType] = useState("");
+  const [titleNo, setTitleNo] = useState("");
   const [pin, setPin] = useState("");
   const [surveyNo, setSurveyNo] = useState("");
   const [lotNo, setLotNo] = useState("");
@@ -299,7 +327,19 @@ function LandOtherImprovementsFillPageContent() {
             if (data.property_address) setPropertyStreet(data.property_address);
             if (data.transaction_code) setTransactionCode(data.transaction_code);
             if (data.arp_no) setArpNo(data.arp_no);
-            if (data.oct_tct_cloa_no) setOctTctCloaNo(data.oct_tct_cloa_no);
+            if (data.oct_tct_cloa_no) {
+              const stored = data.oct_tct_cloa_no as string;
+              const spaceIdx = stored.indexOf(' ');
+              const type = spaceIdx > 0 ? stored.slice(0, spaceIdx) : stored;
+              const num = spaceIdx > 0 ? stored.slice(spaceIdx + 1) : '';
+              if (['OCT', 'TCT', 'CLOA'].includes(type)) {
+                setTitleType(type);
+                setTitleNo(num);
+              } else {
+                setTitleType('TCT');
+                setTitleNo(stored);
+              }
+            }
             if (data.pin) setPin(data.pin);
             if (data.survey_no) setSurveyNo(data.survey_no);
             if (data.lot_no) setLotNo(data.lot_no);
@@ -329,7 +369,7 @@ function LandOtherImprovementsFillPageContent() {
   const handleNext = useCallback(async () => {
     setIsSaving(true);
     try {
-      const formData = collectFormData(ownerName, adminCareOf, propertyStreet, ownerLoc, adminLoc, propLoc, transactionCode, arpNo, octTctCloaNo, pin, surveyNo, lotNo, blk);
+      const formData = collectFormData(ownerName, adminCareOf, propertyStreet, ownerLoc, adminLoc, propLoc, transactionCode, arpNo, titleType, titleNo, pin, surveyNo, lotNo, blk);
       formData.status = 'draft';
 
       let response;
@@ -373,7 +413,7 @@ function LandOtherImprovementsFillPageContent() {
     } finally {
       setIsSaving(false);
     }
-  }, [ownerName, adminCareOf, propertyStreet, ownerLoc, adminLoc, propLoc, transactionCode, arpNo, octTctCloaNo, pin, surveyNo, lotNo, blk, draftId, router]);
+  }, [ownerName, adminCareOf, propertyStreet, ownerLoc, adminLoc, propLoc, transactionCode, arpNo, titleType, titleNo, pin, surveyNo, lotNo, blk, draftId, router]);
 
   return (
     <SidebarProvider>
@@ -411,8 +451,36 @@ function LandOtherImprovementsFillPageContent() {
                 <h2 className="rpfaas-fill-section-title mb-4">Property Identification</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-1">
-                    <Label className="rpfaas-fill-label">Transaction Code</Label>
-                    <Input value={transactionCode} onChange={(e) => setTransactionCode(e.target.value)} className="rpfaas-fill-input" />
+                    <div className="flex items-center gap-1.5">
+                      <Label className="rpfaas-fill-label">Transaction Code</Label>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="w-3.5 h-3.5 text-muted-foreground cursor-help shrink-0" />
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="max-w-xs">
+                          {transactionCode
+                            ? TRANSACTION_CODES.find(t => t.code === transactionCode)?.description
+                            : "Select a code to see its description."}
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                    <div className="relative">
+                      <select
+                        value={transactionCode}
+                        onChange={(e) => setTransactionCode(e.target.value)}
+                        className="rpfaas-fill-input appearance-none"
+                      >
+                        <option value="">Select transaction code</option>
+                        {TRANSACTION_CODES.map(t => (
+                          <option key={t.code} value={t.code}>{t.label}</option>
+                        ))}
+                      </select>
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground">
+                        <svg className="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M6 9l6 6 6-6" />
+                        </svg>
+                      </span>
+                    </div>
                   </div>
                   <div className="space-y-1">
                     <Label className="rpfaas-fill-label">ARP No.</Label>
@@ -426,11 +494,44 @@ function LandOtherImprovementsFillPageContent() {
                   </div>
                   <div className="space-y-1">
                     <Label className="rpfaas-fill-label">OCT/TCT/CLOA No.</Label>
-                    <Input value={octTctCloaNo} onChange={(e) => setOctTctCloaNo(e.target.value)} className="rpfaas-fill-input" />
+                    <div className="flex gap-2">
+                      <div className="relative w-36 shrink-0">
+                        <select
+                          value={titleType}
+                          onChange={(e) => { setTitleType(e.target.value); if (e.target.value === 'None') setTitleNo(''); }}
+                          className="rpfaas-fill-input appearance-none w-full"
+                        >
+                          <option value="">Select type</option>
+                          <option value="OCT">OCT</option>
+                          <option value="TCT">TCT</option>
+                          <option value="CLOA">CLOA</option>
+                          <option value="None">None</option>
+                        </select>
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground">
+                          <svg className="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M6 9l6 6 6-6" />
+                          </svg>
+                        </span>
+                      </div>
+                      {titleType && titleType !== 'None' && (
+                        <Input
+                          value={titleNo}
+                          onChange={(e) => setTitleNo(e.target.value)}
+                          placeholder="e.g. T-123456"
+                          className="rpfaas-fill-input flex-1"
+                        />
+                      )}
+                    </div>
                   </div>
                   <div className="space-y-1">
                     <Label className="rpfaas-fill-label">PIN</Label>
-                    <Input value={pin} onChange={(e) => setPin(e.target.value)} className="rpfaas-fill-input" />
+                    <Input
+                      value={pin}
+                      onChange={(e) => setPin(formatPin(e.target.value))}
+                      placeholder="046-20-001-01-005"
+                      className="rpfaas-fill-input font-mono"
+                      maxLength={17}
+                    />
                   </div>
                   <div className="space-y-1">
                     <Label className="rpfaas-fill-label">Survey No.</Label>
