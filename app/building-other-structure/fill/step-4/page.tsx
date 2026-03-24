@@ -265,7 +265,7 @@ if (loadedData?.additional_flat_rate_areas?.length > 0) {
       // Build per-deduction amount map for display-only rendering
       const baseCostForAmounts = unitCost * totalFloorArea;
       const deductionAmounts: Record<string, number> = {};
-      selections.filter(Boolean).forEach((id) => {
+      selections.filter((id): id is string => Boolean(id)).forEach((id) => {
         const opt = DEDUCTION_CHOICES.find((c) => String(c.id) === String(id)) as any;
         if (!opt) return;
         if (opt.percentage) deductionAmounts[id] = (baseCostForAmounts * opt.percentage) / 100;
@@ -341,7 +341,7 @@ if (loadedData?.additional_flat_rate_areas?.length > 0) {
       }
       const baseCostDraft = unitCost * totalFloorArea;
       const deductionAmountsDraft: Record<string, number> = {};
-      selections.filter(Boolean).forEach((id) => {
+      selections.filter((id): id is string => Boolean(id)).forEach((id) => {
         const opt = DEDUCTION_CHOICES.find((c) => String(c.id) === String(id)) as any;
         if (!opt) return;
         if (opt.percentage) deductionAmountsDraft[id] = (baseCostDraft * opt.percentage) / 100;

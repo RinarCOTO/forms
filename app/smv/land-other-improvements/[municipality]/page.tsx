@@ -11,7 +11,7 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import { municipalityData, MunicipalityData, AgriculturalLandRow, agriculturalImprovementRow } from "../data";
+import { municipalityData, MunicipalityData, SmvRow, AgriculturalLandRow, agriculturalImprovementRow } from "../data";
 
 export default function MunicipalityPage({ params }: { params: Promise<{ municipality: string }> }) {
   const { municipality } = use(params);
@@ -79,21 +79,24 @@ export default function MunicipalityPage({ params }: { params: Promise<{ municip
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {data[key].length === 0 ? (
+                        {(data[key] ?? []).length === 0 ? (
                           <TableRow>
                             <TableCell colSpan={4} className="text-center text-muted-foreground text-sm py-6">
                               No data yet.
                             </TableCell>
                           </TableRow>
                         ) : (
-                          data[key].map((row, index) => (
+                          (data[key] ?? []).map((row, index) => {
+                            const r = row as SmvRow;
+                            return (
                             <TableRow key={index} className="even:bg-accent/50">
-                              <TableCell>{row.location}</TableCell>
-                              <TableCell>{row.year2006}</TableCell>
-                              <TableCell>{row.year2012}</TableCell>
-                              <TableCell>{row.subClassification}</TableCell>
+                              <TableCell>{r.location}</TableCell>
+                              <TableCell>{r.year2006}</TableCell>
+                              <TableCell>{r.year2012}</TableCell>
+                              <TableCell>{r.subClassification}</TableCell>
                             </TableRow>
-                          ))
+                            );
+                          })
                         )}
                       </TableBody>
                     </Table>
