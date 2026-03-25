@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { LogOut, User } from "lucide-react";
 
@@ -69,10 +70,12 @@ export function UserProfile() {
     <div className="border-t border-border p-4 space-y-2">
       <div className="flex items-center gap-2 text-sm">
         <User className="h-4 w-4 text-muted-foreground" />
-        <div className="flex-1 min-w-0">
-          <p className="font-medium truncate">{displayName}</p>
-          <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-        </div>
+        <Link href="/profile" className="hover:underline cursor-pointer">
+          <div className="flex-1 min-w-0">
+            <p className="font-medium truncate">{displayName}</p>
+            <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+          </div>
+        </Link>
       </div>
       <Button
         onClick={handleLogout}

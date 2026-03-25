@@ -120,6 +120,7 @@ function BuildingStructureFormFillPage6() {
   const [appraisedBy, setAppraisedBy] = useState<string>("");
   const [taxMappers, setTaxMappers] = useState<{ id: string; full_name: string }[]>([]);
   const [taxMappersLoading, setTaxMappersLoading] = useState(false);
+  const [currentUser, setCurrentUser] = useState<{ id: string; full_name: string; role: string } | null>(null);
 
   const assessmentLevel = useMemo(
     () => getAssessmentLevel(typeOfBuildingLabel, actualUse, marketValue) ?? "",
@@ -138,6 +139,28 @@ function BuildingStructureFormFillPage6() {
   const amountInWords = useMemo(() => {
     return assessedValue > 0 ? numberToWords(assessedValue) : "";
   }, [assessedValue]);
+
+  // Fetch current user role + name
+  useEffect(() => {
+    Promise.all([
+      fetch('/api/auth/user').then(r => r.json()),
+      fetch('/api/users/permissions').then(r => r.json()),
+    ]).then(([authData, permsData]) => {
+      if (authData.user) {
+        setCurrentUser({
+          id: authData.user.id,
+          full_name: authData.user.user_metadata?.full_name || authData.user.email?.split('@')[0] || '',
+          role: permsData.role || '',
+        });
+      }
+    }).catch(() => {});
+  }, []);
+
+  // Auto-select self for all roles except base tax_mapper (who may select a different mapper)
+  useEffect(() => {
+    if (!currentUser) return;
+    if (currentUser.role !== 'tax_mapper' && !appraisedBy) setAppraisedBy(currentUser.id);
+  }, [currentUser, appraisedBy]);
 
   // Load the type of building from localStorage
   useEffect(() => {
@@ -172,10 +195,37 @@ function BuildingStructureFormFillPage6() {
   // Fetch tax mappers based on the property's location municipality
   useEffect(() => {
     setTaxMappersLoading(true);
-    const municipality = localStorage.getItem("rpfaas_location_municipality") || "";
-    const params = municipality
-      ? `role=tax_mapper&municipality=${encodeURIComponent(municipality)}`
-      : `role=tax_mapper`;
+
+    // 10-digit PSGC code → DB slug (matches what /api/locations returns)
+    const PSGC_TO_SLUG: Record<string, string> = {
+      "1404401000": "barlig",
+      "1404402000": "bauko",
+      "1404403000": "besao",
+      "1404404000": "bontoc",
+      "1404405000": "natonin",
+      "1404406000": "paracellis",
+      "1404407000": "sabangan",
+      "1404408000": "sadanga",
+      "1404409000": "sagada",
+      "1404410000": "tadian",
+    };
+    const DISPLAY_TO_SLUG: Record<string, string> = { paracelis: "paracellis" };
+
+    let municipalityName = "";
+    const storedName = localStorage.getItem("rpfaas_location_municipality") || "";
+    const storedCode = localStorage.getItem("rpfaas_location_municipality_code") || "";
+
+    if (storedCode && PSGC_TO_SLUG[storedCode]) {
+      // Most reliable: resolve directly from 10-digit PSGC code
+      municipalityName = PSGC_TO_SLUG[storedCode];
+    } else if (storedName) {
+      // Fall back to stored display name, normalize to slug
+      municipalityName = DISPLAY_TO_SLUG[storedName.toLowerCase()] ?? storedName.toLowerCase();
+    }
+
+    const params = new URLSearchParams({ role: "tax_mapper,municipal_tax_mapper" });
+    if (municipalityName) params.set("municipality", municipalityName);
+
     fetch(`/api/users/by-role?${params}`)
       .then(r => r.json())
       .then(data => {
@@ -241,7 +291,7 @@ function BuildingStructureFormFillPage6() {
 
       // Save assessment data to localStorage for the RPFAAS form
       localStorage.setItem("assessment_level_p5", assessmentLevel);
-      localStorage.setItem("assessed_value_p5", assessedValue.toString());
+      localStorage.setItem("estimated_value_p5", assessedValue.toString());
       localStorage.setItem("actual_use_p5", actualUse);
       localStorage.setItem("tax_status_p5", taxStatus);
       formData.tax_status = taxStatus;
@@ -429,21 +479,32 @@ function BuildingStructureFormFillPage6() {
               <section className="rpfaas-fill-section">
                 <div className="rpfaas-fill-field space-y-1" data-comment-field="appraised_by">
                   <Label className="rpfaas-fill-label" htmlFor="appraised_by_p5">Assessed/Appraised by:</Label>
-                  <Select value={appraisedBy} onValueChange={setAppraisedBy} disabled={taxMappersLoading}>
-                    <SelectTrigger id="appraised_by_p5" className="rpfaas-fill-input">
-                      <SelectValue placeholder={taxMappersLoading ? "Loading..." : "Select tax mapper"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {taxMappers.map((mapper) => (
-                        <SelectItem key={mapper.id} value={mapper.id}>
-                          {mapper.full_name}
-                        </SelectItem>
-                      ))}
-                      {!taxMappersLoading && taxMappers.length === 0 && (
-                        <SelectItem value="__none__" disabled>No tax mappers found</SelectItem>
-                      )}
-                    </SelectContent>
-                  </Select>
+                  {currentUser && currentUser.role !== 'tax_mapper' ? (
+                    <Input
+                      id="appraised_by_p5"
+                      value={currentUser.full_name}
+                      readOnly
+                      disabled
+                      aria-disabled="true"
+                      className="rpfaas-fill-input bg-white text-black disabled:opacity-100"
+                    />
+                  ) : (
+                    <Select value={appraisedBy} onValueChange={setAppraisedBy} disabled={taxMappersLoading}>
+                      <SelectTrigger id="appraised_by_p5" className="rpfaas-fill-input">
+                        <SelectValue placeholder={taxMappersLoading ? "Loading..." : "Select tax mapper"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {taxMappers.map((mapper) => (
+                          <SelectItem key={mapper.id} value={mapper.id}>
+                            {mapper.full_name}
+                          </SelectItem>
+                        ))}
+                        {!taxMappersLoading && taxMappers.length === 0 && (
+                          <SelectItem value="__none__" disabled>No tax mappers found</SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
 
                 <div className="rpfaas-fill-field space-y-1 mt-4" data-comment-field="memoranda">

@@ -26,7 +26,7 @@ table {
 table th,
 table td {
   border: 1px solid black;
-  padding: 0 0.5rem;
+  padding: 4px 0.5rem;
 }
 
 table.no-border,
@@ -127,21 +127,20 @@ table.no-border td {
     font-weight: 700;
   }
 
-  /* Secondary labels/values inside inner grids (e.g. "1st Floor Area:", storey count)
-     should be compact on screen just like they are in print */
+  /* Secondary labels/values inside inner grids — inherit base size for consistency */
   .rpfaas-print-small {
-    font-size: 12px !important;
+    font-size: inherit !important;
     color: #374151;
   }
 .floor-area-print{
   padding-left: 2px;
-  font-size: 12px !important;
+  font-size: inherit !important;
 }
 
 /* General Description value cells */
 .rpfaas-field-value {
   font-weight: 700;
-  font-size: 12px;
+  font-size: inherit;
   display: flex;
   align-items: center;
 }
@@ -170,16 +169,16 @@ table.no-border td {
     background: white !important;
   }
   body .floor-area-print {
-    font-size: 8pt !important;
+    font-size: inherit !important;
     padding-left: 2px !important;
   }
 
   .rpfaas-print-small-1{
-    font-size: 9pt !important;
+    font-size: inherit !important;
   }
   .rpfaas-field-value {
     font-weight: 700;
-    font-size: 10pt !important;
+    font-size: inherit !important;
     display: flex;
     align-items: center;
   }
@@ -235,7 +234,7 @@ table.no-border td {
   }
   .rpfaas-print {
     width: 100%;
-    font-size: 10pt !important;
+    font-size: 9pt !important;
     font-family: Helvetica, Arial, sans-serif;
     line-height: 1;
     color: #000;
@@ -244,7 +243,7 @@ table.no-border td {
   }
 
   .rpfaas-print-small {
-    font-size: 10pt !important;
+    font-size: inherit !important;
     line-height: 1 !important;
     padding-top: 1px !important;
     padding-bottom: 1px !important;

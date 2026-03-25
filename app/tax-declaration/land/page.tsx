@@ -20,7 +20,7 @@ import "@/app/styles/forms-fill.css";
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Loader2, Printer } from "lucide-react";
-import LandImprovementForm from "@/app/components/forms/RPFAAS/land_improvement_form";
+import TaxDeclarationLand from "@/app/components/forms/RPFAAS/tax_declaration_land";
 
 function LandTaxDecPage() {
   const searchParams = useSearchParams();
@@ -79,7 +79,7 @@ function LandTaxDecPage() {
                   <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                 </div>
               ) : data ? (
-                <LandImprovementForm data={data as Parameters<typeof LandImprovementForm>[0]["data"]} />
+                <TaxDeclarationLand data={data as Parameters<typeof TaxDeclarationLand>[0]["data"]} />
               ) : (
                 <p className="text-sm text-muted-foreground text-center py-12">No record found.</p>
               )}

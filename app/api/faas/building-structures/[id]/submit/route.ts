@@ -14,7 +14,7 @@ function getAdminClient() {
 const SUBMIT_ALLOWED_ROLES = ['tax_mapper', 'municipal_tax_mapper', 'admin', 'super_admin'];
 
 // Only these statuses can transition to 'submitted'
-const SUBMITTABLE_STATUSES = ['draft', 'returned'];
+const SUBMITTABLE_STATUSES = ['draft', 'returned', 'returned_to_municipal'];
 
 export async function POST(
   req: NextRequest,
@@ -40,7 +40,7 @@ export async function POST(
     // ── Get user role ─────────────────────────────────────────────────────────
     const { data: profile, error: profileError } = await admin
       .from('users')
-      .select('role, municipality')
+      .select('role, municipality, signature_path')
       .eq('id', authUser.id)
       .single();
 
@@ -106,6 +106,7 @@ export async function POST(
         status: 'submitted',
         submitted_at: now,
         updated_at: now,
+        submitted_signature_path: profile.signature_path ?? null,
       })
       .eq('id', id)
       .select()

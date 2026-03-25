@@ -38,7 +38,11 @@
       "Bash(npm run:*)",
       "Bash(kill 15304)",
       "Bash(xargs kill:*)",
-      "Bash(pkill -f 'next dev')"
+      "Bash(pkill -f 'next dev')",
+      "Bash(find /Users/rinar/Documents/forms -type f -name *.config.* -o -name .env*)",
+      "Bash(grep -E \"\\\\.\\(ts|tsx\\)$\")",
+      "Bash(xargs cat:*)",
+      "Bash(grep -r 'CREATE TABLE.*users' /Users/rinar/Documents/forms --include=*.sql)"
     ],
     "additionalDirectories": [
       "/Users/rinar"

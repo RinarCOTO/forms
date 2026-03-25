@@ -75,6 +75,8 @@ export const useRPFAASData = () => {
         amountInWords: "",
         effectivityOfAssessment: "",
         appraisedById: "",
+        municipalReviewerId: "",
+        provincialReviewerId: "",
         memoranda: "",
     });
 
@@ -102,32 +104,37 @@ export const useRPFAASData = () => {
             const adminCareOfName = localStorage.getItem("rpfaas_admin_careof") || "";
             const locationStreet = localStorage.getItem("rpfaas_location_street") || "";
 
+            // Normalize 10-digit PSGC codes (from /api/locations) to 9-digit (used in DUMMY_* lists)
+            // 10-digit pattern: insert a '0' at index 2 — e.g. 144402000 → 1404402000
+            const norm = (code: string | null) =>
+                code?.length === 10 ? code.slice(0, 2) + code.slice(3) : (code ?? null);
+
             // Owner Address — use pre-built string from DB if available, fall back to code lookup
             const ownerAddressRaw = localStorage.getItem("rpfaas_owner_address");
-            const oProvCode = localStorage.getItem("rpfaas_owner_address_province_code");
-            const oMunCode = localStorage.getItem("rpfaas_owner_address_municipality_code");
-            const oBarCode = localStorage.getItem("rpfaas_owner_address_barangay_code");
-            const ownerAddressProvince = ownerAddressRaw ? "" : getLocationName(oProvCode, DUMMY_PROVINCES);
+            const oProvCode = norm(localStorage.getItem("rpfaas_owner_address_province_code"));
+            const oMunCode  = norm(localStorage.getItem("rpfaas_owner_address_municipality_code"));
+            const oBarCode  = norm(localStorage.getItem("rpfaas_owner_address_barangay_code"));
+            const ownerAddressProvince    = ownerAddressRaw ? "" : getLocationName(oProvCode, DUMMY_PROVINCES);
             const ownerAddressMunicipality = ownerAddressRaw ? "" : getLocationName(oMunCode, DUMMY_MUNICIPALITIES);
-            const ownerAddressBarangay = ownerAddressRaw || getLocationName(oBarCode, DUMMY_BARANGAYS);
+            const ownerAddressBarangay    = ownerAddressRaw || getLocationName(oBarCode, DUMMY_BARANGAYS);
 
             // Admin Address — use pre-built string from DB if available, fall back to code lookup
             const adminAddressRaw = localStorage.getItem("rpfaas_admin_address");
-            const aProvCode = localStorage.getItem("rpfaas_admin_province_code");
-            const aMunCode = localStorage.getItem("rpfaas_admin_municipality_code");
-            const aBarCode = localStorage.getItem("rpfaas_admin_barangay_code");
-            const adminProvinceName = adminAddressRaw ? "" : getLocationName(aProvCode, DUMMY_PROVINCES);
+            const aProvCode = norm(localStorage.getItem("rpfaas_admin_province_code"));
+            const aMunCode  = norm(localStorage.getItem("rpfaas_admin_municipality_code"));
+            const aBarCode  = norm(localStorage.getItem("rpfaas_admin_barangay_code"));
+            const adminProvinceName    = adminAddressRaw ? "" : getLocationName(aProvCode, DUMMY_PROVINCES);
             const adminMunicipalityName = adminAddressRaw ? "" : getLocationName(aMunCode, DUMMY_MUNICIPALITIES);
-            const adminBarangayName = adminAddressRaw || getLocationName(aBarCode, DUMMY_BARANGAYS);
+            const adminBarangayName    = adminAddressRaw || getLocationName(aBarCode, DUMMY_BARANGAYS);
 
-            // Property Location — prefer stored names, fall back to code lookup
-            const lProvCode = localStorage.getItem("rpfaas_location_province_code");
-            const lMunCode = localStorage.getItem("rpfaas_location_municipality_code");
-            const lBarCode = localStorage.getItem("rpfaas_location_barangay_code");
+            // Property Location — prefer stored names, fall back to normalized code lookup
+            const lProvCode = norm(localStorage.getItem("rpfaas_location_province_code"));
+            const lMunCode  = norm(localStorage.getItem("rpfaas_location_municipality_code"));
+            const lBarCode  = norm(localStorage.getItem("rpfaas_location_barangay_code"));
 
-            const locationProvince = localStorage.getItem("rpfaas_location_province") || getLocationName(lProvCode, DUMMY_PROVINCES);
+            const locationProvince    = localStorage.getItem("rpfaas_location_province") || getLocationName(lProvCode, DUMMY_PROVINCES) || "Mountain Province";
             const locationMunicipality = localStorage.getItem("rpfaas_location_municipality") || getLocationName(lMunCode, DUMMY_MUNICIPALITIES);
-            const locationBarangay = localStorage.getItem("rpfaas_location_barangay") || getLocationName(lBarCode, DUMMY_BARANGAYS);
+            const locationBarangay    = localStorage.getItem("rpfaas_location_barangay") || getLocationName(lBarCode, DUMMY_BARANGAYS);
 
             // Data from Step 2 (stored as JSON object under 'p2' key)
             const p2Data = localStorage.getItem("p2");
@@ -280,6 +287,8 @@ export const useRPFAASData = () => {
             const taxStatus = localStorage.getItem("tax_status_p5") || "taxable";
             const effectivityOfAssessment = localStorage.getItem("effectivity_of_assessment_p5") || "";
             const appraisedById = localStorage.getItem("appraised_by_p5") || "";
+            const municipalReviewerId = localStorage.getItem("municipal_reviewer_id_p5") || "";
+            const provincialReviewerId = localStorage.getItem("provincial_reviewer_id_p5") || "";
             const memoranda = localStorage.getItem("memoranda_p5") || "";
             
             // Calculate financial summary similar to step-4
@@ -287,8 +296,10 @@ export const useRPFAASData = () => {
                 ? parseFloat(unitCostFromStorage) * parseFloat(step2Data.total_floor_area) 
                 : 0;
 
-            // Calculate deduction total
+            // Calculate deduction total — prefer stored amounts (same logic as individual rows in the form)
             const standardDeductionTotal = selectedDeductions.reduce((acc: number, deductionId: string) => {
+                const storedAmount = deductionAmounts[deductionId];
+                if (storedAmount !== undefined) return acc + storedAmount;
                 const deduction = DEDUCTION_CHOICES.find(d => d.id === deductionId);
                 if (deduction && deduction.percentage) {
                     return acc + (baseCost * deduction.percentage) / 100;
@@ -361,6 +372,8 @@ export const useRPFAASData = () => {
                 amountInWords,
                 effectivityOfAssessment,
                 appraisedById,
+                municipalReviewerId,
+                provincialReviewerId,
                 memoranda,
             });
         } catch (e) {

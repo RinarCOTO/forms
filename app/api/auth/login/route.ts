@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { cookies } from 'next/headers';
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, password } = await request.json();
+    const { email, password, rememberMe } = await request.json();
 
-    // Validate input
     if (!email || !password) {
       return NextResponse.json(
         { error: 'Email and password are required' },
@@ -15,7 +15,6 @@ export async function POST(request: NextRequest) {
 
     const supabase = await createClient();
 
-    // Sign in with Supabase
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -35,7 +34,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Return success response
+    // If "Remember Me" is NOT checked, overwrite auth cookies as session cookies
+    // (no maxAge = expires when browser closes)
+    if (!rememberMe) {
+      const cookieStore = await cookies();
+      const all = cookieStore.getAll();
+      for (const cookie of all) {
+        if (cookie.name.startsWith('sb-') && cookie.name.includes('auth-token')) {
+          cookieStore.set(cookie.name, cookie.value, {
+            path: '/',
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            // No maxAge / expires = session cookie
+          });
+        }
+      }
+    }
+
     return NextResponse.json(
       {
         success: true,

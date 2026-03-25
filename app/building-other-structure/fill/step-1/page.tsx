@@ -404,6 +404,18 @@ function BuildingOtherStructureFillPageContent() {
   useEffect(() => safeSetLS("rpfaas_owner_name", ownerName), [ownerName]);
   useEffect(() => safeSetLS("rpfaas_admin_careof", adminCareOf), [adminCareOf]);
   useEffect(() => safeSetLS("rpfaas_location_street", propertyStreet), [propertyStreet]);
+  // Save property location display names only when we actually have valid names
+  useEffect(() => {
+    if (!propLoc.municipalityCode || propLoc.municipalities.length === 0) return;
+    const name = propLoc.municipalities.find((m: { code: string; name: string }) => m.code === propLoc.municipalityCode)?.name || '';
+    if (name) safeSetLS("rpfaas_location_municipality", name);
+  }, [propLoc.municipalityCode, propLoc.municipalities]);
+  useEffect(() => {
+    if (!propLoc.barangayCode || propLoc.barangays.length === 0) return;
+    const name = propLoc.barangays.find((b: { code: string; name: string }) => b.code === propLoc.barangayCode)?.name || '';
+    if (name) safeSetLS("rpfaas_location_barangay", name);
+  }, [propLoc.barangayCode, propLoc.barangays]);
+  useEffect(() => safeSetLS("rpfaas_location_province", "Mountain Province"), []);
 
   const handleNext = useCallback(async () => {
     setIsSaving(true);

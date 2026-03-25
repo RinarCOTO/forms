@@ -35,7 +35,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Loader2, Plus, Edit, Trash2, Users, ShieldAlert } from "lucide-react";
+import { Loader2, Plus, Edit, Trash2, Users, ShieldAlert, KeyRound } from "lucide-react";
 import { toast } from "sonner";
 import type { User, UserRole, Municipality, CreateUserData, UpdateUserData } from "@/app/types/user";
 import { MUNICIPALITIES, MUNICIPALITY_LABELS } from "@/app/types/user";
@@ -115,6 +115,9 @@ function MunicipalitySelect({
 
 function EditUserDialog({ user, open, onClose, onSave }: EditDialogProps) {
   const [form, setForm] = useState<UpdateUserData>({});
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordError, setPasswordError] = useState("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -129,14 +132,34 @@ function EditUserDialog({ user, open, onClose, onSave }: EditDialogProps) {
         phone: user.phone ?? "",
         is_active: user.is_active,
       });
+      setNewPassword("");
+      setConfirmPassword("");
+      setPasswordError("");
     }
   }, [user]);
 
   const handleSave = async () => {
     if (!user) return;
+    setPasswordError("");
+    if (newPassword) {
+      if (newPassword.length < 6) { setPasswordError("Password must be at least 6 characters."); return; }
+      if (newPassword !== confirmPassword) { setPasswordError("Passwords do not match."); return; }
+    }
     setSaving(true);
     try {
       await onSave(user.id, form);
+      if (newPassword) {
+        const res = await fetch(`/api/users/${user.id}/change-password`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ password: newPassword }),
+        });
+        if (!res.ok) {
+          const err = await res.json();
+          setPasswordError(err.error ?? "Failed to change password.");
+          return;
+        }
+      }
       onClose();
     } finally {
       setSaving(false);
@@ -242,6 +265,20 @@ function EditUserDialog({ user, open, onClose, onSave }: EditDialogProps) {
               className="h-4 w-4 rounded border-gray-300"
             />
             <Label htmlFor="is_active">Active account</Label>
+          </div>
+          <div className="border-t border-zinc-700 pt-4 space-y-3">
+            <p className="text-xs text-zinc-400 font-medium uppercase tracking-wide">Change Password</p>
+            {passwordError && (
+              <div className="p-3 text-sm text-red-400 bg-red-950 border border-red-800 rounded-md">{passwordError}</div>
+            )}
+            <div className="space-y-1">
+              <Label>New Password <span className="text-zinc-500 font-normal text-xs">(leave blank to keep current)</span></Label>
+              <Input type="password" placeholder="••••••••" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} disabled={saving} />
+            </div>
+            <div className="space-y-1">
+              <Label>Confirm Password</Label>
+              <Input type="password" placeholder="••••••••" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} disabled={saving} />
+            </div>
           </div>
         </div>
         <DialogFooter>
@@ -448,6 +485,83 @@ function CreateUserDialog({ open, onClose, onCreate }: CreateDialogProps) {
   );
 }
 
+// ─── Change Password Dialog ────────────────────────────────────────────────────
+
+interface ChangePasswordDialogProps {
+  user: User | null;
+  open: boolean;
+  onClose: () => void;
+  onSave: (id: string, password: string) => Promise<void>;
+}
+
+function ChangePasswordDialog({ user, open, onClose, onSave }: ChangePasswordDialogProps) {
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSave = async () => {
+    setError("");
+    if (password.length < 6) { setError("Password must be at least 6 characters."); return; }
+    if (password !== confirm) { setError("Passwords do not match."); return; }
+    if (!user) return;
+    setSaving(true);
+    try {
+      await onSave(user.id, password);
+      setPassword("");
+      setConfirm("");
+      onClose();
+    } catch (e: any) {
+      setError(e?.message ?? "Failed to change password.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => { if (!v) { setPassword(""); setConfirm(""); setError(""); onClose(); } }}>
+      <DialogContent className="dark sm:max-w-sm bg-zinc-900 border-zinc-800 text-zinc-100">
+        <DialogHeader>
+          <DialogTitle>Change Password</DialogTitle>
+          <DialogDescription>{user?.full_name ?? user?.email}</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          {error && (
+            <div className="p-3 text-sm text-red-400 bg-red-950 border border-red-800 rounded-md">{error}</div>
+          )}
+          <div className="space-y-1">
+            <Label>New Password</Label>
+            <Input
+              type="password"
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              disabled={saving}
+            />
+          </div>
+          <div className="space-y-1">
+            <Label>Confirm Password</Label>
+            <Input
+              type="password"
+              placeholder="••••••••"
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+              disabled={saving}
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={saving}>Cancel</Button>
+          <Button onClick={handleSave} disabled={saving}>
+            {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            Update Password
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function ManageUsersPage() {
@@ -459,6 +573,7 @@ export default function ManageUsersPage() {
   const [editTarget, setEditTarget] = useState<User | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [changePasswordTarget, setChangePasswordTarget] = useState<User | null>(null);
 
   // Auth guard
   useEffect(() => {
@@ -526,6 +641,20 @@ export default function ManageUsersPage() {
     toast.success("User created successfully.");
     await fetchUsers();
   }, [fetchUsers]);
+
+  const handleChangePassword = useCallback(async (id: string, password: string) => {
+    const res = await fetch(`/api/users/${id}/change-password`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password }),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      toast.error(err.error ?? "Failed to change password.");
+      throw new Error(err.error);
+    }
+    toast.success("Password updated successfully.");
+  }, []);
 
   const handleDelete = useCallback(async (userId: string, userName: string) => {
     if (!confirm(`Delete user "${userName}"? This action cannot be undone.`)) return;
@@ -683,6 +812,15 @@ export default function ManageUsersPage() {
                                   <Edit className="h-4 w-4 mr-1" />
                                   Edit
                                 </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setChangePasswordTarget(u)}
+                                  disabled={deletingId === u.id}
+                                >
+                                  <KeyRound className="h-4 w-4 mr-1" />
+                                  Password
+                                </Button>
                                 {currentUser.id !== u.id && (
                                   <Button
                                     variant="ghost"
@@ -724,6 +862,12 @@ export default function ManageUsersPage() {
         open={createOpen}
         onClose={() => setCreateOpen(false)}
         onCreate={handleCreate}
+      />
+      <ChangePasswordDialog
+        user={changePasswordTarget}
+        open={!!changePasswordTarget}
+        onClose={() => setChangePasswordTarget(null)}
+        onSave={handleChangePassword}
       />
     </SidebarProvider>
     </div>

@@ -4,7 +4,7 @@ import * as React from "react"
 import { usePathname } from "next/navigation";
 import "./sidebar-active.css";
 import { UserProfile } from "@/components/user-profile"
-import { ChevronRight, ChevronDown, ClipboardList, ListChecks, PenLine, Calculator, Users, ShieldCheck, StickyNote, Settings, ScrollText } from "lucide-react"
+import { ChevronRight, ChevronDown, ClipboardList, ListChecks, Calculator, Users, ShieldCheck, StickyNote, Settings, ScrollText } from "lucide-react"
 import { usePermissions } from "@/app/contexts/permissions-context"
 
 import {
@@ -149,10 +149,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </SidebarGroup>
         )}
 
-        {/* Review Queue — LAOO only */}
-        {!isLoading && can('review.laoo') && (
+        {/* Review Queue — all review roles */}
+        {!isLoading && (can('review.laoo') || can('review.sign')) && (
           <SidebarGroup>
-            <SidebarGroupLabel>Provincial Review</SidebarGroupLabel>
+            <SidebarGroupLabel>Review</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarMenuItem>
@@ -165,21 +165,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </SidebarGroup>
         )}
 
-        {/* Signature Queue — municipal_tax_mapper, APA, provincial_assessor */}
-        {!isLoading && can('review.sign') && (
-          <SidebarGroup>
-            <SidebarGroupLabel>Signatures</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild>
-                    <a href="/signature-queue" className={pathname.startsWith("/signature-queue") ? "sidebar-active" : ""}><PenLine className="w-4 h-4 shrink-0" />Signature Queue</a>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
 
         {/* Accountant group */}
         {!isLoading && can('accounting.view') && (

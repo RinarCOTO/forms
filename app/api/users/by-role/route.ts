@@ -8,7 +8,10 @@ export async function GET(request: NextRequest) {
   if (error || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const role = request.nextUrl.searchParams.get('role');
-  if (!role) return NextResponse.json({ error: 'role param required' }, { status: 400 });
+  const userId = request.nextUrl.searchParams.get('id');
+
+  // role is required unless looking up a specific user by id
+  if (!role && !userId) return NextResponse.json({ error: 'role or id param required' }, { status: 400 });
 
   const admin = createAdminClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -18,12 +21,14 @@ export async function GET(request: NextRequest) {
 
   const municipality = request.nextUrl.searchParams.get('municipality');
 
-  const userId = request.nextUrl.searchParams.get('id');
-
   let query = admin
     .from('users')
-    .select('id, full_name, role, municipality, position')
-    .eq('role', role);
+    .select('id, full_name, role, municipality, position');
+
+  if (role) {
+    const roles = role.split(',').map((r: string) => r.trim()).filter(Boolean);
+    query = roles.length === 1 ? query.eq('role', roles[0]) : query.in('role', roles);
+  }
 
   if (municipality) {
     query = query.ilike('municipality', municipality);

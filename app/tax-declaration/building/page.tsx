@@ -114,7 +114,7 @@ function BuildingTaxDecPage() {
         // Step 5/6
         set("amount_in_words_p5",          d.amount_in_words);
         set("assessment_level_p5",         d.assessment_level != null ? String(d.assessment_level) : undefined);
-        if (d.assessed_value != null) set("assessed_value_p5", String(d.assessed_value));
+        if (d.estimated_value != null) set("estimated_value_p5", String(d.estimated_value));
         set("actual_use_p5",               d.actual_use);
         if (d.effectivity_of_assessment != null) set("effectivity_of_assessment_p5", String(d.effectivity_of_assessment));
         if (d.appraised_by) set("appraised_by_p5", d.appraised_by);

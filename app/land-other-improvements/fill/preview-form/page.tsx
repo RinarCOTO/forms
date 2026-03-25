@@ -161,10 +161,10 @@ function PreviewFormPage() {
   const SUBMIT_ALLOWED_ROLES = ["tax_mapper", "municipal_tax_mapper", "admin", "super_admin"];
   const [canSubmit, setCanSubmit] = useState(false);
   useEffect(() => {
-    fetch("/api/auth/user")
+    fetch("/api/users/permissions")
       .then((r) => r.json())
       .then((d) => {
-        if (d?.user?.role && SUBMIT_ALLOWED_ROLES.includes(d.user.role)) {
+        if (d?.role && SUBMIT_ALLOWED_ROLES.includes(d.role)) {
           setCanSubmit(true);
         }
       })
@@ -341,8 +341,7 @@ function PreviewFormPage() {
                     </div>
                     <Button
                       onClick={handlePrint}
-                      variant="outline"
-                      className="hidden sm:flex items-center gap-2"
+                      className="hidden sm:flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white shadow-[0_0_12px_2px_rgba(59,130,246,0.5)] hover:shadow-[0_0_18px_4px_rgba(59,130,246,0.7)] transition-shadow"
                     >
                       <Printer className="h-4 w-4" />
                       Print

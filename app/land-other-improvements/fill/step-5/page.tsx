@@ -90,6 +90,7 @@ function LandImprovementsFormFillPage5() {
   const [propertyMunicipality, setPropertyMunicipality] = useState<string>("");
   const [taxMappers, setTaxMappers] = useState<{ id: string; full_name: string }[]>([]);
   const [taxMappersLoading, setTaxMappersLoading] = useState(false);
+  const [currentUser, setCurrentUser] = useState<{ id: string; full_name: string; role: string } | null>(null);
   const [effectivityYear, setEffectivityYear] = useState<string>(
     String(new Date().getFullYear() + 1)
   );
@@ -111,6 +112,28 @@ function LandImprovementsFormFillPage5() {
     [assessedValue]
   );
 
+  // Fetch current user role + name
+  useEffect(() => {
+    Promise.all([
+      fetch('/api/auth/user').then(r => r.json()),
+      fetch('/api/users/permissions').then(r => r.json()),
+    ]).then(([authData, permsData]) => {
+      if (authData.user) {
+        setCurrentUser({
+          id: authData.user.id,
+          full_name: authData.user.user_metadata?.full_name || authData.user.email?.split('@')[0] || '',
+          role: permsData.role || '',
+        });
+      }
+    }).catch(() => {});
+  }, []);
+
+  // Auto-select self for all roles except base tax_mapper (who may select a different mapper)
+  useEffect(() => {
+    if (!currentUser) return;
+    if (currentUser.role !== 'tax_mapper' && !appraisedBy) setAppraisedBy(currentUser.id);
+  }, [currentUser, appraisedBy]);
+
   // Load from localStorage (saved by previous steps)
   useEffect(() => {
     try {
@@ -127,8 +150,8 @@ function LandImprovementsFormFillPage5() {
   useEffect(() => {
     setTaxMappersLoading(true);
     const params = propertyMunicipality
-      ? `role=tax_mapper&municipality=${encodeURIComponent(propertyMunicipality)}`
-      : `role=tax_mapper`;
+      ? `role=tax_mapper,municipal_tax_mapper&municipality=${encodeURIComponent(propertyMunicipality)}`
+      : `role=tax_mapper,municipal_tax_mapper`;
     fetch(`/api/users/by-role?${params}`)
       .then(r => r.json())
       .then(data => { if (Array.isArray(data.users)) setTaxMappers(data.users); })
@@ -376,21 +399,32 @@ function LandImprovementsFormFillPage5() {
               <section className="rpfaas-fill-section">
                 <div className="rpfaas-fill-field space-y-1 mt-4" data-comment-field="appraised_by">
                   <Label className="rpfaas-fill-label" htmlFor="appraised_by_p5">Assessed/Appraised by:</Label>
-                  <Select value={appraisedBy} onValueChange={setAppraisedBy} disabled={taxMappersLoading}>
-                    <SelectTrigger id="appraised_by_p5" className="rpfaas-fill-input">
-                      <SelectValue placeholder={taxMappersLoading ? "Loading..." : "Select tax mapper"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {taxMappers.map((mapper) => (
-                        <SelectItem key={mapper.id} value={mapper.id}>
-                          {mapper.full_name}
-                        </SelectItem>
-                      ))}
-                      {!taxMappersLoading && taxMappers.length === 0 && (
-                        <SelectItem value="__none__" disabled>No tax mappers found</SelectItem>
-                      )}
-                    </SelectContent>
-                  </Select>
+                  {currentUser && currentUser.role !== 'tax_mapper' ? (
+                    <Input
+                      id="appraised_by_p5"
+                      value={currentUser.full_name}
+                      readOnly
+                      disabled
+                      aria-disabled="true"
+                      className="rpfaas-fill-input bg-white text-black disabled:opacity-100"
+                    />
+                  ) : (
+                    <Select value={appraisedBy} onValueChange={setAppraisedBy} disabled={taxMappersLoading}>
+                      <SelectTrigger id="appraised_by_p5" className="rpfaas-fill-input">
+                        <SelectValue placeholder={taxMappersLoading ? "Loading..." : "Select tax mapper"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {taxMappers.map((mapper) => (
+                          <SelectItem key={mapper.id} value={mapper.id}>
+                            {mapper.full_name}
+                          </SelectItem>
+                        ))}
+                        {!taxMappersLoading && taxMappers.length === 0 && (
+                          <SelectItem value="__none__" disabled>No tax mappers found</SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
 
                 <div className="rpfaas-fill-field space-y-1 mt-4" data-comment-field="memoranda">

@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import {
-  Loader2, ArrowLeft, CheckCircle, RotateCcw, ClipboardList,
+  Loader2, ArrowLeft, CheckCircle, RotateCcw,
   MessageSquare, Send, User, Clock,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -71,6 +71,12 @@ interface FormRecord {
   submitted_at?: string | null;
   laoo_reviewer_id?: string | null;
   laoo_approved_at?: string | null;
+  municipal_reviewer_id?: string | null;
+  municipal_signed_at?: string | null;
+  municipal_signature_path?: string | null;
+  provincial_reviewer_id?: string | null;
+  provincial_signed_at?: string | null;
+  provincial_signature_path?: string | null;
   [key: string]: unknown;
 }
 
@@ -91,16 +97,22 @@ interface Comment {
 // Helpers
 // ---------------------------------------------------------------------------
 const STATUS_STYLE: Record<string, string> = {
-  submitted:    "bg-yellow-100 text-yellow-800 border-yellow-300",
-  under_review: "bg-blue-100 text-blue-800 border-blue-300",
-  returned:     "bg-orange-100 text-orange-800 border-orange-300",
-  approved:     "bg-green-100 text-green-800 border-green-300",
+  submitted:             "bg-yellow-100 text-yellow-800 border-yellow-300",
+  under_review:          "bg-blue-100 text-blue-800 border-blue-300",
+  municipal_signed:      "bg-blue-100 text-blue-800 border-blue-300",
+  laoo_approved:         "bg-indigo-100 text-indigo-800 border-indigo-300",
+  returned:              "bg-orange-100 text-orange-800 border-orange-300",
+  returned_to_municipal: "bg-orange-100 text-orange-800 border-orange-300",
+  approved:              "bg-green-100 text-green-800 border-green-300",
 };
 const STATUS_LABEL: Record<string, string> = {
-  submitted:    "Submitted — Awaiting Review",
-  under_review: "Under Review",
-  returned:     "Returned for Review",
-  approved:     "Approved",
+  submitted:             "Submitted — Awaiting Review",
+  under_review:          "Under Review",
+  municipal_signed:      "Municipal Signed — Awaiting LAOO Review",
+  laoo_approved:         "LAOO Approved — Awaiting Provincial Sign",
+  returned:              "Returned for Review",
+  returned_to_municipal: "Returned to Municipal Assessor",
+  approved:              "Approved",
 };
 
 function fmtDate(iso?: string | null) {
@@ -272,7 +284,7 @@ function ReviewDetailInner({ id }: { id: string }) {
       .then(r => r.json())
       .then(data => {
         const u = data.user;
-        const allowed = ["laoo", "assistant_provincial_assessor", "provincial_assessor", "admin", "super_admin"];
+        const allowed = ["municipal_tax_mapper", "laoo", "assistant_provincial_assessor", "provincial_assessor", "admin", "super_admin"];
         if (!u || !allowed.includes(u.role)) router.replace("/dashboard");
         else setCurrentUser(u);
       })
@@ -315,19 +327,12 @@ function ReviewDetailInner({ id }: { id: string }) {
   }, [currentUser, loadData]);
 
   // ── Review actions ──────────────────────────────────────────────────────────
-  const doAction = useCallback(async (action: "claim" | "return" | "approve") => {
-    if (action === "return" && comments.length === 0 && !commentText.trim()) {
-      toast.error("Please add at least one comment before returning the form.");
-      return;
-    }
-    if (!confirm(
-      action === "approve"
-        ? "Approve this form? This will unlock the Tax Declaration."
-        : action === "return"
-        ? "Return this form to the tax mapper for revision?"
-        : "Claim this form and start your review?"
-    )) return;
+  type ReviewAction = 'sign_forward' | 'return_to_mapper' | 'laoo_approve' | 'laoo_return' | 'sign_approve' | 'provincial_return';
 
+  const [returnDialogOpen, setReturnDialogOpen] = useState(false);
+  const [returnNote, setReturnNote] = useState("");
+
+  const doAction = useCallback(async (action: ReviewAction) => {
     setActionLoading(true);
     try {
       const res = await fetch(`${apiBase}/review`, {
@@ -342,15 +347,44 @@ function ReviewDetailInner({ id }: { id: string }) {
         return;
       }
 
-      const labels = { claim: "Under Review", return: "Returned for Review", approve: "Approved" };
-      toast.success(`Form marked as "${labels[action]}".`);
+      toast.success("Action completed successfully.");
       await loadData();
     } catch {
       toast.error("Error performing action.");
     } finally {
       setActionLoading(false);
     }
-  }, [apiBase, comments.length, commentText, loadData]);
+  }, [apiBase, loadData]);
+
+  const handleReturn = useCallback(async (action: ReviewAction) => {
+    if (!returnNote.trim()) { toast.error("A reason is required."); return; }
+    setActionLoading(true);
+    try {
+      await fetch(`${apiBase}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ comment_text: returnNote.trim() }),
+      });
+      const res = await fetch(`${apiBase}/review`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, note: returnNote.trim() }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        toast.error(err.error ?? "Action failed.");
+        return;
+      }
+      toast.success("Form returned successfully.");
+      setReturnDialogOpen(false);
+      setReturnNote("");
+      await loadData();
+    } catch {
+      toast.error("Error performing action.");
+    } finally {
+      setActionLoading(false);
+    }
+  }, [apiBase, returnNote, loadData]);
 
   // ── Submit comment ──────────────────────────────────────────────────────────
   const submitComment = useCallback(async () => {
@@ -402,10 +436,20 @@ function ReviewDetailInner({ id }: { id: string }) {
     );
   }
 
-  const isReviewer = ["laoo", "assistant_provincial_assessor", "provincial_assessor", "admin", "super_admin"]
-    .includes(currentUser.role);
-  const canClaim   = record.status === "submitted" && isReviewer;
-  const canAct     = record.status === "under_review" && isReviewer;
+  const userRole = currentUser.role;
+  const isReviewer = ["municipal_tax_mapper", "laoo", "assistant_provincial_assessor", "provincial_assessor", "admin", "super_admin"]
+    .includes(userRole);
+
+  // Role groups
+  const MUNICIPAL_ROLES_LOCAL  = ['municipal_tax_mapper', 'admin', 'super_admin'];
+  const LAOO_ROLES_LOCAL       = ['laoo', 'admin', 'super_admin'];
+  const PROVINCIAL_ROLES_LOCAL = ['assistant_provincial_assessor', 'provincial_assessor', 'admin', 'super_admin'];
+
+  const canMunicipalAct  = MUNICIPAL_ROLES_LOCAL.includes(userRole) && ['submitted', 'returned_to_municipal'].includes(record.status);
+  const canLaooAct       = LAOO_ROLES_LOCAL.includes(userRole) && record.status === 'municipal_signed';
+  const canProvincialAct = PROVINCIAL_ROLES_LOCAL.includes(userRole) && record.status === 'laoo_approved';
+
+  const returnAction: ReviewAction = canMunicipalAct ? 'return_to_mapper' : canLaooAct ? 'laoo_return' : 'provincial_return';
 
   return (
     <SidebarProvider>
@@ -435,35 +479,40 @@ function ReviewDetailInner({ id }: { id: string }) {
                 <ArrowLeft className="h-4 w-4 mr-1" /> Back to Queue
               </Button>
 
-              <div className="flex gap-2">
-                {canClaim && (
-                  <Button
-                    onClick={() => doAction("claim")}
-                    disabled={actionLoading}
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
-                  >
-                    {actionLoading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <ClipboardList className="h-4 w-4 mr-1" />}
-                    Start Review
-                  </Button>
-                )}
-                {canAct && (
+              <div className="flex gap-2 flex-wrap">
+                {/* Municipal actions */}
+                {canMunicipalAct && (
                   <>
-                    <Button
-                      variant="outline"
-                      onClick={() => doAction("return")}
-                      disabled={actionLoading}
-                      className="border-orange-400 text-orange-600 hover:bg-orange-50"
-                    >
-                      {actionLoading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <RotateCcw className="h-4 w-4 mr-1" />}
-                      Return for Revision
-                    </Button>
-                    <Button
-                      onClick={() => doAction("approve")}
-                      disabled={actionLoading}
-                      className="bg-green-600 hover:bg-green-700 text-white"
-                    >
+                    <Button onClick={() => doAction('sign_forward')} disabled={actionLoading} className="bg-blue-600 hover:bg-blue-700 text-white">
                       {actionLoading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <CheckCircle className="h-4 w-4 mr-1" />}
-                      Approve
+                      Sign & Forward to LAOO
+                    </Button>
+                    <Button variant="outline" onClick={() => setReturnDialogOpen(true)} disabled={actionLoading} className="text-red-600 border-red-300 hover:bg-red-50">
+                      <RotateCcw className="h-4 w-4 mr-1" />Return to Mapper
+                    </Button>
+                  </>
+                )}
+                {/* LAOO actions */}
+                {canLaooAct && (
+                  <>
+                    <Button onClick={() => doAction('laoo_approve')} disabled={actionLoading} className="bg-green-600 hover:bg-green-700 text-white">
+                      {actionLoading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <CheckCircle className="h-4 w-4 mr-1" />}
+                      Approve & Forward
+                    </Button>
+                    <Button variant="outline" onClick={() => setReturnDialogOpen(true)} disabled={actionLoading} className="text-red-600 border-red-300 hover:bg-red-50">
+                      <RotateCcw className="h-4 w-4 mr-1" />Return to Municipal
+                    </Button>
+                  </>
+                )}
+                {/* Provincial actions */}
+                {canProvincialAct && (
+                  <>
+                    <Button onClick={() => doAction('sign_approve')} disabled={actionLoading} className="bg-green-600 hover:bg-green-700 text-white">
+                      {actionLoading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <CheckCircle className="h-4 w-4 mr-1" />}
+                      Sign & Approve
+                    </Button>
+                    <Button variant="outline" onClick={() => setReturnDialogOpen(true)} disabled={actionLoading} className="text-red-600 border-red-300 hover:bg-red-50">
+                      <RotateCcw className="h-4 w-4 mr-1" />Return to Municipal
                     </Button>
                   </>
                 )}
@@ -665,7 +714,7 @@ function ReviewDetailInner({ id }: { id: string }) {
                 </Card>
 
                 {/* Add comment card — reviewers only when form can be commented on */}
-                {isReviewer && ["under_review", "submitted"].includes(record.status) && (
+                {isReviewer && ["under_review", "submitted", "municipal_signed", "laoo_approved", "returned_to_municipal"].includes(record.status) && (
                   <Card>
                     <CardHeader>
                       <CardTitle className="text-base flex items-center gap-2">
@@ -778,6 +827,30 @@ function ReviewDetailInner({ id }: { id: string }) {
             </div>
           </div>
         </div>
+        {/* Return dialog */}
+        {returnDialogOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+            <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md space-y-4">
+              <h2 className="text-base font-semibold">Return Form</h2>
+              <p className="text-sm text-muted-foreground">Please provide a reason. It will be posted as a comment.</p>
+              <textarea
+                className="w-full border rounded-md p-2 text-sm min-h-[80px] focus:outline-none focus:ring-2 focus:ring-primary"
+                placeholder="Explain what needs to be corrected…"
+                value={returnNote}
+                onChange={e => setReturnNote(e.target.value)}
+              />
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => { setReturnDialogOpen(false); setReturnNote(""); }} disabled={actionLoading}>
+                  Cancel
+                </Button>
+                <Button variant="destructive" onClick={() => handleReturn(returnAction)} disabled={actionLoading || !returnNote.trim()}>
+                  {actionLoading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+                  Confirm Return
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </SidebarInset>
     </SidebarProvider>
   );

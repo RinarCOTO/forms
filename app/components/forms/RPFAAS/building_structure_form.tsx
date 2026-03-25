@@ -5,7 +5,7 @@ import FaasFooter from "./faas-footer";
 import { SectionHeader } from "./components/SectionHeader";
 import { Checkbox } from "./components/Checkbox";
 import { useRPFAASData } from "./hooks/useRPFAASData";
-import { STRUCTURAL_MATERIAL_ROWS, FLOOR_LEVELS } from "./constants/structuralMaterials";
+import { STRUCTURAL_MATERIAL_ROWS } from "./constants/structuralMaterials";
 import type { RoofMaterials } from "@/app/types/rpfaas";
 import { DEDUCTION_CHOICES, ADDITIONAL_PERCENT_CHOICES, ADDITIONAL_FLAT_RATE_CHOICES } from "@/config/form-options";
 
@@ -68,11 +68,15 @@ const BuildingStructureForm = () => {
         amountInWords,
         effectivityOfAssessment,
         appraisedById,
+        municipalReviewerId,
+        provincialReviewerId,
         memoranda,
     } = useRPFAASData();
 
     const storeys = parseInt(String(numberOfStoreys)) || 0;
     const ordSuffix = (n: number) => n === 1 ? 'st' : n === 2 ? 'nd' : n === 3 ? 'rd' : 'th';
+    const displayLevels = Math.max(4, storeys);
+    const levelColPct = `${Math.floor(20 / displayLevels)}%`;
 
     // Get the deductions with their percentages and calculated values
     const getSelectedDeductionsWithData = () => {
@@ -166,35 +170,41 @@ const BuildingStructureForm = () => {
             </h1>
 
             {/* Basic Information */}
+            {/* prettier-ignore */}
             <table>
                 <colgroup>
-                    <col style={{ width: '33%' }} />
-                    <col style={{ width: '33%' }} />
-                    <col style={{ width: '33%' }} />
+                    <col style={{ width: '22%' }} />
+                    <col style={{ width: '28%' }} />
+                    <col style={{ width: '22%' }} />
+                    <col style={{ width: '28%' }} />
                 </colgroup>
                 <tbody>
-                    <tr className="bordered-table">
-                        <td>Transaction Code:</td>
-                        <td>
-                            <div className="rpfaas-inner-grid grid grid-cols-3 divide-x divide-black items-stretch h-full">
-                                <div className="font-bold self-stretch flex items-center ">{transactionCode || ''}</div>
-                                <div className="text-center self-stretch flex items-center justify-center">ARP No.</div>
-                                <div className="self-stretch flex items-center font-bold px-1">{arpNo || ''}</div>
-                            </div>
+                    <tr className="text-right">
+                        <td colSpan={4} className="pr-4">
+                            Transaction Code:{" "}
+                            <span className="font-bold">{transactionCode || ''}</span>
                         </td>
-                        <td>PIN: <span className="font-bold">{pin || ''}</span></td>
+                    </tr>
+
+                    <tr>
+                        <td>ARP No.:</td>
+                        <td className="font-bold font-mono">{arpNo || ''}</td>
+                        <td>PIN:</td>
+                        <td className="font-bold">{pin || ''}</td>
                     </tr>
 
                     <tr>
                         <td>OCT/TCT/CLOA No.</td>
                         <td className="font-bold">{octTctCloaNo || ''}</td>
                         <td>Dated:</td>
+                        <td></td>
                     </tr>
 
                     <tr className="border-b-2">
                         <td>Survey No.</td>
                         <td className="font-bold">{surveyNo || ''}</td>
-                        <td>Lot No. <span className="font-bold">{lotNo || ''}</span></td>
+                        <td>Lot No.</td>
+                        <td className="font-bold">{lotNo || ''}</td>
                     </tr>
                     <tr className="bordered-table" data-field="owner_name">
                         <td>Owner:</td>
@@ -219,14 +229,23 @@ const BuildingStructureForm = () => {
                              {[adminBarangayName, adminMunicipalityName, adminProvinceName].filter(Boolean).join(", ") || ''}
                         </td>
                     </tr>
+                </tbody>
+            </table>
 
+            <table>
+                <colgroup>
+                    <col style={{ width: '33%' }} />
+                    <col style={{ width: '33%' }} />
+                    <col style={{ width: '33%' }} />
+                </colgroup>
+                <tbody>
                     <SectionHeader>LOCATION OF PROPERTY</SectionHeader>
                     <tr className="border-t-2" data-field="location_municipality">
                         <td>No/Street/Sitio:</td>
                         <td>
-                            <div className="grid grid-cols-2">
-                                <div className="font-bold">{locationStreet || ''}</div>
-                                <div className="border-l text-right">Municipality:</div>
+                            <div className="rpfaas-inner-grid grid grid-cols-2 divide-x divide-black items-stretch h-full">
+                                <div className="font-bold self-stretch flex items-center">{locationStreet || ''}</div>
+                                <div className="text-right self-stretch flex items-center justify-end">Municipality:</div>
                             </div>
                         </td>
                         <td className="font-bold">{locationMunicipality || ''}</td>
@@ -235,9 +254,9 @@ const BuildingStructureForm = () => {
                     <tr className="border-b-2 border-black" data-field="location_barangay location_province">
                         <td>Barangay:</td>
                         <td>
-                            <div className="grid grid-cols-2">
-                                <div className="font-bold">{locationBarangay || ''}</div>
-                                <div className="border-l text-right">Province:</div>
+                            <div className="rpfaas-inner-grid grid grid-cols-2 divide-x divide-black items-stretch h-full">
+                                <div className="font-bold self-stretch flex items-center">{locationBarangay || ''}</div>
+                                <div className="text-right self-stretch flex items-center justify-end">Province:</div>
                             </div>
                         </td>
                         <td className="font-bold">{locationProvince || ''}</td>
@@ -264,9 +283,15 @@ const BuildingStructureForm = () => {
                                 <div className="flex items-center self-stretch font-bold rpfaas-print-small whitespace-nowrap">{buildingAge ? `${buildingAge} years` : ''}</div>
                             </div>
                         </td>
+                        <td className="land-reference">
+                            <div className="rpfaas-inner-grid grid grid-cols-3 divide-x divide-black items-stretch h-full">
+                                <div className="flex items-center self-stretch rpfaas-print-small-1 font-bold col-span-1">Land Owner:</div>
+                                <div className="flex items-center self-stretch col-span-2 rpfaas-print-small">{landOwner || ''}</div>
+                            </div>
+                        </td>
                     </tr>
 
-                    <tr className="py-auto my-auto" data-field="structure_type number_of_storeys land_owner">
+                    <tr className="py-auto my-auto" data-field="structure_type number_of_storeys td_arp_no">
                         <td>Structural Type:</td>
                         <td>
                             <div className="rpfaas-inner-grid grid grid-cols-3 divide-x divide-black items-stretch h-full">
@@ -277,13 +302,13 @@ const BuildingStructureForm = () => {
                         </td>
                         <td className="land-reference">
                             <div className="rpfaas-inner-grid grid grid-cols-3 divide-x divide-black items-stretch h-full">
-                                <div className="flex items-center self-stretch rpfaas-print-small-1 font-bold col-span-1">Land Owner:</div>
-                                <div className="flex items-center self-stretch col-span-2 text-[10px] print:text-[8px] rpfaas-print-small">{landOwner || ''}</div>
+                                <div className="flex items-center self-stretch rpfaas-print-small-1 font-bold col-span-1">TD/ARP No.:</div>
+                                <div className="flex items-center self-stretch col-span-2 rpfaas-print-small">{landTdArpNo || ''}</div>
                             </div>
                         </td>
                     </tr>
 
-                    <tr data-field="building_permit_no td_arp_no">
+                    <tr data-field="building_permit_no land_area">
                         <td>Building Permit No.</td>
                         <td>
                             <div className="rpfaas-inner-grid grid grid-cols-3 divide-x divide-black items-stretch h-full">
@@ -294,13 +319,13 @@ const BuildingStructureForm = () => {
                         </td>
                         <td className="land-reference">
                             <div className="rpfaas-inner-grid grid grid-cols-3 divide-x divide-black items-stretch h-full">
-                                <div className="flex items-center self-stretch text-[10px] rpfaas-print-small-1 font-bold col-span-1">TD/ARP No.:</div>
-                                <div className="flex items-center self-stretch col-span-2 text-[10px] print:text-[8px] rpfaas-print-small">{landTdArpNo || ''}</div>
+                                <div className="flex items-center self-stretch rpfaas-print-small-1 font-bold col-span-1">Area:</div>
+                                <div className="flex items-center self-stretch col-span-2 rpfaas-print-small">{landArea || ''} sqm</div>
                             </div>
                         </td>
                     </tr>
 
-                    <tr data-field="cct land_area">
+                    <tr data-field="cct">
                         <td>Condominium Certificate of Title (CCT):</td>
                         <td>
                             <div className="rpfaas-inner-grid grid grid-cols-3 divide-x divide-black items-stretch h-full">
@@ -309,19 +334,14 @@ const BuildingStructureForm = () => {
                                 <div className="flex items-center self-stretch font-bold rpfaas-print-small whitespace-nowrap">{storeys >= 2 ? floorAreas[1] || '' : ''}</div>
                             </div>
                         </td>
-                        <td className="land-reference">
-                            <div className="rpfaas-inner-grid grid grid-cols-3 divide-x divide-black items-stretch h-full">
-                                <div className="flex items-center self-stretch text-[10px] rpfaas-print-small-1 font-bold col-span-1">Area:</div>
-                                <div className="flex items-center self-stretch col-span-2 text-[10px] print:text-[8px] rpfaas-print-small">{landArea || ''} sqm</div>
-                            </div>
-                        </td>
+                        <td className="land-reference"></td>
                     </tr>
 
                     <tr data-field="completion_issued_on">
                         <td>Certificate of Completion Issued on:</td>
                         <td>
                             <div className="rpfaas-inner-grid grid grid-cols-3 divide-x divide-black items-stretch h-full">
-                                <div className="rpfaas-field-value self-stretch">{completionIssuedOn || ''}</div>
+                                <div className="rpfaas-field-value self-stretch">{completionIssuedOn ? completionIssuedOn.slice(0, 4) : ''}</div>
                                 <div className="flex items-center self-stretch font-medium floor-area-print whitespace-nowrap">3<sup>{ordSuffix(3)}</sup> Floor Area:</div>
                                 <div className="flex items-center self-stretch font-bold rpfaas-print-small whitespace-nowrap">{storeys >= 3 ? floorAreas[2] || '' : ''}</div>
                             </div>
@@ -333,7 +353,7 @@ const BuildingStructureForm = () => {
                         <td>Date Constructed/Completed:</td>
                         <td>
                             <div className="rpfaas-inner-grid grid grid-cols-3 divide-x divide-black items-stretch h-full">
-                                <div className="rpfaas-field-value self-stretch">{dateConstructed || ''}</div>
+                                <div className="rpfaas-field-value self-stretch">{dateConstructed ? dateConstructed.slice(0, 4) : ''}</div>
                                 <div className="flex items-center self-stretch font-medium floor-area-print whitespace-nowrap">{storeys >= 4 ? <>4<sup>{ordSuffix(4)}</sup> Floor Area:</> : null}</div>
                                 <div className="flex items-center self-stretch font-bold rpfaas-print-small whitespace-nowrap">{storeys >= 4 ? floorAreas[3] || '' : ''}</div>
                             </div>
@@ -359,7 +379,7 @@ const BuildingStructureForm = () => {
                         <td className="font-bold">Date Occupied:</td>
                         <td>
                             <div className="rpfaas-inner-grid grid grid-cols-3 divide-x divide-black items-stretch h-full">
-                                <div className="rpfaas-field-value self-stretch">{dateOccupied || ''}</div>
+                                <div className="rpfaas-field-value self-stretch">{dateOccupied ? dateOccupied.slice(0, 4) : ''}</div>
                                 <div className="flex items-center self-stretch font-bold rpfaas-print-small whitespace-nowrap">Total:</div>
                                 <div className="flex items-center self-stretch font-bold rpfaas-print-small whitespace-nowrap">{totalFloorArea || ''} sqm</div>
                             </div>
@@ -373,7 +393,7 @@ const BuildingStructureForm = () => {
                     </SectionHeader>
 
                     <tr>
-                        <td colSpan={4}>
+                        <td colSpan={3}>
                             Attach the building plan or sketch of floor plan. A photograph may also be
                             attached if necessary.
                         </td>
@@ -383,20 +403,31 @@ const BuildingStructureForm = () => {
 
             {/* Structural Materials */}
             <table>
+                <colgroup>
+                    <col style={{ width: "22%" }} />
+                    <col style={{ width: "18%" }} />
+                    {Array.from({ length: displayLevels }, (_, i) => (
+                        <col key={`col-floor-${i}`} style={{ width: levelColPct }} />
+                    ))}
+                    <col style={{ width: "18%" }} />
+                    {Array.from({ length: displayLevels }, (_, i) => (
+                        <col key={`col-wall-${i}`} style={{ width: levelColPct }} />
+                    ))}
+                </colgroup>
                 <tbody>
-                    <SectionHeader colSpan={11} className="py-2 " data-field="roofing_material flooring_material wall_material">Structural Materials (checklists)</SectionHeader>
+                    <SectionHeader colSpan={3 + displayLevels * 2} className="py-2 " data-field="roofing_material flooring_material wall_material">Structural Materials (checklists)</SectionHeader>
                     <tr>
                         <td className="font-bold w-50">ROOF</td>
                         <td className="font-bold w-38">FLOORING</td>
-                        {FLOOR_LEVELS.map((level) => (
-                            <td key={`floor-header-${level}`} className="text-center  rpfaas-print-small">
-                                {level.replace(/\D/g, "")}<sup>{level.replace(/\d/g, "")}</sup>
+                        {Array.from({ length: displayLevels }, (_, i) => (
+                            <td key={`floor-header-${i}`} className="text-center rpfaas-print-small">
+                                {i < storeys ? <>{i + 1}<sup>{ordSuffix(i + 1)}</sup></> : ""}
                             </td>
                         ))}
                         <td className="font-bold w-32">WALLS</td>
-                        {FLOOR_LEVELS.map((level) => (
-                            <td key={`wall-header-${level}`} className="text-center rpfaas-print-small">
-                                {level.replace(/\D/g, "")}<sup>{level.replace(/\d/g, "")}</sup>
+                        {Array.from({ length: displayLevels }, (_, i) => (
+                            <td key={`wall-header-${i}`} className="text-center rpfaas-print-small">
+                                {i < storeys ? <>{i + 1}<sup>{ordSuffix(i + 1)}</sup></> : ""}
                             </td>
                         ))}
                     </tr>
@@ -423,13 +454,13 @@ const BuildingStructureForm = () => {
                                     {row.roof && <Checkbox label={roofLabel} checked={isRoofChecked} />}
                                 </td>
                                 <td>{row.flooring}</td>
-                                {FLOOR_LEVELS.map((_, i) => (
+                                {Array.from({ length: displayLevels }, (_, i) => (
                                     <td key={`floor-x-${idx}-${i}`} className="text-center rpfaas-print-small">
                                         {flooringGrid[idx]?.[i] ? "X" : ""}
                                     </td>
                                 ))}
                                 <td>{row.walls}</td>
-                                {FLOOR_LEVELS.map((_, i) => (
+                                {Array.from({ length: displayLevels }, (_, i) => (
                                     <td key={`wall-x-${idx}-${i}`} className="text-center rpfaas-print-small">
                                         {wallsGrid[idx]?.[i] ? "X" : ""}
                                     </td>
@@ -608,7 +639,7 @@ const BuildingStructureForm = () => {
                 </tbody>
             </table>
 
-            <FaasFooter amountInWords={amountInWords} taxStatus={taxStatus} locationMunicipality={locationMunicipality} effectivityOfAssessment={effectivityOfAssessment} appraisedById={appraisedById} memoranda={memoranda} className="mt-auto" />
+            <FaasFooter amountInWords={amountInWords} taxStatus={taxStatus} locationMunicipality={locationMunicipality} effectivityOfAssessment={effectivityOfAssessment} appraisedById={appraisedById} municipalReviewerId={municipalReviewerId} provincialReviewerId={provincialReviewerId} memoranda={memoranda} className="mt-auto" />
         </div>
     );
 };

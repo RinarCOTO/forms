@@ -65,6 +65,8 @@ export interface LandImprovementFormData {
   amount_in_words?: string;
   effectivity_of_assessment?: string;
   appraised_by?: string;
+  municipal_reviewer_id?: string;
+  provincial_reviewer_id?: string;
   memoranda?: string;
   tax_status?: string;
 }
@@ -362,6 +364,8 @@ const LandImprovementForm = ({ data }: { data: LandImprovementFormData }) => {
         locationMunicipality={data.location_municipality}
         effectivityOfAssessment={data.effectivity_of_assessment ?? ""}
         appraisedById={data.appraised_by}
+        municipalReviewerId={data.municipal_reviewer_id}
+        provincialReviewerId={data.provincial_reviewer_id}
         memoranda={data.memoranda}
       />
     </div>

@@ -294,10 +294,10 @@ function PreviewFormPage() {
   const SUBMIT_ALLOWED_ROLES = ["tax_mapper", "municipal_tax_mapper", "admin", "super_admin"];
   const [canSubmit, setCanSubmit] = useState(false);
   useEffect(() => {
-    fetch("/api/auth/user")
+    fetch("/api/users/permissions")
       .then((r) => r.json())
       .then((data) => {
-        if (data?.user?.role && SUBMIT_ALLOWED_ROLES.includes(data.user.role)) {
+        if (data?.role && SUBMIT_ALLOWED_ROLES.includes(data.role)) {
           setCanSubmit(true);
         }
       })
@@ -325,12 +325,35 @@ function PreviewFormPage() {
           const d = result.data;
           if (d.status) setFormStatus(d.status);
 
+          // Preview is read-only — always sync every key from DB so the form
+          // never shows stale data from a previously opened record.
+          localStorage.removeItem("roofing_material_json");
+          localStorage.removeItem("roofing_material_other_text");
+          localStorage.removeItem("flooring_material_json");
+          localStorage.removeItem("wall_material_json");
+
           const set = (key: string, val: string | null | undefined) => {
-            if (val == null || val === "") return;
-            if (isPrintMode || !localStorage.getItem(key)) localStorage.setItem(key, val);
+            if (val == null || val === "") {
+              localStorage.removeItem(key);
+            } else {
+              localStorage.setItem(key, val);
+            }
           };
 
-          // ── Step 1: owner / location individual keys ──────────────────
+          // ── Step 1: identification & owner / location individual keys ────
+          set("rpfaas_transaction_code",                 d.transaction_code);
+          set("rpfaas_arp_no",                           d.arp_no);
+          set("rpfaas_pin",                              d.pin);
+          set("rpfaas_survey_no",                        d.survey_no);
+          set("rpfaas_lot_no",                           d.lot_no);
+          set("rpfaas_blk",                              d.blk);
+          // Store the full OCT/TCT/CLOA string as title_type; leave title_no blank
+          if (d.oct_tct_cloa_no) {
+            localStorage.setItem("rpfaas_title_type", d.oct_tct_cloa_no);
+          } else {
+            localStorage.removeItem("rpfaas_title_type");
+          }
+          localStorage.setItem("rpfaas_title_no", "");
           set("rpfaas_owner_name",                       d.owner_name);
           set("rpfaas_admin_careof",                     d.admin_care_of);
           set("rpfaas_location_street",                  d.property_address);
@@ -350,7 +373,7 @@ function PreviewFormPage() {
           set("rpfaas_location_province",               d.location_province);
 
           // ── Step 2: p2 JSON blob ──────────────────────────────────────
-          if (isPrintMode || !localStorage.getItem("p2")) {
+          {
             localStorage.setItem("p2", JSON.stringify({
               type_of_building:    d.type_of_building    || "",
               structure_type:      d.structure_type      || "",
@@ -368,13 +391,18 @@ function PreviewFormPage() {
               land_area:           d.land_area           || "",
             }));
           }
-          if (d.unit_cost != null) set("unit_cost_p2", String(d.unit_cost));
+          if (d.cost_of_construction != null) set("unit_cost_p2", String(d.cost_of_construction));
 
           // ── Step 3: p3 JSON blob (materials stored as nested JSON) ────
-          if (isPrintMode || !localStorage.getItem("p3")) {
-            const rm = d.roofing_material  || {};
-            const fm = d.flooring_material || {};
-            const wm = d.wall_material     || {};
+          {
+            const parse = (v: any) => {
+              if (!v) return {};
+              if (typeof v === "string") { try { return JSON.parse(v); } catch { return {}; } }
+              return v;
+            };
+            const rm = parse(d.roofing_material);
+            const fm = parse(d.flooring_material);
+            const wm = parse(d.wall_material);
             localStorage.setItem("p3", JSON.stringify({
               roof_materials:           rm.data    || {},
               roof_materials_other_text:rm.otherText|| "",
@@ -384,7 +412,7 @@ function PreviewFormPage() {
           }
 
           // ── Step 4: p4 JSON blob ──────────────────────────────────────
-          if (isPrintMode || !localStorage.getItem("p4")) {
+          {
             localStorage.setItem("p4", JSON.stringify({
               selected_deductions:        d.selected_deductions        || [],
               deduction_amounts:          d.deduction_amounts          || {},
@@ -401,11 +429,16 @@ function PreviewFormPage() {
           // ── Step 5/6 fields ───────────────────────────────────────────
           set("amount_in_words_p5",   d.amount_in_words);
           set("assessment_level_p5",  d.assessment_level);
-          if (d.assessed_value != null) set("assessed_value_p5", String(d.assessed_value));
+          if (d.estimated_value != null) set("assessed_value_p5", String(d.estimated_value));
           set("actual_use_p5",        d.actual_use);
           if (d.effectivity_of_assessment != null) set("effectivity_of_assessment_p5", String(d.effectivity_of_assessment));
-          if (d.appraised_by) set("appraised_by_p5", d.appraised_by);
-          if (d.tax_status) set("tax_status_p5", d.tax_status);
+          set("appraised_by_p5", d.appraised_by);
+          set("municipal_reviewer_id_p5",  d.municipal_reviewer_id);
+          set("provincial_reviewer_id_p5", d.provincial_reviewer_id);
+          set("tax_status_p5",             d.tax_status);
+          set("memoranda_p5", d.memoranda);
+
+          localStorage.setItem('draft_id', String(draftId));
         }
       })
       .catch(() => {})
@@ -576,8 +609,7 @@ function PreviewFormPage() {
               </div>
               <Button
                 onClick={handlePrint}
-                variant="outline"
-                className="hidden sm:flex items-center gap-2"
+                className="hidden sm:flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white shadow-[0_0_12px_2px_rgba(59,130,246,0.5)] hover:shadow-[0_0_18px_4px_rgba(59,130,246,0.7)] transition-shadow"
               >
                 <Printer className="h-4 w-4" />
                 Print
