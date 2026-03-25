@@ -51,3 +51,4 @@ SCOPE_OF_WORK.md
 
 # Claude settings
 .claude/
+.claude/settings.json
