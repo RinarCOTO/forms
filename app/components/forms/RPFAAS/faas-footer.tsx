@@ -82,10 +82,24 @@ const FaasFooter = ({
       });
   }, [municipalReviewerId, locationMunicipality]);
 
-  // Appraised by name
+  // Appraised by name — use reviewer ID if set, else fall back to tax_mapper for municipality
   useEffect(() => {
-    if (!appraisedById) return;
-    fetch(`/api/users/by-role?id=${appraisedById}`)
+    if (appraisedById) {
+      fetch(`/api/users/by-role?id=${appraisedById}`)
+        .then(res => res.json())
+        .then(data => {
+          const user = data.users?.[0];
+          if (user) {
+            setAppraisedByName(user.full_name || '');
+            setAppraisedByPosition(user.position || '');
+          }
+        });
+      return;
+    }
+    if (!locationMunicipality) return;
+    const normalized = locationMunicipality.toLowerCase();
+    const municipality = MUNICIPALITY_MAP[normalized] ?? normalized;
+    fetch(`/api/users/by-role?role=tax_mapper&municipality=${municipality}`)
       .then(res => res.json())
       .then(data => {
         const user = data.users?.[0];
@@ -94,7 +108,7 @@ const FaasFooter = ({
           setAppraisedByPosition(user.position || '');
         }
       });
-  }, [appraisedById]);
+  }, [appraisedById, locationMunicipality]);
 
   // Signature images
   useEffect(() => {
@@ -139,7 +153,7 @@ const FaasFooter = ({
           <span>Exempt</span>
         </label>
         <div className="text-center">Effectivity of Assessment:</div>
-        <div className="font-bold text-center">{effectivityOfAssessment ? effectivityOfAssessment.substring(0, 4) : ''}</div>
+        <div className="font-bold text-center">{effectivityOfAssessment ? String(effectivityOfAssessment).substring(0, 4) : ''}</div>
       </div>
 
       <div className="grid grid-cols-3 mt-6 print:mt-2">
@@ -155,7 +169,7 @@ const FaasFooter = ({
             ? <Image src={taxMapperSignatureUrl} alt="Tax Mapper signature" width={160} height={48} className="object-contain max-h-12 mb-0.5 print:max-h-10" />
             : <div className="h-12" />
           }
-          <span className="inline-block border-b border-black w-3/4 mx-auto font-bold" style={{ color: appraisedByName ? 'inherit' : 'white' }}>{appraisedByName || 'Name'}</span>
+          <span className="inline-block border-b border-black w-3/4 mx-auto font-bold">{appraisedByName || ''}</span>
         </div>
         <div className="flex flex-col items-center">
           {municipalSignatureUrl
@@ -174,7 +188,7 @@ const FaasFooter = ({
       </div>
 
       <div className="grid grid-cols-3 text-center">
-        <div style={{ color: appraisedByPosition ? 'inherit' : 'white' }}>{appraisedByPosition || 'Position'}</div>
+        <div>{appraisedByPosition || ''}</div>
         <div>{municipalAssessorPosition || ''}</div>
         <div></div>
       </div>

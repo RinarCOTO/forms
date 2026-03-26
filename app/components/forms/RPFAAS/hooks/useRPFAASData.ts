@@ -4,7 +4,8 @@ import { getLocationName } from "../utils/locationHelpers";
 import { DUMMY_PROVINCES, DUMMY_MUNICIPALITIES, DUMMY_BARANGAYS } from "../constants/locations";
 import { DEDUCTION_CHOICES } from "@/config/form-options";
 
-export const useRPFAASData = () => {
+export const useRPFAASData = (serverData?: Record<string, any>) => {
+    const [isLoaded, setIsLoaded] = useState(false);
     const [formData, setFormData] = useState<RPFAASFormData>({
         transactionCode: "",
         arpNo: "",
@@ -79,6 +80,126 @@ export const useRPFAASData = () => {
         provincialReviewerId: "",
         memoranda: "",
     });
+
+    const loadDataFromServer = useCallback((d: Record<string, any>) => {
+        try {
+            const parse = (v: any) => {
+                if (!v) return {};
+                if (typeof v === 'string') { try { return JSON.parse(v); } catch { return {}; } }
+                return v;
+            };
+            const norm = (code: string | null | undefined) =>
+                code?.length === 10 ? code.slice(0, 2) + code.slice(3) : (code ?? null);
+
+            const oProvCode = norm(d.owner_province_code);
+            const oMunCode  = norm(d.owner_municipality_code);
+            const oBarCode  = norm(d.owner_barangay_code);
+            const ownerAddressProvince    = d.owner_address ? "" : getLocationName(oProvCode, DUMMY_PROVINCES);
+            const ownerAddressMunicipality = d.owner_address ? "" : getLocationName(oMunCode, DUMMY_MUNICIPALITIES);
+            const ownerAddressBarangay    = d.owner_address || getLocationName(oBarCode, DUMMY_BARANGAYS);
+
+            const aProvCode = norm(d.admin_province_code);
+            const aMunCode  = norm(d.admin_municipality_code);
+            const aBarCode  = norm(d.admin_barangay_code);
+            const adminProvinceName    = d.admin_address ? "" : getLocationName(aProvCode, DUMMY_PROVINCES);
+            const adminMunicipalityName = d.admin_address ? "" : getLocationName(aMunCode, DUMMY_MUNICIPALITIES);
+            const adminBarangayName    = d.admin_address || getLocationName(aBarCode, DUMMY_BARANGAYS);
+
+            const lProvCode = norm(d.property_province_code);
+            const lMunCode  = norm(d.property_municipality_code);
+            const lBarCode  = norm(d.property_barangay_code);
+            const locationProvince    = d.location_province    || getLocationName(lProvCode, DUMMY_PROVINCES) || "Mountain Province";
+            const locationMunicipality = d.location_municipality || getLocationName(lMunCode, DUMMY_MUNICIPALITIES);
+            const locationBarangay    = d.location_barangay    || getLocationName(lBarCode, DUMMY_BARANGAYS);
+
+            const rm = parse(d.roofing_material);
+            const fm = parse(d.flooring_material);
+            const wm = parse(d.wall_material);
+            const rmData = (rm.data && typeof rm.data === 'object') ? rm.data : rm;
+            const roofMaterials: RoofMaterials = {
+                reinforcedConcrete: false, longspanRoof: false, tiles: false,
+                giSheets: false, aluminum: false, others: false,
+                ...rmData,
+            };
+
+            const unitCost   = parseFloat(String(d.cost_of_construction || 0));
+            const totalFloorArea = String(d.total_floor_area || "");
+            const baseCost   = unitCost && totalFloorArea ? unitCost * parseFloat(totalFloorArea) : 0;
+
+            const selectedDeductions: string[] = d.selected_deductions || [];
+            const deductionAmounts: Record<string, number> = d.deduction_amounts || {};
+            const standardDeductionTotal = selectedDeductions.reduce((acc: number, id: string) => {
+                const stored = deductionAmounts[id];
+                if (stored !== undefined) return acc + stored;
+                const opt = DEDUCTION_CHOICES.find(c => c.id === id);
+                return opt ? acc + (baseCost * opt.percentage) / 100 : acc;
+            }, 0);
+
+            const assessmentLevelRaw = String(d.assessment_level || '20');
+            const assessmentLevel = assessmentLevelRaw.includes('%') ? assessmentLevelRaw : `${assessmentLevelRaw}%`;
+
+            setFormData({
+                transactionCode: d.transaction_code || "",
+                arpNo:           d.arp_no || "",
+                octTctCloaNo:    d.oct_tct_cloa_no && d.oct_tct_cloa_no !== 'None' ? d.oct_tct_cloa_no : "",
+                pin:             d.pin || "",
+                surveyNo:        d.survey_no || "",
+                lotNo:           d.lot_no || "",
+                blk:             d.blk || "",
+                ownerName:       d.owner_name || "",
+                adminCareOfName: d.admin_care_of || "",
+                ownerAddressBarangay, ownerAddressMunicipality, ownerAddressProvince,
+                adminBarangayName, adminMunicipalityName, adminProvinceName,
+                locationStreet:      d.property_address || "",
+                locationMunicipality, locationBarangay, locationProvince,
+                typeOfBuilding:      d.type_of_building || "",
+                structuralType:      d.structure_type || "",
+                buildingPermitNo:    d.building_permit_no || "",
+                cct:                 d.cct || "",
+                completionIssuedOn:  d.completion_issued_on || "",
+                dateConstructed:     d.date_constructed || "",
+                dateOccupied:        d.date_occupied || "",
+                buildingAge:         d.building_age || "",
+                numberOfStoreys:     d.number_of_storeys || "",
+                floorAreas:          d.floor_areas || [],
+                totalFloorArea,
+                landOwner:           d.land_owner || "",
+                landTdArpNo:         d.td_arp_no || "",
+                landArea:            d.land_area || "",
+                roofMaterials,
+                roofMaterialsOtherText: rm.otherText || "",
+                flooringGrid:        fm.grid || [],
+                wallsGrid:           wm.grid || [],
+                selectedDeductions,
+                deductionAmounts,
+                deductionComments:   d.overall_comments || "",
+                additionalPercentageChoice: d.additional_percentage_choice || "",
+                additionalPercentageValue:  0,
+                additionalPercentageAreas:  d.additional_percentage_areas || [],
+                additionalFlatRateChoice:   d.additional_flat_rate_choice || "",
+                additionalFlatRateValue:    0,
+                additionalFlatRateAreas:    d.additional_flat_rate_areas || [],
+                unitCost,
+                baseCost,
+                standardDeductionTotal,
+                netUnitCost: baseCost - standardDeductionTotal,
+                marketValue:         parseFloat(String(d.market_value || 0)),
+                actualUse:           d.actual_use || "",
+                taxStatus:           d.tax_status || "taxable",
+                assessmentLevel,
+                assessedValue:       parseFloat(String(d.estimated_value || 0)),
+                amountInWords:       d.amount_in_words || "",
+                effectivityOfAssessment: d.effectivity_of_assessment || "",
+                appraisedById:       d.appraised_by || "",
+                municipalReviewerId: d.municipal_reviewer_id || "",
+                provincialReviewerId:d.provincial_reviewer_id || "",
+                memoranda:           d.memoranda || "",
+            });
+            setIsLoaded(true);
+        } catch (e) {
+            console.error("Error loading RPFAAS data from server", e);
+        }
+    }, []);
 
     const loadDataFromStorage = useCallback(() => {
         try {
@@ -376,21 +497,22 @@ export const useRPFAASData = () => {
                 provincialReviewerId,
                 memoranda,
             });
+            setIsLoaded(true);
         } catch (e) {
             console.error("Error loading RPFAAS data", e);
         }
     }, []);
 
     useEffect(() => {
-        // Initial load
+        if (serverData) {
+            loadDataFromServer(serverData);
+            return;
+        }
         loadDataFromStorage();
-
-        // Listen for updates (in case user modifies data in another tab/window)
         const onStorage = () => loadDataFromStorage();
         window.addEventListener("storage", onStorage);
-        
         return () => window.removeEventListener("storage", onStorage);
-    }, [loadDataFromStorage]);
+    }, [serverData, loadDataFromServer, loadDataFromStorage]);
 
-    return formData;
+    return { ...formData, isLoaded };
 };

@@ -480,7 +480,7 @@ function BuildingStructureFormFillPage5() {
           </div>
         </div>
       </SidebarInset>
-      <ReviewCommentsFloat draftId={draftId} />
+      <ReviewCommentsFloat draftId={draftId} stepFields={["additional_items"]} />
 
       <Dialog open={removeDialogOpen} onOpenChange={setRemoveDialogOpen}>
         <DialogContent className="sm:max-w-md">

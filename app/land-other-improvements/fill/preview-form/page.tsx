@@ -20,7 +20,7 @@ import "@/app/styles/forms-fill.css";
 import { useState, useCallback, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
-  Loader2, Save, Send, Printer, Lock, AlertTriangle, RotateCcw,
+  Loader2, Save, Send, Lock, AlertTriangle, RotateCcw,
   MessageSquare, User, Clock, FileText,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -137,6 +137,7 @@ function PreviewFormPage() {
 
   const urlId = searchParams.get("id");
   const isPrintMode = searchParams.get("print") === "1";
+  const isEmbedMode = searchParams.get("embed") === "1";
 
   const [localDraftId, setLocalDraftId] = useState<string | null>(null);
   const draftId = urlId || localDraftId;
@@ -296,16 +297,14 @@ function PreviewFormPage() {
     }
   }, [draftId, router]);
 
-  const handlePrint = useCallback(() => {
-    window.print();
-  }, []);
 
   return (
     <SidebarProvider>
-      <AppSidebar />
+      {!isEmbedMode && <AppSidebar />}
 
       <SidebarInset>
         {/* Header */}
+        {!isEmbedMode && (
         <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4 print:hidden">
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4" />
@@ -323,6 +322,7 @@ function PreviewFormPage() {
             </BreadcrumbList>
           </Breadcrumb>
         </header>
+        )}
 
         {/* Body */}
         <div className="flex-1 p-6 overflow-y-auto print:p-0">
@@ -339,13 +339,6 @@ function PreviewFormPage() {
                         Review your form before submitting.
                       </p>
                     </div>
-                    <Button
-                      onClick={handlePrint}
-                      className="hidden sm:flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white shadow-[0_0_12px_2px_rgba(59,130,246,0.5)] hover:shadow-[0_0_18px_4px_rgba(59,130,246,0.7)] transition-shadow"
-                    >
-                      <Printer className="h-4 w-4" />
-                      Print
-                    </Button>
                   </header>
                 )}
 

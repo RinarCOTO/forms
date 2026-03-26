@@ -513,7 +513,7 @@ const BuildingStructureFormFillPage3 = () => {
           </div>
         </div>
       </SidebarInset>
-      <ReviewCommentsFloat draftId={draftId} />
+      <ReviewCommentsFloat draftId={draftId} stepFields={["roofing_material","flooring_material","wall_material"]} />
     </SidebarProvider>
   );
 };

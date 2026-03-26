@@ -673,7 +673,7 @@ const handleNext = useCallback(async () => {
           </div>
         </div>
       </SidebarInset>
-      <ReviewCommentsFloat draftId={draftId} />
+      <ReviewCommentsFloat draftId={draftId} stepFields={["type_of_building","structure_type","building_permit_no","cct","completion_issued_on","date_constructed","date_occupied","building_age","unit_cost","number_of_storeys","total_floor_area","land_owner","td_arp_no","land_area"]} />
     </SidebarProvider>
   );
 };

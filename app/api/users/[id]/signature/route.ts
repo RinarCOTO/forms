@@ -39,7 +39,9 @@ export async function GET(
       .from(BUCKET).createSignedUrl(target.signature_path, 3600);
     if (signErr) return NextResponse.json({ error: 'Failed to create signed URL' }, { status: 500 });
 
-    return NextResponse.json({ success: true, data: { signedUrl: signed.signedUrl } });
+    return NextResponse.json({ success: true, data: { signedUrl: signed.signedUrl } }, {
+      headers: { 'Cache-Control': 'no-store' },
+    });
   } catch (err) {
     console.error('GET /api/users/[id]/signature:', err);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });

@@ -97,6 +97,7 @@ export default function ReviewQueuePage() {
   const [actionLoading, setActionLoading] = useState(false);
 
   const fetchItems = useCallback(async () => {
+    if (!role) return; // wait for role to load before fetching
     setLoading(true);
     try {
       const params = new URLSearchParams();
@@ -104,7 +105,9 @@ export default function ReviewQueuePage() {
       if (statusFilter === 'active') {
         const defaults = getDefaultStatuses(role);
         defaults.forEach(s => params.append('status', s));
-      } else if (statusFilter !== 'all') {
+      } else if (statusFilter === 'all') {
+        ALL_STATUSES.forEach(s => params.append('status', s));
+      } else {
         params.set('status', statusFilter);
       }
       const res = await fetch(`/api/review?${params.toString()}`);

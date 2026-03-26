@@ -51,6 +51,7 @@ export async function POST(request: NextRequest) {
     // Stamp municipality from the user's profile (non-admins cannot override)
     if (!userCtx.isAdmin && userCtx.municipality) {
       raw.municipality = userCtx.municipality
+      raw.location_municipality = userCtx.municipality
     }
 
     const NUMERIC_COLS = new Set([

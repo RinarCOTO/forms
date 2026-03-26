@@ -12,7 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { FileText, Plus, ArrowLeft, Loader2, Eye, Edit, Trash2, MoreHorizontal, ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { FileText, Plus, ArrowLeft, Loader2, Eye, Edit, Trash2, MoreHorizontal, ChevronLeft, ChevronRight, Search, Send } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -37,10 +37,10 @@ export default function LandOtherImprovementsDashboard() {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const response = await fetch("/api/auth/user");
+        const response = await fetch("/api/users/permissions");
         if (response.ok) {
-          const userData = await response.json();
-          setUser(userData.user);
+          const data = await response.json();
+          setUser(data);
         }
       } catch (error) {
         console.error('Failed to fetch user:', error);
@@ -123,6 +123,8 @@ export default function LandOtherImprovementsDashboard() {
   };
 
   const canDelete = user && (user.role === 'admin' || user.role === 'super_admin');
+  const SUBMITTABLE_STATUSES = ['draft', 'returned', 'returned_to_municipal'];
+  const EDITABLE_STATUSES = ['draft', 'returned', 'returned_to_municipal'];
 
   const uniqueMunicipalities = [...new Set(submissions.map(s => s.location_municipality).filter(Boolean))].sort() as string[];
   const uniqueBarangays = [...new Set(submissions.map(s => s.location_barangay).filter(Boolean))].sort() as string[];
@@ -155,8 +157,16 @@ export default function LandOtherImprovementsDashboard() {
   const totalPages = Math.max(1, Math.ceil(filteredSubmissions.length / PAGE_SIZE));
   const paginatedSubmissions = filteredSubmissions.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
-  const handlePrintPreview = (submissionId: number) => {
-    router.push(`/land-other-improvements/print-preview?id=${submissionId}`);
+  const handleSubmitForReview = (submissionId: number) => {
+    router.push(`/land-other-improvements/fill/preview-form?id=${submissionId}`);
+  };
+
+  const handlePrintPreview = (submissionId: number, status?: string) => {
+    if (status && SUBMITTABLE_STATUSES.includes(status)) {
+      router.push(`/land-other-improvements/fill/preview-form?id=${submissionId}`);
+    } else {
+      router.push(`/land-other-improvements/print-preview?id=${submissionId}`);
+    }
   };
 
   return (
@@ -285,8 +295,17 @@ export default function LandOtherImprovementsDashboard() {
                           <TableCell>{submission.location_barangay || 'N/A'}</TableCell>
                           <TableCell>{new Date(submission.updated_at).toLocaleDateString()}</TableCell>
                           <TableCell>
-                            <Badge variant={submission.status === 'approved' ? 'success' : submission.status === 'pending' ? 'warning' : submission.status === 'draft' ? 'secondary' : submission.status === 'rejected' ? 'destructive' : 'default'}>
-                              {submission.status.charAt(0).toUpperCase() + submission.status.slice(1)}
+                            <Badge variant={
+                              submission.status === 'approved' ? 'success' :
+                              submission.status === 'submitted' || submission.status === 'municipal_signed' || submission.status === 'laoo_approved' ? 'warning' :
+                              submission.status === 'draft' ? 'secondary' :
+                              submission.status === 'returned' || submission.status === 'returned_to_municipal' ? 'destructive' :
+                              'default'
+                            }>
+                              {submission.status === 'returned_to_municipal' ? 'Returned to Municipal' :
+                               submission.status === 'municipal_signed' ? 'Municipal Signed' :
+                               submission.status === 'laoo_approved' ? 'LAOO Approved' :
+                               submission.status.charAt(0).toUpperCase() + submission.status.slice(1)}
                             </Badge>
                           </TableCell>
                           <TableCell>
@@ -297,12 +316,20 @@ export default function LandOtherImprovementsDashboard() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => handlePrintPreview(submission.id)}>
+                                <DropdownMenuItem onClick={() => handlePrintPreview(submission.id, submission.status)}>
                                   <Eye className="h-4 w-4 mr-2" /> View
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleViewSubmission(submission.id)}>
+                                <DropdownMenuItem
+                                  onClick={() => handleViewSubmission(submission.id)}
+                                  disabled={!EDITABLE_STATUSES.includes(submission.status)}
+                                >
                                   <Edit className="h-4 w-4 mr-2" /> Edit
                                 </DropdownMenuItem>
+                                {SUBMITTABLE_STATUSES.includes(submission.status) && (
+                                  <DropdownMenuItem onClick={() => handleSubmitForReview(submission.id)}>
+                                    <Send className="h-4 w-4 mr-2" /> Submit for Review
+                                  </DropdownMenuItem>
+                                )}
                                 {canDelete && (
                                   <>
                                     <DropdownMenuSeparator />

@@ -121,6 +121,7 @@ function BuildingStructureFormFillPage6() {
   const [taxMappers, setTaxMappers] = useState<{ id: string; full_name: string }[]>([]);
   const [taxMappersLoading, setTaxMappersLoading] = useState(false);
   const [currentUser, setCurrentUser] = useState<{ id: string; full_name: string; role: string } | null>(null);
+  const [locationMunicipalitySlug, setLocationMunicipalitySlug] = useState<string>("");
 
   const assessmentLevel = useMemo(
     () => getAssessmentLevel(typeOfBuildingLabel, actualUse, marketValue) ?? "",
@@ -162,19 +163,33 @@ function BuildingStructureFormFillPage6() {
     if (currentUser.role !== 'tax_mapper' && !appraisedBy) setAppraisedBy(currentUser.id);
   }, [currentUser, appraisedBy]);
 
-  // Load the type of building from localStorage
+  const PSGC_TO_SLUG: Record<string, string> = {
+    "1404401000": "barlig", "1404402000": "bauko", "1404403000": "besao",
+    "1404404000": "bontoc", "1404405000": "natonin", "1404406000": "paracellis",
+    "1404407000": "sabangan", "1404408000": "sadanga", "1404409000": "sagada",
+    "1404410000": "tadian",
+  };
+  const DISPLAY_TO_SLUG: Record<string, string> = { paracelis: "paracellis" };
+
+  function toSlug(name: string, code: string): string {
+    if (code && PSGC_TO_SLUG[code]) return PSGC_TO_SLUG[code];
+    if (name) return DISPLAY_TO_SLUG[name.toLowerCase()] ?? name.toLowerCase();
+    return "";
+  }
+
+  // Load the type of building and other values from localStorage (normal step-by-step flow)
   useEffect(() => {
     try {
       const typeOfBuilding = localStorage.getItem("type_of_building_p2") || "";
-      setTypeOfBuildingLabel(typeOfBuilding);
-      // Capitalize first letter for display
-      const formattedType = typeOfBuilding.charAt(0).toUpperCase() + typeOfBuilding.slice(1);
-      setActualUse(formattedType || "Residential");
+      if (typeOfBuilding) {
+        setTypeOfBuildingLabel(typeOfBuilding);
+        const formatted = typeOfBuilding.charAt(0).toUpperCase() + typeOfBuilding.slice(1);
+        setActualUse(formatted || "Residential");
+      }
 
       const savedMarketValue = parseFloat(localStorage.getItem("market_value_p4") || "0");
-      setMarketValue(savedMarketValue);
+      if (savedMarketValue) setMarketValue(savedMarketValue);
 
-      // Restore effectivity year and appraised by from localStorage (persisted from a previous visit)
       const savedEffectivity = localStorage.getItem("effectivity_of_assessment_p5");
       if (savedEffectivity) setEffectivityYear(savedEffectivity);
 
@@ -186,78 +201,65 @@ function BuildingStructureFormFillPage6() {
 
       const savedTaxStatus = localStorage.getItem("tax_status_p5");
       if (savedTaxStatus === "taxable" || savedTaxStatus === "exempt") setTaxStatus(savedTaxStatus);
+
+      // Initialise municipality slug from localStorage so tax mapper fetch fires immediately
+      const slug = toSlug(
+        localStorage.getItem("rpfaas_location_municipality") || "",
+        localStorage.getItem("rpfaas_location_municipality_code") || ""
+      );
+      if (slug) setLocationMunicipalitySlug(slug);
     } catch (error) {
       console.error("Failed to load data from localStorage", error);
       setActualUse("Residential");
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Fetch tax mappers based on the property's location municipality
+  // Fetch tax mappers — re-runs when locationMunicipalitySlug is resolved (from localStorage or DB)
   useEffect(() => {
+    if (!locationMunicipalitySlug) return;
     setTaxMappersLoading(true);
-
-    // 10-digit PSGC code → DB slug (matches what /api/locations returns)
-    const PSGC_TO_SLUG: Record<string, string> = {
-      "1404401000": "barlig",
-      "1404402000": "bauko",
-      "1404403000": "besao",
-      "1404404000": "bontoc",
-      "1404405000": "natonin",
-      "1404406000": "paracellis",
-      "1404407000": "sabangan",
-      "1404408000": "sadanga",
-      "1404409000": "sagada",
-      "1404410000": "tadian",
-    };
-    const DISPLAY_TO_SLUG: Record<string, string> = { paracelis: "paracellis" };
-
-    let municipalityName = "";
-    const storedName = localStorage.getItem("rpfaas_location_municipality") || "";
-    const storedCode = localStorage.getItem("rpfaas_location_municipality_code") || "";
-
-    if (storedCode && PSGC_TO_SLUG[storedCode]) {
-      // Most reliable: resolve directly from 10-digit PSGC code
-      municipalityName = PSGC_TO_SLUG[storedCode];
-    } else if (storedName) {
-      // Fall back to stored display name, normalize to slug
-      municipalityName = DISPLAY_TO_SLUG[storedName.toLowerCase()] ?? storedName.toLowerCase();
-    }
-
-    const params = new URLSearchParams({ role: "tax_mapper,municipal_tax_mapper" });
-    if (municipalityName) params.set("municipality", municipalityName);
-
+    const params = new URLSearchParams({ role: "tax_mapper", municipality: locationMunicipalitySlug });
     fetch(`/api/users/by-role?${params}`)
       .then(r => r.json())
-      .then(data => {
-        if (Array.isArray(data.users)) setTaxMappers(data.users);
-      })
-      .catch(() => {/* non-fatal */})
+      .then(data => { if (Array.isArray(data.users)) setTaxMappers(data.users); })
+      .catch(() => {})
       .finally(() => setTaxMappersLoading(false));
-  }, []);
+  }, [locationMunicipalitySlug]);
 
-  // Load draft data if editing
+  // Load draft data if editing (covers the case where user navigates directly to this step)
   useEffect(() => {
     if (!draftId) return;
     const loadDraft = async () => {
       try {
         const response = await fetch(`/api/faas/building-structures/${draftId}`);
-        if (response.ok) {
-          const result = await response.json();
-          if (result.success && result.data) {
-            const data = result.data;
-            if (data.actual_use) setActualUse(data.actual_use);
-            if (data.effectivity_of_assessment != null) setEffectivityYear(String(data.effectivity_of_assessment));
-            if (data.appraised_by) setAppraisedBy(data.appraised_by);
-            if (data.memoranda) setMemoranda(data.memoranda);
-            Object.entries(data).forEach(([key, value]) => {
-              if (value !== null && value !== undefined) {
-                localStorage.setItem(`${key}_p5`, String(value));
-              }
-            });
+        if (!response.ok) return;
+        const result = await response.json();
+        if (!result.success || !result.data) return;
+        const data = result.data;
+
+        // Fields owned by this step
+        if (data.actual_use) setActualUse(data.actual_use);
+        if (data.effectivity_of_assessment != null) setEffectivityYear(String(data.effectivity_of_assessment));
+        if (data.appraised_by) setAppraisedBy(data.appraised_by);
+        if (data.memoranda) setMemoranda(data.memoranda);
+        if (data.tax_status === "taxable" || data.tax_status === "exempt") setTaxStatus(data.tax_status);
+
+        // Fields from earlier steps needed for assessment calculations
+        if (data.market_value != null) setMarketValue(parseFloat(String(data.market_value)));
+        if (data.type_of_building) {
+          setTypeOfBuildingLabel(data.type_of_building);
+          if (!data.actual_use) {
+            const formatted = data.type_of_building.charAt(0).toUpperCase() + data.type_of_building.slice(1);
+            setActualUse(formatted);
           }
         }
+
+        // Resolve municipality slug so the tax-mapper fetch fires with the correct filter
+        const slug = toSlug(data.location_municipality || "", data.property_municipality_code || "");
+        if (slug) setLocationMunicipalitySlug(slug);
       } catch (error) {
-        console.error('Failed to load draft data for step 5', error);
+        console.error('Failed to load draft data for step 6', error);
       }
     };
     loadDraft();
@@ -534,7 +536,7 @@ function BuildingStructureFormFillPage6() {
           </div>
         </div>
       </SidebarInset>
-      <ReviewCommentsFloat draftId={draftId} />
+      <ReviewCommentsFloat draftId={draftId} stepFields={["actual_use","market_value","assessment_level","assessed_value","amount_in_words","effectivity_of_assessment","appraised_by","memoranda"]} />
     </SidebarProvider>
   );
 }

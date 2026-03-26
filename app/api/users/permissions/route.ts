@@ -159,14 +159,16 @@ function getCachedPermissions(userId: string) {
 
       const { data: profile } = await admin
         .from('users')
-        .select('role')
+        .select('role, full_name, municipality')
         .eq('id', userId)
         .single();
 
       const role: string = profile?.role ?? 'user';
+      const full_name: string = profile?.full_name ?? '';
+      const municipality: string = profile?.municipality ?? '';
 
       if (role === 'super_admin') {
-        return { role, permissions: DEFAULT_PERMISSIONS['super_admin'] };
+        return { id: userId, role, full_name, municipality, permissions: DEFAULT_PERMISSIONS['super_admin'] };
       }
 
       const { data: rows, error: dbError } = await admin
@@ -175,7 +177,7 @@ function getCachedPermissions(userId: string) {
         .eq('role', role);
 
       if (dbError || !rows || rows.length === 0) {
-        return { role, permissions: DEFAULT_PERMISSIONS[role] ?? {} };
+        return { id: userId, role, full_name, municipality, permissions: DEFAULT_PERMISSIONS[role] ?? {} };
       }
 
       const permissions: Record<string, boolean> = { ...(DEFAULT_PERMISSIONS[role] ?? {}) };
@@ -183,7 +185,7 @@ function getCachedPermissions(userId: string) {
         permissions[row.feature] = row.allowed;
       }
 
-      return { role, permissions };
+      return { id: userId, role, full_name, municipality, permissions };
     },
     [`permissions-${userId}`],
     { revalidate: 60, tags: [`permissions-${userId}`, 'permissions'] }

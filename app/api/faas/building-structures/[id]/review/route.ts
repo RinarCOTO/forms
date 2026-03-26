@@ -99,6 +99,50 @@ export async function POST(
       return NextResponse.json({ error: 'Failed to update form', detail: updateError?.message }, { status: 500 });
     }
 
+    // ── Generate Tax Declaration when provincial approves ────────────────────
+    if (action === 'sign_approve') {
+      try {
+        // Fetch the full approved record for the property snapshot
+        const { data: fullRecord } = await admin
+          .from('building_structures')
+          .select('*')
+          .eq('id', id)
+          .single();
+
+        // Generate sequential tax declaration number: TD-YYYY-NNNNN
+        const year = new Date().getFullYear();
+        const { count } = await admin
+          .from('tax_declarations')
+          .select('id', { count: 'exact', head: true })
+          .like('tax_declaration_no', `TD-${year}-%`);
+        const seq = String((count ?? 0) + 1).padStart(5, '0');
+        const taxDeclarationNo = `TD-${year}-${seq}`;
+
+        const { data: td, error: tdError } = await admin
+          .from('tax_declarations')
+          .insert({
+            form_type: 'building_structures',
+            form_id: parseInt(id),
+            tax_declaration_no: taxDeclarationNo,
+            property_snapshot: fullRecord ?? null,
+            status: 'unlocked',
+          })
+          .select()
+          .single();
+
+        if (!tdError && td) {
+          await admin
+            .from('building_structures')
+            .update({ tax_declaration_id: td.id, updated_at: now })
+            .eq('id', id);
+        } else {
+          console.warn('Tax declaration insert failed:', tdError?.message);
+        }
+      } catch (tdErr) {
+        console.warn('Tax declaration generation error:', tdErr);
+      }
+    }
+
     // Audit log (non-blocking)
     try {
       await admin.from('form_review_history').insert({

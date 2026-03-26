@@ -1,7 +1,7 @@
 "use client";
 
-import { FormEvent, useState, useCallback, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { FormEvent, useState, useCallback } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,24 +14,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-const REMEMBER_EMAIL_KEY = "rpfaas_remembered_email";
-
 export default function LoginPage() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-
-  // Pre-fill email if previously remembered
-  useEffect(() => {
-    const saved = localStorage.getItem(REMEMBER_EMAIL_KEY);
-    if (saved) {
-      setEmail(saved);
-      setRememberMe(true);
-    }
-  }, []);
 
   const handleSubmit = useCallback(async (e: FormEvent) => {
     e.preventDefault();
@@ -41,10 +28,8 @@ export default function LoginPage() {
     try {
       const response = await fetch("/api/auth/login", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password, rememberMe }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
       });
 
       const data = await response.json();
@@ -55,20 +40,14 @@ export default function LoginPage() {
       }
 
       if (data.success) {
-        if (rememberMe) {
-          localStorage.setItem(REMEMBER_EMAIL_KEY, email);
-        } else {
-          localStorage.removeItem(REMEMBER_EMAIL_KEY);
-        }
-        router.push("/");
-        router.refresh();
+        window.location.href = '/dashboard';
       }
-    } catch (err) {
+    } catch {
       setError("Login failed. Please try again.");
     } finally {
       setIsLoading(false);
     }
-  }, [email, password, rememberMe, router]);
+  }, [email, password]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-neutral-50 to-neutral-100 dark:from-neutral-950 dark:to-neutral-900 p-4">
@@ -103,12 +82,9 @@ export default function LoginPage() {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="password">Password</Label>
-                <a
-                  href="/reset-password"
-                  className="text-xs text-primary hover:underline"
-                >
+                <Link href="/reset-password" className="text-xs text-primary hover:underline">
                   Forgot password?
-                </a>
+                </Link>
               </div>
               <Input
                 id="password"
@@ -120,26 +96,9 @@ export default function LoginPage() {
                 disabled={isLoading}
               />
             </div>
-            <div className="flex items-center gap-2">
-              <input
-                id="remember_me"
-                type="checkbox"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                disabled={isLoading}
-                className="h-4 w-4 rounded border-gray-300 accent-primary"
-              />
-              <Label htmlFor="remember_me" className="text-sm font-normal cursor-pointer">
-                Remember me
-              </Label>
-            </div>
           </CardContent>
-          <CardFooter className="flex flex-col space-y-4">
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={isLoading}
-            >
+          <CardFooter>
+            <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? "Signing in..." : "Sign In"}
             </Button>
           </CardFooter>

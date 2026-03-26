@@ -20,7 +20,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { FileText, Plus, ArrowLeft, Loader2, Eye, Edit, Trash2, MoreHorizontal, ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { FileText, Plus, ArrowLeft, Loader2, Eye, Edit, Trash2, MoreHorizontal, ChevronLeft, ChevronRight, Search, Send } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
@@ -48,10 +48,10 @@ export default function BuildingOtherStructureDashboard() {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const response = await fetch("/api/auth/user");
+        const response = await fetch("/api/users/permissions");
         if (response.ok) {
-          const userData = await response.json();
-          setUser(userData.user);
+          const data = await response.json();
+          setUser(data);
         }
       } catch (error) {
         console.error('Failed to fetch user:', error);
@@ -159,28 +159,35 @@ export default function BuildingOtherStructureDashboard() {
 
   const canDelete = user && (user.role === 'admin' || user.role === 'super_admin');
 
+  const SUBMITTABLE_STATUSES = ['draft', 'returned', 'returned_to_municipal'];
   // Statuses the tax mapper can still edit (not locked by the review workflow)
-  const EDITABLE_STATUSES = ['draft', 'returned'];
+  const EDITABLE_STATUSES = ['draft', 'returned', 'returned_to_municipal'];
 
   const getStatusBadgeVariant = (status: string) => {
     switch (status) {
-      case 'approved':      return 'success' as const;
-      case 'submitted':     return 'warning' as const;
-      case 'under_review':  return 'default' as const;
-      case 'returned':      return 'destructive' as const;
-      case 'draft':         return 'secondary' as const;
-      default:              return 'default' as const;
+      case 'approved':              return 'success' as const;
+      case 'submitted':             return 'warning' as const;
+      case 'municipal_signed':      return 'warning' as const;
+      case 'laoo_approved':         return 'warning' as const;
+      case 'under_review':          return 'default' as const;
+      case 'returned':              return 'destructive' as const;
+      case 'returned_to_municipal': return 'destructive' as const;
+      case 'draft':                 return 'secondary' as const;
+      default:                      return 'default' as const;
     }
   };
 
   const getStatusLabel = (status: string) => {
     switch (status) {
-      case 'under_review': return 'Under Review';
-      case 'returned':     return 'Returned for Review';
-      case 'submitted':    return 'Submitted';
-      case 'approved':     return 'Approved';
-      case 'draft':        return 'Draft';
-      default:             return status.charAt(0).toUpperCase() + status.slice(1);
+      case 'under_review':          return 'Under Review';
+      case 'returned':              return 'Returned';
+      case 'returned_to_municipal': return 'Returned to Municipal';
+      case 'submitted':             return 'Submitted';
+      case 'municipal_signed':      return 'Municipal Signed';
+      case 'laoo_approved':         return 'LAOO Approved';
+      case 'approved':              return 'Approved';
+      case 'draft':                 return 'Draft';
+      default:                      return status.charAt(0).toUpperCase() + status.slice(1);
     }
   };
 
@@ -215,8 +222,12 @@ export default function BuildingOtherStructureDashboard() {
   const totalPages = Math.max(1, Math.ceil(filteredSubmissions.length / PAGE_SIZE));
   const paginatedSubmissions = filteredSubmissions.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
+  const handleSubmitForReview = useCallback((submissionId: number) => {
+    router.push(`/building-other-structure/fill/preview-form?id=${submissionId}`);
+  }, [router]);
+
   const handlePrintPreview = useCallback((submissionId: number, status?: string) => {
-    if (status === 'returned') {
+    if (status && SUBMITTABLE_STATUSES.includes(status)) {
       router.push(`/building-other-structure/fill/preview-form?id=${submissionId}`);
     } else {
       router.push(`/building-other-structure/print-preview?id=${submissionId}`);
@@ -372,6 +383,11 @@ export default function BuildingOtherStructureDashboard() {
                                 >
                                   <Edit className="h-4 w-4 mr-2" /> Edit
                                 </DropdownMenuItem>
+                                {SUBMITTABLE_STATUSES.includes(submission.status) && (
+                                  <DropdownMenuItem onClick={() => handleSubmitForReview(submission.id)}>
+                                    <Send className="h-4 w-4 mr-2" /> Submit for Review
+                                  </DropdownMenuItem>
+                                )}
                                 {canDelete && (
                                   <>
                                     <DropdownMenuSeparator />

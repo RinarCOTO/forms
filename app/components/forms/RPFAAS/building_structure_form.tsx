@@ -9,7 +9,7 @@ import { STRUCTURAL_MATERIAL_ROWS } from "./constants/structuralMaterials";
 import type { RoofMaterials } from "@/app/types/rpfaas";
 import { DEDUCTION_CHOICES, ADDITIONAL_PERCENT_CHOICES, ADDITIONAL_FLAT_RATE_CHOICES } from "@/config/form-options";
 
-const BuildingStructureForm = () => {
+const BuildingStructureForm = ({ serverData }: { serverData?: Record<string, any> }) => {
     const {
         transactionCode,
         arpNo,
@@ -71,7 +71,8 @@ const BuildingStructureForm = () => {
         municipalReviewerId,
         provincialReviewerId,
         memoranda,
-    } = useRPFAASData();
+        isLoaded,
+    } = useRPFAASData(serverData);
 
     const storeys = parseInt(String(numberOfStoreys)) || 0;
     const ordSuffix = (n: number) => n === 1 ? 'st' : n === 2 ? 'nd' : n === 3 ? 'rd' : 'th';
@@ -164,7 +165,7 @@ const BuildingStructureForm = () => {
     });
 
     return (
-        <div className="rpfaas-print print:mt-2 flex flex-col min-h-full" style={{ backgroundColor: 'white' }}>
+        <div className="rpfaas-print print:mt-2 flex flex-col min-h-full" style={{ backgroundColor: 'white' }} data-print-ready={isLoaded ? "true" : undefined}>
             <h1 className="text-2xl font-bold text-center uppercase">
                 Real Property Field Appraisal &amp; Assessment Sheet - Building &amp; Other structures
             </h1>
@@ -245,10 +246,10 @@ const BuildingStructureForm = () => {
                         <td>
                             <div className="rpfaas-inner-grid grid grid-cols-2 divide-x divide-black items-stretch h-full">
                                 <div className="font-bold self-stretch flex items-center">{locationStreet || ''}</div>
-                                <div className="text-right self-stretch flex items-center justify-end">Municipality:</div>
+                                <div className="text-right self-stretch flex items-center justify-end ">Municipality:</div>
                             </div>
                         </td>
-                        <td className="font-bold">{locationMunicipality || ''}</td>
+                        <td className="font-bold capitalize">{locationMunicipality || ''}</td>
                     </tr>
 
                     <tr className="border-b-2 border-black" data-field="location_barangay location_province">

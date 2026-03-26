@@ -43,9 +43,7 @@ import {
 import { useFormData } from "@/hooks/useFormData";
 
 const FormSchema = z.object({
-  deductions: z.array(z.string()).min(1, {
-    message: "Please select at least one deduction.",
-  }),
+  deductions: z.array(z.string()),
 });
 
 const BuildingStructureFormFillPage4 = () => {
@@ -501,7 +499,7 @@ if (loadedData?.additional_flat_rate_areas?.length > 0) {
           </div>
         </div>
       </SidebarInset>
-      <ReviewCommentsFloat draftId={draftId} />
+      <ReviewCommentsFloat draftId={draftId} stepFields={["selected_deductions","market_value","unit_cost"]} />
     </SidebarProvider>
   );
 };

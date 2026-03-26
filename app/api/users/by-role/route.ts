@@ -42,5 +42,7 @@ export async function GET(request: NextRequest) {
 
   if (dbError) return NextResponse.json({ error: 'Failed to fetch' }, { status: 500 });
 
-  return NextResponse.json({ users });
+  return NextResponse.json({ users }, {
+    headers: { 'Cache-Control': 'no-store' },
+  });
 }

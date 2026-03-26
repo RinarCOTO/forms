@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import Link from "next/link"
 import { usePathname } from "next/navigation";
 import "./sidebar-active.css";
 import { UserProfile } from "@/components/user-profile"
@@ -83,21 +84,21 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                       {can('building_structures.view') && (
                         <SidebarMenuSubItem>
                           <SidebarMenuSubButton asChild>
-                            <a href="/building-other-structure/dashboard" className={pathname.startsWith("/building-other-structure") ? "sidebar-active" : ""}>Building &amp; Structures</a>
+                            <Link href="/building-other-structure/dashboard" className={pathname.startsWith("/building-other-structure") ? "sidebar-active" : ""}>Building &amp; Structures</Link>
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>
                       )}
                       {can('land_improvements.view') && (
                         <SidebarMenuSubItem>
                           <SidebarMenuSubButton asChild>
-                            <a href="/land-other-improvements/dashboard" className={pathname.startsWith("/land-other-improvements") ? "sidebar-active" : ""}>Land &amp; Improvements</a>
+                            <Link href="/land-other-improvements/dashboard" className={pathname.startsWith("/land-other-improvements") ? "sidebar-active" : ""}>Land &amp; Improvements</Link>
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>
                       )}
                       {can('machinery.view') && (
                         <SidebarMenuSubItem>
                           <SidebarMenuSubButton asChild>
-                            <a href="/machinery/dashboard" className={pathname.startsWith("/machinery") ? "sidebar-active" : ""}>Machinery</a>
+                            <Link href="/machinery/dashboard" className={pathname.startsWith("/machinery") ? "sidebar-active" : ""}>Machinery</Link>
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>
                       )}
@@ -130,14 +131,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                       {can('building_structures.view') && (
                         <SidebarMenuSubItem>
                           <SidebarMenuSubButton asChild>
-                            <a href="/smv/building-other-structures/dashboard" className={pathname.startsWith("/smv/building-other-structures") ? "sidebar-active" : ""}>Building &amp; Structures</a>
+                            <Link href="/smv/building-other-structures/dashboard" className={pathname.startsWith("/smv/building-other-structures") ? "sidebar-active" : ""}>Building &amp; Structures</Link>
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>
                       )}
                       {can('land_improvements.view') && (
                         <SidebarMenuSubItem>
                           <SidebarMenuSubButton asChild>
-                            <a href="/smv/land-other-improvements/dashboard" className={pathname.startsWith("/smv/land-other-improvements") ? "sidebar-active" : ""}>Land &amp; Improvements</a>
+                            <Link href="/smv/land-other-improvements/dashboard" className={pathname.startsWith("/smv/land-other-improvements") ? "sidebar-active" : ""}>Land &amp; Improvements</Link>
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>
                       )}
@@ -157,7 +158,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               <SidebarMenu>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
-                    <a href="/review-queue" className={pathname.startsWith("/review-queue") ? "sidebar-active" : ""}><ListChecks className="w-4 h-4 shrink-0" />Review Queue</a>
+                    <Link href="/review-queue" className={pathname.startsWith("/review-queue") ? "sidebar-active" : ""}><ListChecks className="w-4 h-4 shrink-0" />Review Queue</Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>
@@ -174,7 +175,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               <SidebarMenu>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
-                    <a href="/accounting" className={pathname.startsWith("/accounting") ? "sidebar-active" : ""}><Calculator className="w-4 h-4 shrink-0" />Accounting</a>
+                    <Link href="/accounting" className={pathname.startsWith("/accounting") ? "sidebar-active" : ""}><Calculator className="w-4 h-4 shrink-0" />Accounting</Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>
@@ -191,14 +192,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 {can('user_management.view') && (
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild>
-                      <a href="/manage-users" className={pathname.startsWith("/manage-users") ? "sidebar-active" : ""}><Users className="w-4 h-4 shrink-0" />Manage Users</a>
+                      <Link href="/manage-users" className={pathname.startsWith("/manage-users") ? "sidebar-active" : ""}><Users className="w-4 h-4 shrink-0" />Manage Users</Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 )}
                 {can('role_management.view') && (
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild>
-                      <a href="/manage-roles" className={pathname.startsWith("/manage-roles") ? "sidebar-active" : ""}><ShieldCheck className="w-4 h-4 shrink-0" />Manage Roles</a>
+                      <Link href="/manage-roles" className={pathname.startsWith("/manage-roles") ? "sidebar-active" : ""}><ShieldCheck className="w-4 h-4 shrink-0" />Manage Roles</Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 )}
@@ -215,13 +216,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               <SidebarMenu>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
-                    <a href="/notes" className={pathname.startsWith("/notes") ? "sidebar-active" : ""}><StickyNote className="w-4 h-4 shrink-0" />Notes</a>
+                    <Link href="/notes" className={pathname.startsWith("/notes") ? "sidebar-active" : ""}><StickyNote className="w-4 h-4 shrink-0" />Notes</Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 {role && ['laoo', 'admin', 'super_admin', 'assistant_provincial_assessor', 'provincial_assessor'].includes(role) && (
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild>
-                      <a href="/tax-declaration" className={pathname.startsWith("/tax-declaration") ? "sidebar-active" : ""}><ScrollText className="w-4 h-4 shrink-0" />Tax Declaration</a>
+                      <Link href="/tax-declaration" className={pathname.startsWith("/tax-declaration") ? "sidebar-active" : ""}><ScrollText className="w-4 h-4 shrink-0" />Tax Declaration</Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 )}

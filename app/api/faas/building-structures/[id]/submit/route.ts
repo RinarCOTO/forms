@@ -79,6 +79,19 @@ export async function POST(
     const fromStatus = record.status;
     const now = new Date().toISOString();
 
+    // ── When a municipal_tax_mapper re-submits from 'returned_to_municipal',
+    //    skip back to 'submitted' and go directly to 'municipal_signed' so LAOO
+    //    can immediately see and approve the form without a redundant sign_forward step.
+    const skipToMunicipalSigned =
+      fromStatus === 'returned_to_municipal' && profile.role === 'municipal_tax_mapper';
+
+    if (skipToMunicipalSigned && !profile.signature_path) {
+      return NextResponse.json(
+        { success: false, message: 'You must upload a signature before re-signing this form' },
+        { status: 422 }
+      );
+    }
+
     // ── If re-submitting from 'returned', fetch full form data + LAOO comments
     //    to generate change-tracking response comments ─────────────────────────
     let fullRecord: Record<string, unknown> | null = null;
@@ -100,14 +113,22 @@ export async function POST(
     }
 
     // ── Status transition ─────────────────────────────────────────────────────
+    const toStatus = skipToMunicipalSigned ? 'municipal_signed' : 'submitted';
+    const updatePayload: Record<string, unknown> = {
+      status: toStatus,
+      submitted_at: now,
+      updated_at: now,
+      submitted_signature_path: profile.signature_path ?? null,
+    };
+    if (skipToMunicipalSigned) {
+      updatePayload.municipal_reviewer_id    = authUser.id;
+      updatePayload.municipal_signed_at      = now;
+      updatePayload.municipal_signature_path = profile.signature_path;
+    }
+
     const { data: updated, error: updateError } = await admin
       .from('building_structures')
-      .update({
-        status: 'submitted',
-        submitted_at: now,
-        updated_at: now,
-        submitted_signature_path: profile.signature_path ?? null,
-      })
+      .update(updatePayload)
       .eq('id', id)
       .select()
       .single();
@@ -193,10 +214,12 @@ export async function POST(
         form_id: parseInt(id),
         form_stage: 'faas',
         from_status: fromStatus,
-        to_status: 'submitted',
+        to_status: toStatus,
         actor_id: authUser.id,
         actor_role: profile.role,
-        note: fromStatus === 'returned'
+        note: skipToMunicipalSigned
+          ? 'Re-signed and forwarded to LAOO after municipal return'
+          : fromStatus === 'returned'
           ? 'Re-submitted after addressing LAOO review comments'
           : 'Initial submission for LAOO review',
       });

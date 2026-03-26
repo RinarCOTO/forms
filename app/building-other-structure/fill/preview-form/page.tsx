@@ -19,7 +19,7 @@ import {
 import "@/app/styles/forms-fill.css";
 import { useState, useCallback, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Loader2, Save, Send, Printer, Lock, AlertTriangle, RotateCcw, MessageSquare, User, Clock, FileText } from "lucide-react";
+import { Loader2, Save, Send, Lock, AlertTriangle, RotateCcw, MessageSquare, User, Clock, FileText } from "lucide-react";
 import BuildingStructureForm from "@/app/components/forms/RPFAAS/building_structure_form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -225,6 +225,8 @@ function PreviewFormPage() {
   const [draftId, setDraftId] = useState<string | null>(urlId);
   // When loaded inside the print-preview iframe, suppress the comments panel
   const isPrintMode = searchParams.get("print") === "1";
+  // When loaded inside the review queue iframe, suppress AppSidebar/header
+  const isEmbedMode = searchParams.get("embed") === "1";
 
   useEffect(() => {
     if (!urlId) {
@@ -235,12 +237,13 @@ function PreviewFormPage() {
 
   const [isSaving, setIsSaving] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isPdfLoading, setIsPdfLoading] = useState(false);
 
   // Current form status from DB
   const [formStatus, setFormStatus] = useState<string>("draft");
   const [statusLoading, setStatusLoading] = useState(false);
-  // Controls rendering of BuildingStructureForm — wait until DB data is seeded to localStorage
   const [formDataReady, setFormDataReady] = useState(false);
+  const [dbRecord, setDbRecord] = useState<Record<string, any> | null>(null);
 
   // Photos state
   const [photos, setPhotos] = useState<PhotoRecord[]>([]);
@@ -323,6 +326,7 @@ function PreviewFormPage() {
       .then((result) => {
         if (result.success && result.data) {
           const d = result.data;
+          setDbRecord(d);
           if (d.status) setFormStatus(d.status);
 
           // Preview is read-only — always sync every key from DB so the form
@@ -475,24 +479,27 @@ function PreviewFormPage() {
       .finally(() => setCommentsLoading(false));
   }, [draftId]);
 
-  // ── Print: preload all signed-URL images first so they render in print ──
-  const handlePrint = useCallback(async () => {
-    const urls = photos.map((p) => p.signedUrl).filter(Boolean) as string[];
-    if (urls.length > 0) {
-      await Promise.all(
-        urls.map(
-          (src) =>
-            new Promise<void>((resolve) => {
-              const img = new Image();
-              img.onload = () => resolve();
-              img.onerror = () => resolve();
-              img.src = src;
-            })
-        )
-      );
+  // ── Server-side PDF download (tamper-proof) ──
+  const handleDownloadPdf = useCallback(async () => {
+    if (!draftId) return;
+    setIsPdfLoading(true);
+    try {
+      const res = await fetch(`/api/print/building-structures/${draftId}`);
+      if (!res.ok) throw new Error(await res.text());
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `RPFAAS-Building-${draftId}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('PDF download failed:', err);
+    } finally {
+      setIsPdfLoading(false);
     }
-    window.print();
-  }, [photos]);
+  }, [draftId]);
+
 
   const handleSaveDraft = useCallback(async () => {
     setIsSaving(true);
@@ -568,10 +575,11 @@ function PreviewFormPage() {
 
   return (
     <SidebarProvider>
-      <AppSidebar />
+      {!isEmbedMode && <AppSidebar />}
 
       <SidebarInset>
         {/* ── Header ── */}
+        {!isEmbedMode && (
         <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4 print:hidden">
           <SidebarTrigger className="-ml-1" />
           <Separator
@@ -592,6 +600,7 @@ function PreviewFormPage() {
             </BreadcrumbList>
           </Breadcrumb>
         </header>
+        )}
 
         {/* ── Body ── */}
         <div className="flex-1 p-6 overflow-y-auto print:p-0">
@@ -607,13 +616,17 @@ function PreviewFormPage() {
                   Review your form and supporting documents before submitting.
                 </p>
               </div>
-              <Button
-                onClick={handlePrint}
-                className="hidden sm:flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white shadow-[0_0_12px_2px_rgba(59,130,246,0.5)] hover:shadow-[0_0_18px_4px_rgba(59,130,246,0.7)] transition-shadow"
-              >
-                <Printer className="h-4 w-4" />
-                Print
-              </Button>
+              <div className="hidden sm:flex items-center gap-2">
+                <Button
+                  onClick={handleDownloadPdf}
+                  disabled={isPdfLoading}
+                  variant="outline"
+                  className="flex items-center gap-2"
+                >
+                  {isPdfLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
+                  {isPdfLoading ? 'Generating…' : 'Download PDF'}
+                </Button>
+              </div>
             </header>
             )}
 
@@ -622,7 +635,7 @@ function PreviewFormPage() {
               <div className="preview-container">
               <div className="border p-2 bg-white overflow-x-auto">
                   {formDataReady ? (
-                    <BuildingStructureForm />
+                    <BuildingStructureForm serverData={dbRecord ?? undefined} />
                   ) : (
                     <div className="flex justify-center py-16">
                       <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { revalidateTag } from 'next/cache';
+import { getCurrentUserContext } from '@/lib/services/user.service';
 
 export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> | { id: string } }) {
   try {
@@ -85,6 +86,17 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
+
+    const userCtx = await getCurrentUserContext();
+    if (!userCtx) {
+      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Stamp municipality from the user's profile (non-admins cannot override)
+    if (!userCtx.isAdmin && userCtx.municipality) {
+      raw.municipality = userCtx.municipality;
+      raw.location_municipality = userCtx.municipality;
+    }
 
     // Strip empty strings so typed DB columns (INTEGER, DECIMAL, DATE) don't fail
     const NUMERIC_COLS = new Set([

@@ -580,17 +580,17 @@ function BuildingOtherStructureFillPageContent() {
                       </span>
                     </div>
                   </div>
-                  <div className="space-y-1">
+                  <div className="space-y-1" data-comment-field="arp_no">
                     <Label className="rpfaas-fill-label">ARP No.</Label>
                     <Input
                       value={arpNo}
                       onChange={(e) => setArpNo(formatArpNo(e.target.value))}
-                      placeholder="02-0001-01525" 
+                      placeholder="02-0001-01525"
                       className="rpfaas-fill-input font-mono"
                       maxLength={13}
                     />
                   </div>
-                  <div className="space-y-1">
+                  <div className="space-y-1" data-comment-field="oct_tct_cloa_no">
                     <Label className="rpfaas-fill-label">OCT/TCT/CLOA No.</Label>
                     <div className="flex gap-2">
                       <div className="relative w-36 shrink-0">
@@ -622,7 +622,7 @@ function BuildingOtherStructureFillPageContent() {
                       )}
                     </div>
                   </div>
-                  <div className="space-y-1">
+                  <div className="space-y-1" data-comment-field="pin">
                     <Label className="rpfaas-fill-label">PIN</Label>
                     <Input
                       value={pin}
@@ -632,12 +632,12 @@ function BuildingOtherStructureFillPageContent() {
                       maxLength={22}
                     />
                   </div>
-                  <div className="space-y-1">
+                  <div className="space-y-1" data-comment-field="survey_no">
                     <Label className="rpfaas-fill-label">Survey No.</Label>
                     <Input value={surveyNo} onChange={(e) => setSurveyNo(e.target.value)} className="rpfaas-fill-input" />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
+                    <div className="space-y-1" data-comment-field="lot_no">
                       <Label className="rpfaas-fill-label">Lot No.</Label>
                       <Input value={lotNo} onChange={(e) => setLotNo(e.target.value)} className="rpfaas-fill-input" />
                     </div>
@@ -733,23 +733,29 @@ function BuildingOtherStructureFillPageContent() {
                     <Label className="rpfaas-fill-label">No/Street/Sitio</Label>
                     <Input value={propertyStreet} onChange={(e) => setPropertyStreet(e.target.value)} className="rpfaas-fill-input" />
                   </div>
-                  <LocationSelect
-                    label="Province"
-                    value={MOUNTAIN_PROVINCE_CODE}
-                    onChange={() => {}}
-                    options={[{ code: MOUNTAIN_PROVINCE_CODE, name: "Mountain Province" }]}
-                    disabled={true}
-                    placeholder="Mountain Province"
-                  />
-                  <LocationSelect
-                    label="Municipality"
-                    value={propLoc.municipalityCode}
-                    onChange={propLoc.setMunicipalityCode}
-                    options={propLoc.municipalities}
-                    placeholder="Select Municipality"
-                    loading={propLoc.isLoadingMun}
-                    disabled={!!userMunicipality}
-                  />
+                  <div className="space-y-1">
+                    <Label className="rpfaas-fill-label-sub">Province</Label>
+                    <div className="rpfaas-fill-input bg-muted/50 text-muted-foreground cursor-not-allowed select-none">
+                      Mountain Province
+                    </div>
+                  </div>
+                  {userMunicipality ? (
+                    <div className="space-y-1">
+                      <Label className="rpfaas-fill-label-sub">Municipality</Label>
+                      <div className="rpfaas-fill-input bg-muted/50 text-muted-foreground cursor-not-allowed select-none">
+                        {propLoc.municipalities.find((m: LocationOption) => m.code === propLoc.municipalityCode)?.name || userMunicipality}
+                      </div>
+                    </div>
+                  ) : (
+                    <LocationSelect
+                      label="Municipality"
+                      value={propLoc.municipalityCode}
+                      onChange={propLoc.setMunicipalityCode}
+                      options={propLoc.municipalities}
+                      placeholder="Select Municipality"
+                      loading={propLoc.isLoadingMun}
+                    />
+                  )}
                   <LocationSelect
                     label="Barangay"
                     value={propLoc.barangayCode}
@@ -774,7 +780,7 @@ function BuildingOtherStructureFillPageContent() {
           </div>
         </div>
       </SidebarInset>
-      <ReviewCommentsFloat draftId={draftId} />
+      <ReviewCommentsFloat draftId={draftId} stepFields={["arp_no","oct_tct_cloa_no","survey_no","pin","lot_no","owner_name","owner_address","admin_care_of","location_municipality","location_barangay","location_province"]} />
     </SidebarProvider>
   );
 }

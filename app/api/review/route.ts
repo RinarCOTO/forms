@@ -10,7 +10,7 @@ function getAdmin() {
   );
 }
 
-const REVIEW_ROLES = ['laoo', 'assistant_provincial_assessor', 'provincial_assessor', 'admin', 'super_admin'];
+const REVIEW_ROLES = ['municipal_tax_mapper', 'laoo', 'assistant_provincial_assessor', 'provincial_assessor', 'admin', 'super_admin'];
 
 export async function GET(request: NextRequest) {
   try {
@@ -33,9 +33,10 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const statusFilter  = searchParams.get('status');
+    const statusFilter  = searchParams.getAll('status');
     const formTypeFilter = searchParams.get('form_type'); // 'building' | 'land' | null = all
-    const statusesToQuery = statusFilter ? [statusFilter] : ['submitted', 'under_review'];
+    const ALL_ACTIVE = ['submitted', 'municipal_signed', 'laoo_approved', 'approved', 'returned', 'returned_to_municipal'];
+    const statusesToQuery = statusFilter.length > 0 ? statusFilter : ALL_ACTIVE;
 
     const results: Record<string, unknown>[] = [];
     const isLaooScoped = profile.role === 'laoo' && !!profile.municipality;

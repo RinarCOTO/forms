@@ -1,27 +1,20 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState, Suspense } from "react";
-import { ArrowLeft, Edit, Printer } from "lucide-react";
+import { Suspense } from "react";
+import { ArrowLeft, Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 function PrintPreviewPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [previewUrl, setPreviewUrl] = useState<string>("");
-  const [formId, setFormId] = useState<string | null>(null);
-
-  useEffect(() => {
-    const id = searchParams.get("id");
-    if (id) {
-      setFormId(id);
-      setPreviewUrl(`/land-other-improvements/fill/preview-form?id=${id}&print=1`);
-    }
-  }, [searchParams]);
+  const formId = searchParams.get("id");
+  const previewUrl = formId
+    ? `/land-other-improvements/fill/preview-form?id=${formId}&print=1`
+    : null;
 
   return (
     <div className="flex flex-col" style={{ width: "100vw", minHeight: "100vh", background: "#fff" }}>
-      {/* Navigation bar — hidden on print */}
       <div className="print:hidden flex items-center justify-between gap-3 border-b bg-white px-4 py-2 shadow-sm shrink-0">
         <div className="flex items-center gap-2">
           <Button
@@ -46,27 +39,19 @@ function PrintPreviewPage() {
               Edit Form
             </Button>
           )}
-          <Button
-            size="sm"
-            onClick={() => window.print()}
-            className="gap-1.5"
-          >
-            <Printer className="h-4 w-4" />
-            Print
-          </Button>
         </div>
       </div>
 
-      {/* Form content in iframe */}
-      {previewUrl ? (
+      {previewUrl && (
         <iframe
+          key={previewUrl}
           src={previewUrl}
           title="Print Preview"
           className="flex-1 border-none"
           style={{ width: "100%", minHeight: "calc(100vh - 49px)" }}
           allowFullScreen
         />
-      ) : null}
+      )}
     </div>
   );
 }
