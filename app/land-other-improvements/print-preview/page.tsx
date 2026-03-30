@@ -1,17 +1,46 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense } from "react";
-import { ArrowLeft, Edit } from "lucide-react";
+import { Suspense, useState, useEffect } from "react";
+import { ArrowLeft, Edit, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
+
+const PRINT_ALLOWED_ROLES = [
+  "provincial_assessor",
+  "assistant_provincial_assessor",
+  "super_admin",
+  "municipal_tax_mapper",
+];
 
 function PrintPreviewPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const formId = searchParams.get("id");
   const previewUrl = formId
-    ? `/land-other-improvements/fill/preview-form?id=${formId}&print=1`
+    ? `/land-other-improvements/fill/preview-form?id=${formId}&print=1&embed=1`
     : null;
+
+  const [formStatus, setFormStatus] = useState<string | null>(null);
+  const [canPrint, setCanPrint] = useState(false);
+
+  useEffect(() => {
+    if (!formId) return;
+    fetch(`/api/faas/land-improvements/${formId}`)
+      .then((r) => r.json())
+      .then((result) => {
+        if (result.success && result.data?.status) setFormStatus(result.data.status);
+      })
+      .catch(() => {});
+  }, [formId]);
+
+  useEffect(() => {
+    fetch("/api/users/permissions")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d?.role && PRINT_ALLOWED_ROLES.includes(d.role)) setCanPrint(true);
+      })
+      .catch(() => {});
+  }, []);
 
   return (
     <div className="flex flex-col" style={{ width: "100vw", minHeight: "100vh", background: "#fff" }}>
@@ -28,7 +57,7 @@ function PrintPreviewPage() {
           </Button>
         </div>
         <div className="flex items-center gap-2">
-          {formId && (
+          {formId && formStatus !== "approved" && (
             <Button
               variant="outline"
               size="sm"
@@ -37,6 +66,21 @@ function PrintPreviewPage() {
             >
               <Edit className="h-4 w-4" />
               Edit Form
+            </Button>
+          )}
+          {formStatus === "approved" && (
+            <span className="text-xs text-muted-foreground px-2">
+              Approved — editing locked
+            </span>
+          )}
+          {formStatus === "approved" && canPrint && (
+            <Button
+              size="sm"
+              onClick={() => { window.location.href = `/api/print/land-improvements/${formId}`; }}
+              className="gap-1.5"
+            >
+              <Printer className="h-4 w-4" />
+              Download PDF
             </Button>
           )}
         </div>

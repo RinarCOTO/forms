@@ -78,6 +78,19 @@ const LandImprovementUpdateSchema = z.object({
   amount_in_words: z.string().optional(),
   effectivity_of_assessment: z.string().optional(),
 
+  // step 1 — previous declaration
+  previous_td_no: z.string().nullish(),
+  previous_owner: z.string().nullish(),
+  previous_av: numericField,
+  previous_mv: numericField,
+  previous_area: numericField,
+
+  // reviewer / approver IDs
+  appraised_by: z.string().nullish(),
+  municipal_reviewer_id: z.string().nullish(),
+  provincial_reviewer_id: z.string().nullish(),
+  memoranda: z.string().nullish(),
+
   // legacy / misc
   improvement_type: z.string().max(100).optional(),
   description: z.string().optional(),
@@ -151,6 +164,22 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     const { id } = await params
     const body = await request.json()
 
+    // Block updates on approved forms — fetch current status first
+    const { data: current, error: fetchErr } = await supabase
+      .from('land_improvements')
+      .select('status')
+      .eq('id', id)
+      .single()
+    if (fetchErr || !current) {
+      return NextResponse.json({ success: false, error: 'Form not found' }, { status: 404 })
+    }
+    if (current.status === 'approved') {
+      return NextResponse.json(
+        { success: false, error: 'This form has been approved and can no longer be edited.' },
+        { status: 403 }
+      )
+    }
+
     // Validate input
     const parsed = LandImprovementUpdateSchema.safeParse(body)
     if (!parsed.success) {
@@ -166,7 +195,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     const updateData = parsed.data
     
     // Clean the data: remove undefined and empty string values; allow explicit null to clear fields
-    const numericFields = ['area', 'market_value', 'assessment_level', 'assessed_value', 'land_area', 'unit_value', 'base_market_value', 'additional_percentage_value', 'additional_flat_rate_value']
+    const numericFields = ['area', 'market_value', 'assessment_level', 'assessed_value', 'land_area', 'unit_value', 'base_market_value', 'additional_percentage_value', 'additional_flat_rate_value', 'previous_av', 'previous_mv', 'previous_area']
     const cleanedData = Object.entries(updateData).reduce((acc, [key, value]) => {
       if (value === undefined || value === 'undefined' || value === '') return acc
       if (value === null) {
@@ -225,7 +254,24 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
 
     const supabase = getSupabaseAdmin()
     const { id } = await params
-    
+
+    const isAdmin = userCtx.isAdmin
+    if (!isAdmin) {
+      // Non-admins can only delete their own drafts
+      const { data: record, error: fetchErr } = await supabase
+        .from('land_improvements')
+        .select('status, created_by')
+        .eq('id', id)
+        .single()
+
+      if (fetchErr || !record) {
+        return NextResponse.json({ success: false, error: 'Record not found' }, { status: 404 })
+      }
+      if (record.status !== 'draft' || record.created_by !== userCtx.userId) {
+        return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 })
+      }
+    }
+
     const { error } = await supabase
       .from('land_improvements')
       .delete()

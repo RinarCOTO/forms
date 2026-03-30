@@ -92,6 +92,22 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
     }
 
+    // Block updates on approved forms — fetch current status first
+    const { data: current, error: fetchErr } = await supabase
+      .from('building_structures')
+      .select('status')
+      .eq('id', id)
+      .single();
+    if (fetchErr || !current) {
+      return NextResponse.json({ success: false, message: 'Form not found' }, { status: 404 });
+    }
+    if (current.status === 'approved') {
+      return NextResponse.json(
+        { success: false, message: 'This form has been approved and can no longer be edited.' },
+        { status: 403 }
+      );
+    }
+
     // Stamp municipality from the user's profile (non-admins cannot override)
     if (!userCtx.isAdmin && userCtx.municipality) {
       raw.municipality = userCtx.municipality;
@@ -102,7 +118,7 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
     const NUMERIC_COLS = new Set([
       'number_of_storeys', 'total_floor_area', 'building_age',
       'land_area', 'market_value', 'assessment_level', 'estimated_value',
-      'cost_of_construction',
+      'cost_of_construction', 'previous_av', 'previous_mv', 'previous_area',
     ]);
     const data = Object.fromEntries(
       Object.entries(raw).filter(([, v]) => v !== '' && v !== undefined).map(([k, v]) => {
@@ -201,14 +217,24 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ id: 
       );
     }
 
-    // Check if user is admin or super_admin
-    if (userProfile.role !== 'admin' && userProfile.role !== 'super_admin') {
-      return NextResponse.json(
-        { success: false, message: 'Forbidden' },
-        { status: 403 }
-      );
+    const isAdmin = userProfile.role === 'admin' || userProfile.role === 'super_admin';
+
+    if (!isAdmin) {
+      // Non-admins can only delete their own drafts
+      const { data: record, error: fetchErr } = await supabase
+        .from('building_structures')
+        .select('status, created_by')
+        .eq('id', id)
+        .single();
+
+      if (fetchErr || !record) {
+        return NextResponse.json({ success: false, message: 'Record not found' }, { status: 404 });
+      }
+      if (record.status !== 'draft' || record.created_by !== user.id) {
+        return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 });
+      }
     }
-    
+
     const { data: deletedRecord, error } = await supabase
       .from('building_structures')
       .delete()

@@ -33,6 +33,11 @@ export interface LandImprovementFormData {
   survey_no?: string;
   lot_no?: string;
   blk?: string;
+  previous_td_no?: string;
+  previous_owner?: string;
+  previous_av?: string | number;
+  previous_mv?: string | number;
+  previous_area?: string | number;
   // Owner
   owner_name?: string;
   owner_address?: string;
@@ -128,7 +133,7 @@ const LandImprovementForm = ({ data }: { data: LandImprovementFormData }) => {
     : Math.round((marketValue * assessmentLevelPct) / 100 / 10) * 10;
 
   return (
-    <div className="rpfaas-print" style={{ backgroundColor: "white" }}>
+    <div className="rpfaas-print" style={{ backgroundColor: "white" }} data-print-ready="true">
       {/* ── Form title ── */}
       <h1 className="text-lg font-bold text-center uppercase mb-1">
         Real Property Field Appraisal &amp; Assessment Sheet
@@ -155,13 +160,12 @@ const LandImprovementForm = ({ data }: { data: LandImprovementFormData }) => {
             </td>
           </tr>
 
-          {/* ARP No. label | ARP value | OCT/TCT/CLOA label | OCT value */}
+          {/* ARP No. label | ARP value | PIN label | PIN value */}
           <tr>
             <td>ARP No.:</td>
             <td className="font-bold font-mono">{fmt(data.arp_no)}</td>
             <td>PIN:</td>
             <td className="font-bold">{fmt(data.pin)}</td>
-
           </tr>
 
           <tr>
@@ -367,6 +371,11 @@ const LandImprovementForm = ({ data }: { data: LandImprovementFormData }) => {
         municipalReviewerId={data.municipal_reviewer_id}
         provincialReviewerId={data.provincial_reviewer_id}
         memoranda={data.memoranda}
+        previousTdNo={data.previous_td_no}
+        previousOwner={data.previous_owner}
+        previousAv={data.previous_av}
+        previousMv={data.previous_mv}
+        previousArea={data.previous_area}
       />
     </div>
   );

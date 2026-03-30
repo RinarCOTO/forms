@@ -257,7 +257,7 @@ export default function TaxDeclarationLand({ data = {} }: { data?: LandImproveme
                     <div className="font-bold shrink-0">RE-ASSESSMENT —</div>
                     <div>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</div>
                 </div>
-                <div className="flex gap-2 mt-24">
+                <div className="flex gap-2 mt-24 print:mt-2">
                     <div className="font-bold shrink-0 tax-dec-note">NOTE:</div>
                     <div>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</div>
                 </div>

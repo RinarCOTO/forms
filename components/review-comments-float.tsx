@@ -113,6 +113,7 @@ function CommentSkeleton() {
 export function ReviewCommentsFloat({ draftId, stepFields, formType = "building" }: Props) {
   const [comments, setComments] = useState<ReviewComment[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [hasLoaded, setHasLoaded] = useState(false);
   const [viewerRole, setViewerRole] = useState<string | null>(null);
   const [open, setOpen] = useState(() => {
     if (typeof window === "undefined") return false;
@@ -133,7 +134,10 @@ export function ReviewCommentsFloat({ draftId, stepFields, formType = "building"
   }, []);
 
   useEffect(() => {
-    if (!draftId) return;
+    if (!draftId) {
+      setHasLoaded(true);
+      return;
+    }
     setIsLoading(true);
 
     const endpoint = formType === "land"
@@ -166,7 +170,7 @@ export function ReviewCommentsFloat({ draftId, stepFields, formType = "building"
         }, 100);
       })
       .catch(() => {})
-      .finally(() => setIsLoading(false));
+      .finally(() => { setIsLoading(false); setHasLoaded(true); });
   }, [draftId, formType]);
 
   // Scroll to and briefly highlight the DOM element matching a field name
@@ -231,8 +235,8 @@ export function ReviewCommentsFloat({ draftId, stepFields, formType = "building"
     else grouped.push({ day: key, comments: [c] });
   }
 
-  // Hide everything if loading is done and there are truly no reviewer comments
-  if (!isLoading && allTopLevel.length === 0) return null;
+  // Hide everything until initial load completes, and then if there are truly no reviewer comments
+  if (!hasLoaded || (!isLoading && allTopLevel.length === 0)) return null;
 
   const hasStepFilter = !!stepFields?.length;
 

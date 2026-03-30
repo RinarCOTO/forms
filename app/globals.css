@@ -13,9 +13,9 @@
 @custom-variant dark (&:is(.dark *));
 
 /* Disable printing site-wide */
-@media print {
+/* @media print {
   html, body { display: none !important; }
-}
+} */
 
 @theme inline {
   --color-background: var(--background);

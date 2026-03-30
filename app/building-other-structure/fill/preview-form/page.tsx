@@ -107,7 +107,9 @@ function toPreviewUrl(signedUrl: string): string {
 // ---------------------------------------------------------------------------
 
 // Keys that are auto-managed by the DB or are not valid columns
-const SKIP_KEYS = new Set(["id", "created_at", "updated_at", "unit_cost"]);
+// assessed_value is a localStorage alias for estimated_value (the actual DB column).
+// Step 6 already saves the correct estimated_value directly — skip this stale key.
+const SKIP_KEYS = new Set(["id", "created_at", "updated_at", "unit_cost", "assessed_value"]);
 
 function collectFormData() {
   const data: Record<string, unknown> = {};
@@ -295,18 +297,29 @@ function PreviewFormPage() {
 
   // Permission: only roles allowed by the submit API can save/submit
   const SUBMIT_ALLOWED_ROLES = ["tax_mapper", "municipal_tax_mapper", "admin", "super_admin"];
+  const PRINT_ALLOWED_ROLES = ["provincial_assessor", "assistant_provincial_assessor"];
   const [canSubmit, setCanSubmit] = useState(false);
+  const [canPrint, setCanPrint] = useState(false);
   useEffect(() => {
     fetch("/api/users/permissions")
       .then((r) => r.json())
       .then((data) => {
-        if (data?.role && SUBMIT_ALLOWED_ROLES.includes(data.role)) {
-          setCanSubmit(true);
-        }
+        if (data?.role && SUBMIT_ALLOWED_ROLES.includes(data.role)) setCanSubmit(true);
+        if (data?.role && PRINT_ALLOWED_ROLES.includes(data.role)) setCanPrint(true);
       })
       .catch(() => {});
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Block print for everyone except allowed roles
+  useEffect(() => {
+    if (canPrint) return;
+    const style = document.createElement("style");
+    style.id = "print-blocked";
+    style.textContent = `@media print { body { display: none !important; } }`;
+    document.head.appendChild(style);
+    return () => document.getElementById("print-blocked")?.remove();
+  }, [canPrint]);
 
   // Statuses where the tax mapper cannot edit or re-submit
   const LOCKED_STATUSES = ["submitted", "under_review", "approved"];
@@ -433,7 +446,7 @@ function PreviewFormPage() {
           // ── Step 5/6 fields ───────────────────────────────────────────
           set("amount_in_words_p5",   d.amount_in_words);
           set("assessment_level_p5",  d.assessment_level);
-          if (d.estimated_value != null) set("assessed_value_p5", String(d.estimated_value));
+          if (d.estimated_value != null) set("estimated_value_p5", String(d.estimated_value));
           set("actual_use_p5",        d.actual_use);
           if (d.effectivity_of_assessment != null) set("effectivity_of_assessment_p5", String(d.effectivity_of_assessment));
           set("appraised_by_p5", d.appraised_by);
@@ -490,7 +503,10 @@ function PreviewFormPage() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `RPFAAS-Building-${draftId}.pdf`;
+      const owner = dbRecord?.owner_name ?? "Unknown";
+      const arp = dbRecord?.arp_no ?? "Unknown";
+      const date = new Date().toISOString().slice(0, 10);
+      a.download = `RPFAAS-Building_${owner}_${arp}_${date}.pdf`;
       a.click();
       URL.revokeObjectURL(url);
     } catch (err) {

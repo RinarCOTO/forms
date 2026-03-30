@@ -10,8 +10,33 @@ function getAdminClient() {
   );
 }
 
-const SUBMIT_ALLOWED_ROLES = ['tax_mapper', 'municipal_tax_mapper', 'admin', 'super_admin'];
+const SUBMIT_ALLOWED_ROLES = [
+  'tax_mapper',
+  'municipal_tax_mapper',
+  'laoo',
+  'provincial_assessor',
+  'assistant_provincial_assessor',
+  'admin',
+  'super_admin',
+];
 const SUBMITTABLE_STATUSES = ['draft', 'returned', 'returned_to_municipal'];
+
+// Higher-level roles bypass lower approval steps when they create/submit forms themselves
+function getBypassStatus(role: string): string {
+  switch (role) {
+    case 'municipal_tax_mapper':
+      return 'municipal_signed'; // they are the municipal reviewer
+    case 'laoo':
+      return 'laoo_approved';    // they clear municipal + laoo
+    case 'provincial_assessor':
+    case 'assistant_provincial_assessor':
+    case 'admin':
+    case 'super_admin':
+      return 'approved';         // they clear all stages
+    default:
+      return 'submitted';        // normal flow for tax_mapper
+  }
+}
 
 export async function POST(
   req: NextRequest,
@@ -52,7 +77,7 @@ export async function POST(
 
     const { data: record, error: fetchError } = await admin
       .from('land_improvements')
-      .select('id, status')
+      .select('id, status, previous_td_no')
       .eq('id', id)
       .single();
 
@@ -72,6 +97,7 @@ export async function POST(
 
     const fromStatus = record.status;
     const now = new Date().toISOString();
+    const targetStatus = getBypassStatus(profile.role);
 
     // If re-submitting from 'returned', generate change-tracking response comments
     let fullRecord: Record<string, unknown> | null = null;
@@ -92,14 +118,30 @@ export async function POST(
       laooComments = (commentsRes.data ?? []) as typeof laooComments;
     }
 
+    const updatePayload: Record<string, unknown> = {
+      status: targetStatus,
+      submitted_at: now,
+      updated_at: now,
+      submitted_signature_path: profile.signature_path ?? null,
+    };
+
+    // Stamp reviewer fields for bypassed stages
+    if (targetStatus === 'municipal_signed' || targetStatus === 'laoo_approved' || targetStatus === 'approved') {
+      updatePayload.municipal_reviewer_id = authUser.id;
+      updatePayload.municipal_signed_at   = now;
+    }
+    if (targetStatus === 'laoo_approved' || targetStatus === 'approved') {
+      updatePayload.laoo_reviewer_id  = authUser.id;
+      updatePayload.laoo_approved_at  = now;
+    }
+    if (targetStatus === 'approved') {
+      updatePayload.provincial_reviewer_id = authUser.id;
+      updatePayload.provincial_signed_at   = now;
+    }
+
     const { data: updated, error: updateError } = await admin
       .from('land_improvements')
-      .update({
-        status: 'submitted',
-        submitted_at: now,
-        updated_at: now,
-        submitted_signature_path: profile.signature_path ?? null,
-      })
+      .update(updatePayload)
       .eq('id', id)
       .select()
       .single();
@@ -109,6 +151,20 @@ export async function POST(
         { success: false, message: 'Failed to update record', error: updateError?.message },
         { status: 500 }
       );
+    }
+
+    // Cancel previous TD when approved (non-blocking)
+    if (targetStatus === 'approved' && record.previous_td_no) {
+      try {
+        await admin
+          .from('land_improvements')
+          .update({ status: 'cancelled', updated_at: now })
+          .eq('arp_no', record.previous_td_no)
+          .neq('id', parseInt(id))
+          .neq('status', 'cancelled');
+      } catch (cancelErr) {
+        console.warn('Previous TD cancellation failed:', cancelErr);
+      }
     }
 
     if (fromStatus === 'returned' && fullRecord && laooComments.length > 0) {
@@ -172,12 +228,12 @@ export async function POST(
         form_id: parseInt(id),
         form_stage: 'faas',
         from_status: fromStatus,
-        to_status: 'submitted',
+        to_status: targetStatus,
         actor_id: authUser.id,
         actor_role: profile.role,
-        note: fromStatus === 'returned'
-          ? 'Re-submitted after addressing LAOO review comments'
-          : 'Initial submission for LAOO review',
+        note: targetStatus === 'submitted'
+          ? (fromStatus === 'returned' ? 'Re-submitted after addressing review comments' : 'Initial submission for LAOO review')
+          : `Auto-approved by ${profile.role} (creator bypass — stages up to "${targetStatus}" cleared)`,
       });
     } catch (historyErr) {
       console.warn('form_review_history insert failed:', historyErr);

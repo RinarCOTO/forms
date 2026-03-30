@@ -29,7 +29,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <PrintBlocker />
+        {/* <PrintBlocker /> */}
         <MainLayout>{children}</MainLayout>
       </body>
     </html>

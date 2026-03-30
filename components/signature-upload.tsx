@@ -1,3 +1,5 @@
+// PAUSED — Digital signature module. Do not use or import until the auth
+// question is resolved. See project memory: project_digital_signatures.md
 "use client";
 
 import { useState, useRef, useEffect } from "react";

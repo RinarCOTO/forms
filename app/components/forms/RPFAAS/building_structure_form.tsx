@@ -17,6 +17,11 @@ const BuildingStructureForm = ({ serverData }: { serverData?: Record<string, any
         pin,
         surveyNo,
         lotNo,
+        previousTdNo,
+        previousOwner,
+        previousAv,
+        previousMv,
+        previousArea,
         ownerName,
         adminCareOfName,
         ownerAddressBarangay,
@@ -640,7 +645,7 @@ const BuildingStructureForm = ({ serverData }: { serverData?: Record<string, any
                 </tbody>
             </table>
 
-            <FaasFooter amountInWords={amountInWords} taxStatus={taxStatus} locationMunicipality={locationMunicipality} effectivityOfAssessment={effectivityOfAssessment} appraisedById={appraisedById} municipalReviewerId={municipalReviewerId} provincialReviewerId={provincialReviewerId} memoranda={memoranda} className="mt-auto" />
+            <FaasFooter amountInWords={amountInWords} taxStatus={taxStatus} locationMunicipality={locationMunicipality} effectivityOfAssessment={effectivityOfAssessment} appraisedById={appraisedById} municipalReviewerId={municipalReviewerId} provincialReviewerId={provincialReviewerId} memoranda={memoranda} previousTdNo={previousTdNo} previousOwner={previousOwner} previousAv={previousAv} previousMv={previousMv} previousArea={previousArea} className="mt-auto" />
         </div>
     );
 };

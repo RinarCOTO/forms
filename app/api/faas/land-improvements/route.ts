@@ -19,13 +19,42 @@ export async function GET(request: NextRequest) {
     }
 
     const admin = getAdminClient()
+    const { searchParams } = new URL(request.url)
+
+    // Single-record lookup by ARP No. — used to auto-fill previous TD fields
+    const arpNoFilter = searchParams.get('arp_no')
+    if (arpNoFilter) {
+      let lookupQuery = admin
+        .from('land_improvements')
+        .select('owner_name, assessed_value, market_value, land_area')
+        .eq('arp_no', arpNoFilter)
+        .eq('status', 'approved')
+      // Scope to the user's municipality so a Bauko user only sees Bauko records
+      if (!userCtx.isAdmin && userCtx.municipality) {
+        lookupQuery = lookupQuery.eq('municipality', userCtx.municipality)
+      }
+      const { data, error } = await lookupQuery
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+      return NextResponse.json(data || null)
+    }
+
     let query = admin
       .from('land_improvements')
-      .select('id, owner_name, updated_at, status, municipality, arp_no, location_municipality, location_barangay')
+      .select('id, owner_name, updated_at, status, municipality, arp_no, location_municipality, location_barangay, created_by')
       .order('updated_at', { ascending: false })
 
     if (!userCtx.isAdmin && userCtx.municipality) {
       query = query.eq('municipality', userCtx.municipality)
+    }
+
+    // Reviewer roles only see submitted/processed forms — drafts are noise for them,
+    // except for drafts they created themselves.
+    const HIDE_DRAFTS_ROLES = ['municipal_tax_mapper', 'laoo', 'provincial_assessor', 'assistant_provincial_assessor'];
+    if (HIDE_DRAFTS_ROLES.includes(userCtx.role)) {
+      query = query.or(`status.neq.draft,created_by.eq.${userCtx.userId}`)
     }
 
     const { data, error } = await query
@@ -65,10 +94,11 @@ export async function POST(request: NextRequest) {
       return acc
     }, {} as any)
 
-    // Stamp municipality from user profile
+    // Stamp municipality and creator from user profile
     if (!userCtx.isAdmin && userCtx.municipality) {
       cleanedData.municipality = userCtx.municipality
     }
+    cleanedData.created_by = userCtx.userId
 
     const { data, error } = await admin
       .from('land_improvements')

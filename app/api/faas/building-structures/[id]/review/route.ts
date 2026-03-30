@@ -64,7 +64,7 @@ export async function POST(
 
     const { data: record, error: fetchError } = await admin
       .from('building_structures')
-      .select('id, status')
+      .select('id, status, previous_td_no')
       .eq('id', id)
       .single();
 
@@ -86,6 +86,7 @@ export async function POST(
       updatePayload.provincial_reviewer_id    = authUser.id;
       updatePayload.provincial_signed_at      = now;
       updatePayload.provincial_signature_path = profile.signature_path;
+      updatePayload.approved_at               = now;
     }
 
     const { data: updated, error: updateError } = await admin
@@ -97,6 +98,20 @@ export async function POST(
 
     if (updateError || !updated) {
       return NextResponse.json({ error: 'Failed to update form', detail: updateError?.message }, { status: 500 });
+    }
+
+    // Cancel previous TD when approved (non-blocking)
+    if (action === 'sign_approve' && record.previous_td_no) {
+      try {
+        await admin
+          .from('building_structures')
+          .update({ status: 'cancelled', updated_at: now })
+          .eq('arp_no', record.previous_td_no)
+          .neq('id', parseInt(id))
+          .neq('status', 'cancelled');
+      } catch (cancelErr) {
+        console.warn('Previous TD cancellation failed:', cancelErr);
+      }
     }
 
     // ── Generate Tax Declaration when provincial approves ────────────────────

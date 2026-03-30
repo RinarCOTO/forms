@@ -29,6 +29,11 @@ export interface RPFAASFormData {
     surveyNo: string;
     lotNo: string;
     blk: string | number;
+    previousTdNo: string;
+    previousOwner: string;
+    previousAv: string;
+    previousMv: string;
+    previousArea: string;
 
     // Owner Info
     ownerName: string;

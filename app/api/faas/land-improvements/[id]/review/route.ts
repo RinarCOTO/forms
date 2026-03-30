@@ -64,7 +64,7 @@ export async function POST(
 
     const { data: record, error: fetchError } = await admin
       .from('land_improvements')
-      .select('id, status')
+      .select('id, status, previous_td_no')
       .eq('id', id)
       .single();
 
@@ -97,6 +97,20 @@ export async function POST(
 
     if (updateError || !updated) {
       return NextResponse.json({ error: 'Failed to update form', detail: updateError?.message }, { status: 500 });
+    }
+
+    // Cancel previous TD when approved (non-blocking)
+    if (config.toStatus === 'approved' && record.previous_td_no) {
+      try {
+        await admin
+          .from('land_improvements')
+          .update({ status: 'cancelled', updated_at: now })
+          .eq('arp_no', record.previous_td_no)
+          .neq('id', parseInt(id))
+          .neq('status', 'cancelled');
+      } catch (cancelErr) {
+        console.warn('Previous TD cancellation failed:', cancelErr);
+      }
     }
 
     // Audit log (non-blocking)

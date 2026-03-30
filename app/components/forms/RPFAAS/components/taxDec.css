@@ -1,9 +1,9 @@
 @page {
   size: A4 portrait;
-  margin-top: 0.5in;
-  margin-right: 0.5in;
-  margin-bottom: 0;
-  margin-left: 1in;
+  margin-top: 10mm;
+  margin-right: 12mm;
+  margin-bottom: 10mm;
+  margin-left: 20mm;
 }
 
 @font-face {
@@ -25,8 +25,44 @@
   font-family: 'Monotype Corsiva', 'Lucida Calligraphy', 'Brush Script MT', cursive;
 }
 
-/* @media print {
-  .tax-dec-body .grid {
-    gap: revert !important;
+@media print {
+  .tax-dec-body {
+    font-size: 9pt !important;
+    line-height: 1.2 !important;
   }
-} */
+
+  /* Collapse all space-y-* gaps inside the tax dec */
+  .tax-dec-body > * + * {
+    margin-top: 3pt !important;
+  }
+  .tax-dec-body .space-y-1 > * + *,
+  .tax-dec-body .space-y-2 > * + *,
+  .tax-dec-body .space-y-3 > * + * {
+    margin-top: 2pt !important;
+  }
+
+  /* Reduce large Tailwind margin utilities */
+  .tax-dec-body .mt-4  { margin-top: 4pt !important; }
+  .tax-dec-body .mt-6  { margin-top: 5pt !important; }
+  .tax-dec-body .mt-24 { margin-top: 8pt !important; }
+  .tax-dec-body .mb-1  { margin-bottom: 1pt !important; }
+  .tax-dec-body .mb-2  { margin-bottom: 2pt !important; }
+  .tax-dec-body .mb-4  { margin-bottom: 3pt !important; }
+
+  /* Signature area spacing */
+  .tax-dec-body .mt-6[class*="grid"] { margin-top: 6pt !important; }
+
+  /* Title */
+  .tax-dec-title {
+    font-size: 11pt !important;
+    margin-bottom: 2pt !important;
+  }
+
+  /* Fixed-width underline labels — let them shrink to text */
+  .tax-dec-body .w-52 { width: 120pt !important; }
+  .tax-dec-body .w-36 { width: 90pt  !important; }
+  .tax-dec-body .w-20 { width: 50pt  !important; }
+  .tax-dec-body .w-12 { width: 28pt  !important; }
+  .tax-dec-body .w-28 { width: 70pt  !important; }
+  .tax-dec-body .w-40 { width: 90pt  !important; }
+}

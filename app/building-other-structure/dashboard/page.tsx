@@ -20,7 +20,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { FileText, Plus, ArrowLeft, Loader2, Eye, Edit, Trash2, MoreHorizontal, ChevronLeft, ChevronRight, Search, Send } from "lucide-react";
+import { FileText, Plus, ArrowLeft, Loader2, Eye, Edit, Trash2, MoreHorizontal, ChevronLeft, ChevronRight, Search, Send, Download } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
@@ -39,11 +39,15 @@ export default function BuildingOtherStructureDashboard() {
   const [selectedMunicipalities, setSelectedMunicipalities] = useState<string[]>([]);
   const [selectedBarangays, setSelectedBarangays] = useState<string[]>([]);
   const [search, setSearch] = useState("");
-  const [user, setUser] = useState<{ role: string } | null>(null);
+  const [user, setUser] = useState<{ id: string; role: string } | null>(null);
   const [municipalAssessors, setMunicipalAssessors] = useState<{ full_name: string; municipality: string }[]>([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [submissionToDelete, setSubmissionToDelete] = useState<number | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [bulkExportOpen, setBulkExportOpen] = useState(false);
+  const [exportPreset, setExportPreset] = useState<'7d' | '28d' | '3m' | '6m' | 'all'>('28d');
+  const [bulkExportLoading, setBulkExportLoading] = useState(false);
+  const [bulkExportProgress, setBulkExportProgress] = useState<{ done: number; total: number } | null>(null);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -157,7 +161,11 @@ export default function BuildingOtherStructureDashboard() {
     return match?.full_name ?? '—';
   };
 
-  const canDelete = user && (user.role === 'admin' || user.role === 'super_admin');
+  const canDelete = (submission: FormSubmission) =>
+    user && (
+      user.role === 'admin' || user.role === 'super_admin' ||
+      (submission.status === 'draft' && submission.created_by === user.id)
+    );
 
   const SUBMITTABLE_STATUSES = ['draft', 'returned', 'returned_to_municipal'];
   // Statuses the tax mapper can still edit (not locked by the review workflow)
@@ -222,6 +230,78 @@ export default function BuildingOtherStructureDashboard() {
   const totalPages = Math.max(1, Math.ceil(filteredSubmissions.length / PAGE_SIZE));
   const paginatedSubmissions = filteredSubmissions.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
+  const EXPORT_PRESETS: { label: string; value: typeof exportPreset }[] = [
+    { label: 'Last 7 days',   value: '7d'  },
+    { label: 'Last 28 days',  value: '28d' },
+    { label: 'Last 3 months', value: '3m'  },
+    { label: 'Last 6 months', value: '6m'  },
+    { label: 'All approved',  value: 'all' },
+  ];
+
+  const getExportCutoff = (preset: typeof exportPreset): Date | null => {
+    const now = new Date();
+    switch (preset) {
+      case '7d':  return new Date(now.getTime() - 7  * 24 * 60 * 60 * 1000);
+      case '28d': return new Date(now.getTime() - 28 * 24 * 60 * 60 * 1000);
+      case '3m':  return new Date(new Date().setMonth(now.getMonth() - 3));
+      case '6m':  return new Date(new Date().setMonth(now.getMonth() - 6));
+      case 'all': return null;
+    }
+  };
+
+  const approvedInRange = submissions.filter(s => {
+    if (s.status !== 'approved') return false;
+    const cutoff = getExportCutoff(exportPreset);
+    if (!cutoff) return true;
+    if (!s.approved_at) return false;
+    return new Date(s.approved_at) >= cutoff;
+  });
+
+  const handleBulkExport = async () => {
+    if (approvedInRange.length === 0) return;
+    setBulkExportLoading(true);
+    setBulkExportProgress({ done: 0, total: approvedInRange.length });
+    try {
+      if (approvedInRange.length === 1) {
+        const sub = approvedInRange[0];
+        const res = await fetch(`/api/print/building-structures/${sub.id}`);
+        if (res.ok) {
+          const blob = await res.blob();
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `RPFAAS-Building_${sub.owner_name ?? 'Unknown'}_${sub.id}.pdf`;
+          a.click();
+          URL.revokeObjectURL(url);
+        }
+        setBulkExportProgress({ done: 1, total: 1 });
+      } else {
+        const JSZip = (await import('jszip')).default;
+        const zip = new JSZip();
+        for (let i = 0; i < approvedInRange.length; i++) {
+          const sub = approvedInRange[i];
+          const res = await fetch(`/api/print/building-structures/${sub.id}`);
+          if (res.ok) {
+            const blob = await res.blob();
+            zip.file(`RPFAAS-Building_${sub.owner_name ?? 'Unknown'}_${sub.id}.pdf`, blob);
+          }
+          setBulkExportProgress({ done: i + 1, total: approvedInRange.length });
+        }
+        const content = await zip.generateAsync({ type: 'blob' });
+        const url = URL.createObjectURL(content);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `RPFAAS-Building-Approved-${new Date().toISOString().slice(0, 10)}.zip`;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+    } finally {
+      setBulkExportLoading(false);
+      setBulkExportProgress(null);
+      setBulkExportOpen(false);
+    }
+  };
+
   const handleSubmitForReview = useCallback((submissionId: number) => {
     router.push(`/building-other-structure/fill/preview-form?id=${submissionId}`);
   }, [router]);
@@ -263,7 +343,12 @@ export default function BuildingOtherStructureDashboard() {
               <Button variant="ghost" size="sm" onClick={() => router.push("/dashboard")}>
                 <ArrowLeft className="h-4 w-4 mr-2" /> Back to Building Dashboard
               </Button>
-              <Button onClick={handleNewForm}><Plus className="h-4 w-4 mr-2" /> New Submission</Button>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" onClick={() => setBulkExportOpen(true)}>
+                  <Download className="h-4 w-4 mr-2" /> Bulk Export
+                </Button>
+                <Button onClick={handleNewForm}><Plus className="h-4 w-4 mr-2" /> New Submission</Button>
+              </div>
             </div>
             <div className="flex items-center gap-2 bg-white p-2 rounded-xl border shadow-sm mb-4">
               <div className="relative">
@@ -388,7 +473,7 @@ export default function BuildingOtherStructureDashboard() {
                                     <Send className="h-4 w-4 mr-2" /> Submit for Review
                                   </DropdownMenuItem>
                                 )}
-                                {canDelete && (
+                                {canDelete(submission) && (
                                   <>
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem
@@ -441,6 +526,61 @@ export default function BuildingOtherStructureDashboard() {
         </div>
       </SidebarInset>
 
+      <Dialog open={bulkExportOpen} onOpenChange={v => { if (!bulkExportLoading) setBulkExportOpen(v); }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Bulk Export Approved Forms</DialogTitle>
+            <DialogDescription>
+              Filter by approval date, then export as PDF (single) or ZIP (multiple).
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="flex flex-wrap gap-2">
+              {EXPORT_PRESETS.map(p => (
+                <Button
+                  key={p.value}
+                  variant={exportPreset === p.value ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setExportPreset(p.value)}
+                  disabled={bulkExportLoading}
+                >
+                  {p.label}
+                </Button>
+              ))}
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {approvedInRange.length === 0
+                ? 'No approved forms in this range.'
+                : `${approvedInRange.length} approved form${approvedInRange.length !== 1 ? 's' : ''} found.`}
+            </p>
+            {bulkExportProgress && (
+              <div className="space-y-1">
+                <p className="text-sm font-medium">
+                  Generating {bulkExportProgress.done} / {bulkExportProgress.total}…
+                </p>
+                <div className="h-2 rounded-full bg-muted overflow-hidden">
+                  <div
+                    className="h-full bg-primary transition-all"
+                    style={{ width: `${(bulkExportProgress.done / bulkExportProgress.total) * 100}%` }}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBulkExportOpen(false)} disabled={bulkExportLoading}>
+              Cancel
+            </Button>
+            <Button onClick={handleBulkExport} disabled={bulkExportLoading || approvedInRange.length === 0}>
+              {bulkExportLoading
+                ? <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Exporting…</>
+                : <><Download className="h-4 w-4 mr-2" /> Export{approvedInRange.length > 0 ? ` (${approvedInRange.length})` : ''}</>
+              }
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -472,5 +612,7 @@ interface FormSubmission {
   location_barangay?: string;
   title?: string;
   updated_at: string;
+  approved_at?: string | null;
   status: string;
+  created_by?: string;
 }

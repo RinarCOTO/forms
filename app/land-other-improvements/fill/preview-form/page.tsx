@@ -21,7 +21,7 @@ import { useState, useCallback, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Loader2, Save, Send, Lock, AlertTriangle, RotateCcw,
-  MessageSquare, User, Clock, FileText,
+  MessageSquare, User, Clock, FileText, History, ArrowRight,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import LandImprovementForm from "@/app/components/forms/RPFAAS/land_improvement_form";
@@ -50,6 +50,8 @@ interface LandImprovementData {
   survey_no?: string;
   lot_no?: string;
   blk?: string;
+  previous_td_no?: string;
+  previous_owner?: string;
   owner_name?: string;
   admin_care_of?: string;
   owner_address?: string;
@@ -160,18 +162,60 @@ function PreviewFormPage() {
   const [activeComment, setActiveComment] = useState<ReviewComment | null>(null);
 
   const SUBMIT_ALLOWED_ROLES = ["tax_mapper", "municipal_tax_mapper", "admin", "super_admin"];
+  const HISTORY_ALLOWED_ROLES = ["provincial_assessor", "assistant_provincial_assessor", "admin", "super_admin"];
+  const PRINT_ALLOWED_ROLES = ["provincial_assessor", "assistant_provincial_assessor"];
   const [canSubmit, setCanSubmit] = useState(false);
+  const [canViewHistory, setCanViewHistory] = useState(false);
+  const [canPrint, setCanPrint] = useState(false);
   useEffect(() => {
     fetch("/api/users/permissions")
       .then((r) => r.json())
       .then((d) => {
-        if (d?.role && SUBMIT_ALLOWED_ROLES.includes(d.role)) {
-          setCanSubmit(true);
-        }
+        console.log('[preview] permissions:', d);
+        console.log('[preview] canViewHistory:', HISTORY_ALLOWED_ROLES.includes(d?.role));
+        if (d?.role && SUBMIT_ALLOWED_ROLES.includes(d.role)) setCanSubmit(true);
+        if (d?.role && HISTORY_ALLOWED_ROLES.includes(d.role)) setCanViewHistory(true);
+        if (d?.role && PRINT_ALLOWED_ROLES.includes(d.role)) setCanPrint(true);
       })
-      .catch(() => {});
+      .catch((e) => console.error('[preview] permissions fetch failed:', e));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Block print for everyone except allowed roles
+  useEffect(() => {
+    if (canPrint) return;
+    const style = document.createElement("style");
+    style.id = "print-blocked";
+    style.textContent = `@media print { body { display: none !important; } }`;
+    document.head.appendChild(style);
+    return () => document.getElementById("print-blocked")?.remove();
+  }, [canPrint]);
+
+  // Activity log — only fetched for roles that can view it
+  interface HistoryEntry {
+    id: string;
+    from_label: string;
+    to_label: string;
+    actor_name: string;
+    actor_role_label: string;
+    note: string | null;
+    created_at: string;
+  }
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  useEffect(() => {
+    console.log('[preview] history effect — draftId:', draftId, 'canViewHistory:', canViewHistory);
+    if (!draftId || !canViewHistory) return;
+    setHistoryLoading(true);
+    fetch(`/api/faas/land-improvements/${draftId}/history`)
+      .then(r => r.json())
+      .then(result => {
+        console.log('[preview] history result:', result);
+        if (result.success) setHistory(result.data);
+      })
+      .catch((e) => console.error('[preview] history fetch failed:', e))
+      .finally(() => setHistoryLoading(false));
+  }, [draftId, canViewHistory]);
 
   const LOCKED_STATUSES = ["submitted", "under_review", "approved"];
   const isLocked = LOCKED_STATUSES.includes(formStatus);
@@ -326,9 +370,9 @@ function PreviewFormPage() {
 
         {/* Body */}
         <div className="flex-1 p-6 overflow-y-auto print:p-0">
-          <div className={`rpfaas-fill mx-auto ${!isPrintMode && comments.length > 0 ? "max-w-7xl" : "max-w-4xl"}`}>
-            <div className={`${!isPrintMode && comments.length > 0 ? "flex gap-6 items-start" : ""}`}>
-              <div className={`${!isPrintMode && comments.length > 0 ? "flex-1 min-w-0" : ""}`}>
+          <div className={`rpfaas-fill mx-auto ${!isPrintMode && (comments.length > 0 || canViewHistory) ? "max-w-7xl" : "max-w-4xl"}`}>
+            <div className={`${!isPrintMode && (comments.length > 0 || canViewHistory) ? "flex gap-6 items-start" : ""}`}>
+              <div className={`${!isPrintMode && (comments.length > 0 || canViewHistory) ? "flex-1 min-w-0" : ""}`}>
 
                 {/* Page title — hidden inside print-preview iframe */}
                 {!isPrintMode && (
@@ -487,6 +531,55 @@ function PreviewFormPage() {
                   </>
                 )}
               </div>
+
+              {/* Activity Log Panel — provincial assessor / admin only */}
+              {!isPrintMode && canViewHistory && (
+                <div className="w-80 shrink-0 print:hidden">
+                  <Card className="sticky top-6">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm flex items-center gap-2">
+                        <History className="h-4 w-4 text-blue-500" />
+                        Activity Log
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                      {historyLoading ? (
+                        <div className="flex justify-center py-6">
+                          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                        </div>
+                      ) : history.length === 0 ? (
+                        <p className="text-xs text-muted-foreground px-4 py-4">No activity recorded yet.</p>
+                      ) : (
+                        <div className="divide-y max-h-[calc(100vh-12rem)] overflow-y-auto">
+                          {history.map((entry) => (
+                            <div key={entry.id} className="px-4 py-3 space-y-1">
+                              <div className="flex items-center gap-1.5 text-xs font-medium">
+                                <span className="text-muted-foreground">{entry.from_label}</span>
+                                <ArrowRight className="h-3 w-3 text-muted-foreground shrink-0" />
+                                <span className="text-foreground">{entry.to_label}</span>
+                              </div>
+                              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                <User className="h-3 w-3 shrink-0" />
+                                <span>{entry.actor_name}</span>
+                                <span className="text-xs bg-muted rounded px-1">{entry.actor_role_label}</span>
+                              </div>
+                              {entry.note && (
+                                <p className="text-xs text-muted-foreground italic border-l-2 border-muted pl-2">
+                                  {entry.note}
+                                </p>
+                              )}
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                <Clock className="h-3 w-3" />
+                                <span>{new Date(entry.created_at).toLocaleString()}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
 
               {/* LAOO Comments Panel */}
               {!isPrintMode && comments.length > 0 && (

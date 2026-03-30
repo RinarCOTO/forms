@@ -19,14 +19,43 @@ export async function GET(request: NextRequest) {
     }
 
     const admin = getAdminClient()
+    const { searchParams } = new URL(request.url)
+
+    // Single-record lookup by ARP No. — used to auto-fill previous TD fields
+    const arpNoFilter = searchParams.get('arp_no')
+    if (arpNoFilter) {
+      let lookupQuery = admin
+        .from('building_structures')
+        .select('owner_name, estimated_value, market_value, total_floor_area')
+        .eq('arp_no', arpNoFilter)
+        .eq('status', 'approved')
+      // Scope to the user's municipality so a Bauko user only sees Bauko records
+      if (!userCtx.isAdmin && userCtx.municipality) {
+        lookupQuery = lookupQuery.eq('municipality', userCtx.municipality)
+      }
+      const { data, error } = await lookupQuery
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+      return NextResponse.json(data || null)
+    }
+
     let query = admin
       .from('building_structures')
-      .select('id, owner_name, updated_at, status, municipality, location_municipality, location_barangay, submitted_at, td_arp_no')
+      .select('id, owner_name, updated_at, status, municipality, location_municipality, location_barangay, submitted_at, td_arp_no, created_by, approved_at')
       .order('updated_at', { ascending: false })
 
     // Restrict to municipality if user is not admin and has a municipality assigned
     if (!userCtx.isAdmin && userCtx.municipality) {
       query = query.eq('municipality', userCtx.municipality)
+    }
+
+    // Reviewer roles only see submitted/processed forms — drafts are noise for them,
+    // except for drafts they created themselves.
+    const HIDE_DRAFTS_ROLES = ['municipal_tax_mapper', 'laoo', 'provincial_assessor', 'assistant_provincial_assessor'];
+    if (HIDE_DRAFTS_ROLES.includes(userCtx.role)) {
+      query = query.or(`status.neq.draft,created_by.eq.${userCtx.userId}`)
     }
 
     const { data, error } = await query
@@ -48,16 +77,17 @@ export async function POST(request: NextRequest) {
     const admin = getAdminClient()
     const raw = await request.json()
 
-    // Stamp municipality from the user's profile (non-admins cannot override)
+    // Stamp municipality and creator from the user's profile (non-admins cannot override)
     if (!userCtx.isAdmin && userCtx.municipality) {
       raw.municipality = userCtx.municipality
       raw.location_municipality = userCtx.municipality
     }
+    raw.created_by = userCtx.userId
 
     const NUMERIC_COLS = new Set([
       'number_of_storeys', 'total_floor_area', 'building_age',
       'land_area', 'market_value', 'assessment_level', 'estimated_value',
-      'cost_of_construction',
+      'cost_of_construction', 'previous_av', 'previous_mv', 'previous_area',
     ])
     const body = Object.fromEntries(
       Object.entries(raw).filter(([, v]) => v !== '' && v !== undefined).map(([k, v]) => {

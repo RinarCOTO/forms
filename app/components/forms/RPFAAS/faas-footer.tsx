@@ -1,7 +1,7 @@
 "use client";
 
 import { ReactNode, useEffect, useState } from "react";
-import Image from "next/image";
+// import Image from "next/image"; // preserved for signature feature
 
 type SectionHeaderProps = { children: ReactNode; colSpan?: number; className?: string };
 const SectionHeader = ({ children, colSpan = 3, className = "" }: SectionHeaderProps) => (
@@ -14,6 +14,16 @@ const SectionHeader = ({ children, colSpan = 3, className = "" }: SectionHeaderP
 
 const MUNICIPALITY_MAP: Record<string, string> = { paracelis: 'paracellis' };
 
+const ROLE_LABELS: Record<string, string> = {
+  tax_mapper:                    'Tax Mapper',
+  municipal_tax_mapper:          'Municipal Tax Mapper',
+  laoo:                          'LAOO',
+  provincial_assessor:           'Provincial Assessor',
+  assistant_provincial_assessor: 'Asst. Provincial Assessor',
+  admin:                         'Admin',
+  super_admin:                   'Super Admin',
+};
+
 type Props = {
   amountInWords: string;
   taxStatus?: string;
@@ -24,6 +34,11 @@ type Props = {
   appraisedById?: string;
   municipalReviewerId?: string;
   provincialReviewerId?: string;
+  previousTdNo?: string;
+  previousOwner?: string;
+  previousAv?: string | number;
+  previousMv?: string | number;
+  previousArea?: string | number;
 };
 
 const FaasFooter = ({
@@ -35,17 +50,34 @@ const FaasFooter = ({
   memoranda,
   className,
   municipalReviewerId,
-  provincialReviewerId,
+  previousTdNo,
+  previousOwner,
+  previousAv,
+  previousMv,
+  previousArea,
 }: Props) => {
+  const fmtMoney = (v: string | number | undefined) => {
+    if (v == null || v === '') return '';
+    const n = typeof v === 'string' ? parseFloat(v) : v;
+    if (isNaN(n)) return '';
+    return `₱${n.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
+  const fmtNum = (v: string | number | undefined) => {
+    if (v == null || v === '') return '';
+    const n = typeof v === 'string' ? parseFloat(v) : v;
+    return isNaN(n) ? '' : n.toLocaleString('en-PH');
+  };
   const [provincialAssessorName, setProvincialAssessorName] = useState('');
   const [municipalAssessorName, setMunicipalAssessorName] = useState('');
   const [municipalAssessorPosition, setMunicipalAssessorPosition] = useState('');
   const [appraisedByName, setAppraisedByName] = useState('');
   const [appraisedByPosition, setAppraisedByPosition] = useState('');
+  const [appraisedByRole, setAppraisedByRole] = useState('');
 
-  const [taxMapperSignatureUrl, setTaxMapperSignatureUrl] = useState<string | null>(null);
-  const [municipalSignatureUrl, setMunicipalSignatureUrl] = useState<string | null>(null);
-  const [provincialSignatureUrl, setProvincialSignatureUrl] = useState<string | null>(null);
+  // Signatures hidden — preserved for future use
+  // const [taxMapperSignatureUrl, setTaxMapperSignatureUrl] = useState<string | null>(null);
+  // const [municipalSignatureUrl, setMunicipalSignatureUrl] = useState<string | null>(null);
+  // const [provincialSignatureUrl, setProvincialSignatureUrl] = useState<string | null>(null);
 
   // Provincial assessor name — fetched by role
   useEffect(() => {
@@ -92,6 +124,7 @@ const FaasFooter = ({
           if (user) {
             setAppraisedByName(user.full_name || '');
             setAppraisedByPosition(user.position || '');
+            setAppraisedByRole(user.role || '');
           }
         });
       return;
@@ -106,31 +139,32 @@ const FaasFooter = ({
         if (user) {
           setAppraisedByName(user.full_name || '');
           setAppraisedByPosition(user.position || '');
+          setAppraisedByRole(user.role || '');
         }
       });
   }, [appraisedById, locationMunicipality]);
 
-  // Signature images
-  useEffect(() => {
-    if (!appraisedById) return;
-    fetch(`/api/users/${appraisedById}/signature`)
-      .then(res => res.json())
-      .then(data => { if (data.success && data.data?.signedUrl) setTaxMapperSignatureUrl(data.data.signedUrl); });
-  }, [appraisedById]);
+  // Signature images — hidden, preserved for future use
+  // useEffect(() => {
+  //   if (!appraisedById) return;
+  //   fetch(`/api/users/${appraisedById}/signature`)
+  //     .then(res => res.json())
+  //     .then(data => { if (data.success && data.data?.signedUrl) setTaxMapperSignatureUrl(data.data.signedUrl); });
+  // }, [appraisedById]);
 
-  useEffect(() => {
-    if (!municipalReviewerId) return;
-    fetch(`/api/users/${municipalReviewerId}/signature`)
-      .then(res => res.json())
-      .then(data => { if (data.success && data.data?.signedUrl) setMunicipalSignatureUrl(data.data.signedUrl); });
-  }, [municipalReviewerId]);
+  // useEffect(() => {
+  //   if (!municipalReviewerId) return;
+  //   fetch(`/api/users/${municipalReviewerId}/signature`)
+  //     .then(res => res.json())
+  //     .then(data => { if (data.success && data.data?.signedUrl) setMunicipalSignatureUrl(data.data.signedUrl); });
+  // }, [municipalReviewerId]);
 
-  useEffect(() => {
-    if (!provincialReviewerId) return;
-    fetch(`/api/users/${provincialReviewerId}/signature`)
-      .then(res => res.json())
-      .then(data => { if (data.success && data.data?.signedUrl) setProvincialSignatureUrl(data.data.signedUrl); });
-  }, [provincialReviewerId]);
+  // useEffect(() => {
+  //   if (!provincialReviewerId) return;
+  //   fetch(`/api/users/${provincialReviewerId}/signature`)
+  //     .then(res => res.json())
+  //     .then(data => { if (data.success && data.data?.signedUrl) setProvincialSignatureUrl(data.data.signedUrl); });
+  // }, [provincialReviewerId]);
 
   return (
     <div className={className}>
@@ -162,28 +196,22 @@ const FaasFooter = ({
         <div>Approved by:</div>
       </div>
 
-      {/* Signature images */}
+      {/* Signature images — hidden, preserved for future use */}
       <div className="grid grid-cols-3 text-center mt-2 print:mt-2">
         <div className="flex flex-col items-center">
-          {taxMapperSignatureUrl
-            ? <Image src={taxMapperSignatureUrl} alt="Tax Mapper signature" width={160} height={48} className="object-contain max-h-12 mb-0.5 print:max-h-10" />
-            : <div className="h-12" />
-          }
-          <span className="inline-block border-b border-black w-3/4 mx-auto font-bold">{appraisedByName || ''}</span>
+          {/* <Image src={taxMapperSignatureUrl} alt="Tax Mapper signature" width={160} height={48} className="object-contain max-h-12 mb-0.5 print:max-h-10" /> */}
+          <div className="h-12" />
+          <span className="inline-block border-b border-black w-3/4 mx-auto font-bold capitalize">{appraisedByName || ''}</span>
         </div>
         <div className="flex flex-col items-center">
-          {municipalSignatureUrl
-            ? <Image src={municipalSignatureUrl} alt="Municipal Assessor signature" width={160} height={48} className="object-contain max-h-12 mb-0.5 print:max-h-10" />
-            : <div className="h-12" />
-          }
-          <span className="inline-block border-b border-black w-3/4 mx-auto font-bold">{municipalAssessorName || 'Name of Municipal Assessor'}</span>
+          {/* <Image src={municipalSignatureUrl} alt="Municipal Assessor signature" width={160} height={48} className="object-contain max-h-12 mb-0.5 print:max-h-10" /> */}
+          <div className="h-12" />
+          <span className="inline-block border-b border-black w-3/4 mx-auto font-bold capitalize">{municipalAssessorName || 'Name of Municipal Assessor'}</span>
         </div>
         <div className="flex flex-col items-center">
-          {provincialSignatureUrl
-            ? <Image src={provincialSignatureUrl} alt="Provincial Assessor signature" width={160} height={48} className="object-contain max-h-12 mb-0.5 print:max-h-10" />
-            : <div className="h-12" />
-          }
-          <span className="inline-block border-b border-black w-3/4 mx-auto font-bold">{provincialAssessorName || 'Name of Provincial Assessor'}</span>
+          {/* <Image src={provincialSignatureUrl} alt="Provincial Assessor signature" width={160} height={48} className="object-contain max-h-12 mb-0.5 print:max-h-10" /> */}
+          <div className="h-12" />
+          <span className="inline-block border-b border-black w-3/4 mx-auto font-bold capitalize">{provincialAssessorName || 'Name of Provincial Assessor'}</span>
         </div>
       </div>
 
@@ -193,7 +221,7 @@ const FaasFooter = ({
         <div></div>
       </div>
       <div className="grid grid-cols-3 text-center">
-        <div></div>
+        <div>{appraisedByRole ? ROLE_LABELS[appraisedByRole] ?? appraisedByRole : ''}</div>
         <div>Municipal Assessor</div>
         <div>Provincial Assessor</div>
       </div>
@@ -214,14 +242,15 @@ const FaasFooter = ({
               <td colSpan={6} style={{ minHeight: '1.5rem', paddingLeft: 4 }}>{memoranda || ''}</td>
             </tr>
             <tr>
-              <td>Prev. TD:</td><td></td>
-              <td>Prev. AV:</td><td></td>
-              <td>Prev. Area</td><td></td>
+              <td>Prev. TD:</td><td className="font-bold">{previousTdNo || ''}</td>
+              <td>Prev. AV:</td><td className="font-bold">{fmtMoney(previousAv)}</td>
+              <td>Prev. Area</td><td className="font-bold">{fmtNum(previousArea)}</td>
             </tr>
             <tr>
-              <td>Prev. Owner:</td><td></td>
-              <td>Prev. MV:</td><td></td>
-              <td>Effectivity of Assessment:</td><td></td>
+              <td>Prev. Owner:</td><td className="font-bold uppercase">{previousOwner || ''}</td>
+              <td>Prev. MV:</td><td className="font-bold">{fmtMoney(previousMv)}</td>
+              <td>Effectivity of Assessment:</td>
+              <td className="font-bold">{effectivityOfAssessment ? String(effectivityOfAssessment).substring(0, 4) : ''}</td>
             </tr>
           </tbody>
         </table>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState, useCallback, memo, Suspense, useRef } from "react";
+import { useEffect, useState, useCallback, memo, Suspense, useRef, useMemo } from "react";
 import "@/app/styles/forms-fill.css";
 import { StepPagination, LAND_IMPROVEMENT_STEPS } from "@/components/ui/step-pagination";
 import { Label } from "@/components/ui/label";
@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Loader2, Info } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { toast } from "sonner";
 import { PH_PROVINCES, MOUNTAIN_PROVINCE_CODE } from "@/app/components/forms/RPFAAS/constants/philippineLocations";
 
 // Helper function to collect form data from ONLY this step (step 1)
@@ -42,6 +43,11 @@ function collectFormData(
   surveyNo: string,
   lotNo: string,
   blk: string,
+  previousTdNo: string,
+  previousOwner: string,
+  previousAv: string,
+  previousMv: string,
+  previousArea: string,
 ) {
   const data: any = {
     owner_name: ownerName,
@@ -54,6 +60,11 @@ function collectFormData(
     survey_no: surveyNo,
     lot_no: lotNo,
     blk,
+    previous_td_no: previousTdNo || null,
+    previous_owner: previousOwner || null,
+    previous_av: previousAv ? parseFloat(previousAv) || null : null,
+    previous_mv: previousMv ? parseFloat(previousMv) || null : null,
+    previous_area: previousArea ? parseFloat(previousArea) || null : null,
     owner_province_code: ownerLoc.provinceCode,
     owner_municipality_code: ownerLoc.municipalityCode,
     owner_barangay_code: ownerLoc.barangayCode,
@@ -109,12 +120,6 @@ function formatPin(value: string): string {
   return parts.join('-');
 }
 
-function formatArpNo(raw: string): string {
-  const digits = raw.replace(/\D/g, '').slice(0, 11);
-  if (digits.length <= 2) return digits;
-  if (digits.length <= 6) return `${digits.slice(0, 2)}-${digits.slice(2)}`;
-  return `${digits.slice(0, 2)}-${digits.slice(2, 6)}-${digits.slice(6)}`;
-}
 
 function safeSetLS(key: string, value: string) {
   try { localStorage.setItem(key, value); } catch { /* ignore */ }
@@ -261,9 +266,10 @@ const LocationSelect = memo(({
 const TRANSACTION_CODES = [
   { code: "DC", label: "DC – Discovery / Newly Discovered", description: "Used for newly constructed buildings, or for existing structures that were previously undeclared and are being assessed for the very first time." },
   { code: "TR", label: "TR – Transfer", description: "Used when the ownership of the building is being transferred to a new owner." },
+  { code: "SD", label: "SD – Subdivision", description: "Used when a parcel of land owned by the same owner is subdivided into two or more lots." },
+  { code: "CS", label: "CS – Consolidation", description: "Used when two or more adjacent parcels of land are merged into a single lot." },
   { code: "PC", label: "PC – Physical Change", description: "Used when an existing building undergoes structural changes that affect its market value, such as major renovations, extensions, additions, or partial demolitions." },
   { code: "RC", label: "RC – Reassessment / Reclassification", description: "Used when there is a change in the building's actual use (e.g., a residential house is converted into a commercial establishment) or when an owner requests a value review outside of a general revision period." },
-  { code: "DM", label: "DM – Demolition / Destruction", description: "Used to cancel or lower an assessment when a building is entirely torn down, condemned, or destroyed by a calamity (like a fire or typhoon)." },
   { code: "GR", label: "GR – General Revision", description: "Used during the LGU's mandated, periodic city-wide or municipality-wide updating of property assessments and fair market values." },
   { code: "DP", label: "DP – Depreciation", description: "Used when a tax declaration is updated specifically to apply the allowable physical depreciation to the building's value based on its age and condition." },
 ];
@@ -281,13 +287,19 @@ function LandOtherImprovementsFillPageContent() {
   const [adminCareOf, setAdminCareOf] = useState("");
   const [propertyStreet, setPropertyStreet] = useState("");
   const [transactionCode, setTransactionCode] = useState("");
-  const [arpNo, setArpNo] = useState("");
+  const [arpSeq, setArpSeq] = useState("");
   const [titleType, setTitleType] = useState("");
   const [titleNo, setTitleNo] = useState("");
   const [pin, setPin] = useState("");
   const [surveyNo, setSurveyNo] = useState("");
   const [lotNo, setLotNo] = useState("");
   const [blk, setBlk] = useState("");
+  const [previousTdNo, setPreviousTdNo] = useState("");
+  const [previousOwner, setPreviousOwner] = useState("");
+  const [previousAv, setPreviousAv] = useState("");
+  const [previousMv, setPreviousMv] = useState("");
+  const [previousArea, setPreviousArea] = useState("");
+  const prevTdLookupTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Assigned municipality from the logged-in user's profile
   const [userMunicipality, setUserMunicipality] = useState("");
@@ -295,6 +307,19 @@ function LandOtherImprovementsFillPageContent() {
   const ownerLoc = useLocationSelect("rpfaas_owner_address");
   const adminLoc = useLocationSelect("rpfaas_admin");
   const propLoc  = useLocationSelect("rpfaas_location", MOUNTAIN_PROVINCE_CODE);
+
+  // Derive ARP prefix from selected property municipality + barangay PSGC codes
+  const arpPrefix = useMemo(() => {
+    if (!propLoc.municipalityCode || !propLoc.barangayCode) return "";
+    const munPart = propLoc.municipalityCode.substring(4, 6);
+    const barPart = propLoc.barangayCode.substring(6).padStart(4, '0');
+    return `${munPart}-${barPart}`;
+  }, [propLoc.municipalityCode, propLoc.barangayCode]);
+
+  const arpNo = useMemo(
+    () => arpPrefix ? `${arpPrefix}-${arpSeq}` : arpSeq,
+    [arpPrefix, arpSeq]
+  );
 
   // Fetch user profile to get assigned municipality
   useEffect(() => {
@@ -322,11 +347,18 @@ function LandOtherImprovementsFillPageContent() {
           const result = await response.json();
           if (result.success && result.data) {
             const data = result.data;
+            if (data.status === 'approved') {
+              router.replace(`/land-other-improvements/fill/preview-form?id=${draftId}`);
+              return;
+            }
             if (data.owner_name) setOwnerName(data.owner_name);
             if (data.admin_care_of) setAdminCareOf(data.admin_care_of);
             if (data.property_address) setPropertyStreet(data.property_address);
             if (data.transaction_code) setTransactionCode(data.transaction_code);
-            if (data.arp_no) setArpNo(data.arp_no);
+            if (data.arp_no) {
+              const lastDash = (data.arp_no as string).lastIndexOf('-');
+              setArpSeq(lastDash !== -1 ? (data.arp_no as string).slice(lastDash + 1) : data.arp_no);
+            }
             if (data.oct_tct_cloa_no) {
               const stored = data.oct_tct_cloa_no as string;
               const spaceIdx = stored.indexOf(' ');
@@ -344,6 +376,11 @@ function LandOtherImprovementsFillPageContent() {
             if (data.survey_no) setSurveyNo(data.survey_no);
             if (data.lot_no) setLotNo(data.lot_no);
             if (data.blk) setBlk(data.blk);
+            if (data.previous_td_no) setPreviousTdNo(data.previous_td_no);
+            if (data.previous_owner) setPreviousOwner(data.previous_owner);
+            if (data.previous_av != null) setPreviousAv(String(data.previous_av));
+            if (data.previous_mv != null) setPreviousMv(String(data.previous_mv));
+            if (data.previous_area != null) setPreviousArea(String(data.previous_area));
             ownerLoc.loadLocation(data.owner_province_code || "", data.owner_municipality_code || "", data.owner_barangay_code || "");
             adminLoc.loadLocation(data.admin_province_code || "", data.admin_municipality_code || "", data.admin_barangay_code || "");
             // Always use current MOUNTAIN_PROVINCE_CODE (old drafts may have stale 9-digit codes)
@@ -362,14 +399,69 @@ function LandOtherImprovementsFillPageContent() {
     loadDraft();
   }, [draftId]);
 
+  // Debounced lookup: when Previous TD No. changes, fetch matching approved record
+  useEffect(() => {
+    if (prevTdLookupTimer.current) clearTimeout(prevTdLookupTimer.current);
+    if (!previousTdNo || previousTdNo.length < 5) return;
+    prevTdLookupTimer.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/faas/land-improvements?arp_no=${encodeURIComponent(previousTdNo)}`);
+        if (!res.ok) return;
+        const record = await res.json();
+        if (record) {
+          if (record.owner_name) setPreviousOwner(record.owner_name);
+          setPreviousAv(record.assessed_value != null ? String(record.assessed_value) : "");
+          setPreviousMv(record.market_value != null ? String(record.market_value) : "");
+          setPreviousArea(record.land_area != null ? String(record.land_area) : "");
+        } else {
+          setPreviousAv(""); setPreviousMv(""); setPreviousArea("");
+        }
+      } catch { /* ignore */ }
+    }, 600);
+    return () => { if (prevTdLookupTimer.current) clearTimeout(prevTdLookupTimer.current); };
+  }, [previousTdNo]);
+
   useEffect(() => safeSetLS("rpfaas_owner_name", ownerName), [ownerName]);
   useEffect(() => safeSetLS("rpfaas_admin_careof", adminCareOf), [adminCareOf]);
   useEffect(() => safeSetLS("rpfaas_location_street", propertyStreet), [propertyStreet]);
 
+  const saveData = useCallback(async (): Promise<string | null> => {
+    const formData = collectFormData(ownerName, adminCareOf, propertyStreet, ownerLoc, adminLoc, propLoc, transactionCode, arpNo, titleType, titleNo, pin, surveyNo, lotNo, blk, previousTdNo, previousOwner, previousAv, previousMv, previousArea);
+    formData.status = 'draft';
+
+    const currentDraftId = draftId || localStorage.getItem('land_draft_id');
+    const method = currentDraftId ? 'PUT' : 'POST';
+    const url = currentDraftId ? `/api/faas/land-improvements/${currentDraftId}` : '/api/faas/land-improvements';
+
+    const response = await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(formData),
+    });
+
+    if (!response.ok) throw new Error(`Server error (${response.status})`);
+    const result = await response.json();
+    const id = result.data?.id?.toString() ?? null;
+    if (id) localStorage.setItem('land_draft_id', id);
+    return id;
+  }, [ownerName, adminCareOf, propertyStreet, ownerLoc, adminLoc, propLoc, transactionCode, arpNo, titleType, titleNo, pin, surveyNo, lotNo, blk, previousTdNo, previousOwner, previousAv, previousMv, previousArea, draftId]);
+
+  const handleSaveDraft = useCallback(async () => {
+    setIsSaving(true);
+    try {
+      await saveData();
+      toast.success("Draft saved successfully.");
+    } catch (error) {
+      toast.error("Error saving. Please try again.");
+    } finally {
+      setIsSaving(false);
+    }
+  }, [saveData]);
+
   const handleNext = useCallback(async () => {
     setIsSaving(true);
     try {
-      const formData = collectFormData(ownerName, adminCareOf, propertyStreet, ownerLoc, adminLoc, propLoc, transactionCode, arpNo, titleType, titleNo, pin, surveyNo, lotNo, blk);
+      const formData = collectFormData(ownerName, adminCareOf, propertyStreet, ownerLoc, adminLoc, propLoc, transactionCode, arpNo, titleType, titleNo, pin, surveyNo, lotNo, blk, previousTdNo, previousOwner, previousAv, previousMv, previousArea);
       formData.status = 'draft';
 
       let response;
@@ -413,7 +505,7 @@ function LandOtherImprovementsFillPageContent() {
     } finally {
       setIsSaving(false);
     }
-  }, [ownerName, adminCareOf, propertyStreet, ownerLoc, adminLoc, propLoc, transactionCode, arpNo, titleType, titleNo, pin, surveyNo, lotNo, blk, draftId, router]);
+  }, [ownerName, adminCareOf, propertyStreet, ownerLoc, adminLoc, propLoc, transactionCode, arpNo, titleType, titleNo, pin, surveyNo, lotNo, blk, previousTdNo, previousOwner, previousAv, previousMv, previousArea, draftId, router]);
 
   return (
     <SidebarProvider>
@@ -442,6 +534,16 @@ function LandOtherImprovementsFillPageContent() {
                 <h1 className="rpfaas-fill-title">Fill-up Form: RPFAAS - Land &amp; Other Improvements</h1>
                 <p className="text-sm text-muted-foreground">Enter the details below. You can generate the printable version afterwards.</p>
               </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleSaveDraft}
+                disabled={isSaving}
+                className="shrink-0"
+              >
+                {isSaving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving...</> : "Save Draft"}
+              </Button>
             </header>
 
             <form id={`form_${FORM_NAME}_main`} className="rpfaas-fill-form rpfaas-fill-form-single space-y-6">
@@ -484,14 +586,62 @@ function LandOtherImprovementsFillPageContent() {
                   </div>
                   <div className="space-y-1">
                     <Label className="rpfaas-fill-label">ARP No.</Label>
-                    <Input
-                      value={arpNo}
-                      onChange={(e) => setArpNo(formatArpNo(e.target.value))}
-                      placeholder="02-0001-01525" 
-                      className="rpfaas-fill-input font-mono"
-                      maxLength={13}
-                    />
+                    <div
+                      className="flex items-center font-mono h-9 border border-input rounded-md overflow-hidden"
+                      style={{ background: 'var(--surface)' }}
+                    >
+                      <span className="pl-3 pr-1 text-sm shrink-0 select-none" style={{ color: 'var(--text)' }}>
+                        {arpPrefix ? `${arpPrefix}-` : "__-____-"}
+                      </span>
+                      <Input
+                        value={arpSeq}
+                        onChange={(e) => setArpSeq(e.target.value.replace(/\D/g, '').slice(0, 5))}
+                        placeholder="00000"
+                        className="border-0 shadow-none focus-visible:ring-0 bg-transparent font-mono h-full py-0 pr-3 pl-0"
+                        maxLength={5}
+                        disabled={!arpPrefix}
+                        style={{ color: 'var(--text)' }}
+                      />
+                    </div>
                   </div>
+                  {transactionCode && transactionCode !== "DC" && (
+                    <>
+                      <div className="space-y-1">
+                        <Label className="rpfaas-fill-label">Previous TD No.</Label>
+                        <Input
+                          value={previousTdNo}
+                          onChange={(e) => { setPreviousTdNo(e.target.value); }}
+                          placeholder="e.g. 02-0001-00123"
+                          className="rpfaas-fill-input"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="rpfaas-fill-label">Previous Owner</Label>
+                        <Input
+                          value={previousOwner}
+                          onChange={(e) => setPreviousOwner(e.target.value)}
+                          placeholder="Auto-filled from TD lookup"
+                          className="rpfaas-fill-input"
+                        />
+                      </div>
+                      {(previousAv || previousMv || previousArea) && (
+                        <div className="col-span-2 grid grid-cols-3 gap-3 rounded-md border border-dashed px-3 py-2 bg-muted/40 text-xs">
+                          <div>
+                            <div className="text-muted-foreground mb-0.5">Prev. Assessed Value</div>
+                            <div className="font-semibold">{previousAv ? `₱${parseFloat(previousAv).toLocaleString("en-PH", { minimumFractionDigits: 2 })}` : "—"}</div>
+                          </div>
+                          <div>
+                            <div className="text-muted-foreground mb-0.5">Prev. Market Value</div>
+                            <div className="font-semibold">{previousMv ? `₱${parseFloat(previousMv).toLocaleString("en-PH", { minimumFractionDigits: 2 })}` : "—"}</div>
+                          </div>
+                          <div>
+                            <div className="text-muted-foreground mb-0.5">Prev. Area</div>
+                            <div className="font-semibold">{previousArea ? `${parseFloat(previousArea).toLocaleString("en-PH")} sqm` : "—"}</div>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
                   <div className="space-y-1">
                     <Label className="rpfaas-fill-label">OCT/TCT/CLOA No.</Label>
                     <div className="flex gap-2">

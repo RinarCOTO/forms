@@ -29,7 +29,8 @@ export const LAND_IMPROVEMENT_STEPS = [
   { step: 2, label: "Property Boundaries" },
   { step: 3, label: "Land Details" },
   { step: 4, label: "Deductions" },
-  { step: 5, label: "Assessment" },
+  { step: 5, label: "Documents" },
+  { step: 6, label: "Assessment" },
 ] as const;
 
 interface StepPaginationProps {

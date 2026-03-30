@@ -1,3 +1,5 @@
+// PAUSED — Digital signature module. Do not use or import until the auth
+// question is resolved. See project memory: project_digital_signatures.md
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';

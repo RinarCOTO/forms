@@ -317,6 +317,16 @@ function BuildingStructureFormFillPage5() {
         return;
       }
 
+      const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+      if (!ALLOWED_TYPES.includes(file.type)) {
+        toast.error('Only JPG, PNG, WebP, or PDF files are allowed.');
+        return;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error('File must be under 10 MB.');
+        return;
+      }
+
       setUploading((prev) => ({ ...prev, [photoType]: true }));
       try {
         const formData = new FormData();

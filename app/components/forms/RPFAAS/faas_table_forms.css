@@ -159,10 +159,15 @@
 
 @page {
   size: A4 portrait;
-  margin: 6mm 8mm 8mm 8mm;
+  margin: 3mm 5mm 5mm 5mm;
 }
 
 @media print {
+  .min-h-screen {
+    background: white !important;
+    min-height: 0 !important;
+  }
+
   body {
     margin: 0;
     padding: 0;

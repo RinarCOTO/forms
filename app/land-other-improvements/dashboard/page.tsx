@@ -31,7 +31,7 @@ export default function LandOtherImprovementsDashboard() {
   const [selectedMunicipalities, setSelectedMunicipalities] = useState<string[]>([]);
   const [selectedBarangays, setSelectedBarangays] = useState<string[]>([]);
   const [search, setSearch] = useState("");
-  const [user, setUser] = useState<{ role: string } | null>(null);
+  const [user, setUser] = useState<{ id: string; role: string } | null>(null);
   const [userLoading, setUserLoading] = useState(true);
 
   useEffect(() => {
@@ -122,7 +122,11 @@ export default function LandOtherImprovementsDashboard() {
     }
   };
 
-  const canDelete = user && (user.role === 'admin' || user.role === 'super_admin');
+  const canDelete = (submission: FormSubmission) =>
+    user && (
+      user.role === 'admin' || user.role === 'super_admin' ||
+      (submission.status === 'draft' && submission.created_by === user.id)
+    );
   const SUBMITTABLE_STATUSES = ['draft', 'returned', 'returned_to_municipal'];
   const EDITABLE_STATUSES = ['draft', 'returned', 'returned_to_municipal'];
 
@@ -330,7 +334,7 @@ export default function LandOtherImprovementsDashboard() {
                                     <Send className="h-4 w-4 mr-2" /> Submit for Review
                                   </DropdownMenuItem>
                                 )}
-                                {canDelete && (
+                                {canDelete(submission) && (
                                   <>
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem
@@ -382,4 +386,5 @@ interface FormSubmission {
   location_barangay?: string;
   updated_at: string;
   status: string;
+  created_by?: string;
 }

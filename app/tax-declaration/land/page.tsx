@@ -40,6 +40,16 @@ function LandTaxDecPage() {
       .finally(() => setLoading(false));
   }, [id]);
 
+  const handlePrint = () => {
+    const prev = document.title;
+    const owner = (data?.owner_name as string) ?? "Unknown";
+    const arp = (data?.arp_no as string) ?? "Unknown";
+    const date = new Date().toISOString().slice(0, 10);
+    document.title = `Tax Declaration - Land_${owner}_${arp}_${date}`;
+    window.print();
+    document.title = prev;
+  };
+
   return (
     <SidebarProvider>
       <AppSidebar />
@@ -67,7 +77,7 @@ function LandTaxDecPage() {
                 <h1 className="rpfaas-fill-title">Tax Declaration — Land &amp; Improvements</h1>
                 <p className="text-sm text-muted-foreground">Print or review the approved tax declaration.</p>
               </div>
-              <Button onClick={() => window.print()} variant="outline" className="hidden sm:flex items-center gap-2">
+              <Button onClick={handlePrint} variant="outline" className="hidden sm:flex items-center gap-2">
                 <Printer className="h-4 w-4" />
                 Print
               </Button>

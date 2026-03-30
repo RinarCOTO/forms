@@ -14,6 +14,11 @@ export const useRPFAASData = (serverData?: Record<string, any>) => {
         surveyNo: "",
         lotNo: "",
         blk: "",
+        previousTdNo: "",
+        previousOwner: "",
+        previousAv: "",
+        previousMv: "",
+        previousArea: "",
         ownerName: "",
         adminCareOfName: "",
         ownerAddressBarangay: "",
@@ -146,6 +151,11 @@ export const useRPFAASData = (serverData?: Record<string, any>) => {
                 surveyNo:        d.survey_no || "",
                 lotNo:           d.lot_no || "",
                 blk:             d.blk || "",
+                previousTdNo:    d.previous_td_no || "",
+                previousOwner:   d.previous_owner || "",
+                previousAv:      d.previous_av != null ? String(d.previous_av) : "",
+                previousMv:      d.previous_mv != null ? String(d.previous_mv) : "",
+                previousArea:    d.previous_area != null ? String(d.previous_area) : "",
                 ownerName:       d.owner_name || "",
                 adminCareOfName: d.admin_care_of || "",
                 ownerAddressBarangay, ownerAddressMunicipality, ownerAddressProvince,
@@ -219,6 +229,11 @@ export const useRPFAASData = (serverData?: Record<string, any>) => {
             const surveyNo = localStorage.getItem("rpfaas_survey_no") || "";
             const lotNo = localStorage.getItem("rpfaas_lot_no") || "";
             const blk = localStorage.getItem("rpfaas_blk") || "";
+            const previousTdNo = localStorage.getItem("rpfaas_previous_td_no") || "";
+            const previousOwner = localStorage.getItem("rpfaas_previous_owner") || "";
+            const previousAv = localStorage.getItem("rpfaas_previous_av") || "";
+            const previousMv = localStorage.getItem("rpfaas_previous_mv") || "";
+            const previousArea = localStorage.getItem("rpfaas_previous_area") || "";
 
             // Direct Strings from Step 1
             const ownerName = localStorage.getItem("rpfaas_owner_name") || "";
@@ -398,7 +413,7 @@ export const useRPFAASData = (serverData?: Record<string, any>) => {
             }
             
             // Get assessed value from step-6
-            const assessedValueStorageItem = localStorage.getItem("assessed_value_p5");
+            const assessedValueStorageItem = localStorage.getItem("estimated_value_p5");
             if (assessedValueStorageItem) {
                 assessedValueFromStorage = parseFloat(assessedValueStorageItem);
             }
@@ -438,6 +453,11 @@ export const useRPFAASData = (serverData?: Record<string, any>) => {
                 surveyNo,
                 lotNo,
                 blk,
+                previousTdNo,
+                previousOwner,
+                previousAv,
+                previousMv,
+                previousArea,
                 ownerName,
                 adminCareOfName,
                 ownerAddressBarangay,

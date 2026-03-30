@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState, useCallback, memo, Suspense, useRef } from "react";
+import { useEffect, useState, useCallback, memo, Suspense, useRef, useMemo } from "react";
 import { StepPagination } from "@/components/ui/step-pagination";
 import { ReviewCommentsFloat } from "@/components/review-comments-float";
 import "@/app/styles/forms-fill.css";
@@ -52,13 +52,6 @@ function formatPin(value: string): string {
   return result;
 }
 
-// Auto-insert dashes for ARP No. format: 02-0001-01525
-function formatArpNo(value: string): string {
-  const digits = value.replace(/\D/g, '').slice(0, 10);
-  if (digits.length <= 2) return digits;
-  if (digits.length <= 6) return `${digits.slice(0, 2)}-${digits.slice(2)}`;
-  return `${digits.slice(0, 2)}-${digits.slice(2, 6)}-${digits.slice(6)}`;
-}
 
 // Helper function to collect form data from ONLY this step (step 1)
 function collectFormData(
@@ -76,6 +69,11 @@ function collectFormData(
   surveyNo: string,
   lotNo: string,
   blk: string | number,
+  previousTdNo: string,
+  previousOwner: string,
+  previousAv: string,
+  previousMv: string,
+  previousArea: string,
 ) {
   const data: any = {
     owner_name: ownerName,
@@ -88,6 +86,11 @@ function collectFormData(
     survey_no: surveyNo,
     lot_no: lotNo,
     blk: blk !== "" ? Number(blk) : null,
+    previous_td_no: previousTdNo || null,
+    previous_owner: previousOwner || null,
+    previous_av: previousAv ? parseFloat(previousAv) || null : null,
+    previous_mv: previousMv ? parseFloat(previousMv) || null : null,
+    previous_area: previousArea ? parseFloat(previousArea) || null : null,
     owner_province_code: ownerLoc.provinceCode,
     owner_municipality_code: ownerLoc.municipalityCode,
     owner_barangay_code: ownerLoc.barangayCode,
@@ -298,13 +301,19 @@ function BuildingOtherStructureFillPageContent() {
 
   // Property Identification Fields
   const [transactionCode, setTransactionCode] = useState("");
-  const [arpNo, setArpNo] = useState("");
+  const [arpSeq, setArpSeq] = useState("");
   const [titleType, setTitleType] = useState("");
   const [titleNo, setTitleNo] = useState("");
   const [pin, setPin] = useState("");
   const [surveyNo, setSurveyNo] = useState("");
   const [lotNo, setLotNo] = useState("");
   const [blk, setBlk] = useState("");
+  const [previousTdNo, setPreviousTdNo] = useState("");
+  const [previousOwner, setPreviousOwner] = useState("");
+  const [previousAv, setPreviousAv] = useState("");
+  const [previousMv, setPreviousMv] = useState("");
+  const [previousArea, setPreviousArea] = useState("");
+  const prevTdLookupTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Basic Fields
   const [ownerName, setOwnerName] = useState("");
@@ -318,6 +327,19 @@ function BuildingOtherStructureFillPageContent() {
   const ownerLoc = useLocationSelect("rpfaas_owner_address");
   const adminLoc = useLocationSelect("rpfaas_admin");
   const propLoc  = useLocationSelect("rpfaas_location", MOUNTAIN_PROVINCE_CODE);
+
+  // Derive ARP prefix from selected property municipality + barangay PSGC codes
+  const arpPrefix = useMemo(() => {
+    if (!propLoc.municipalityCode || !propLoc.barangayCode) return "";
+    const munPart = propLoc.municipalityCode.substring(4, 6);
+    const barPart = propLoc.barangayCode.substring(6).padStart(4, '0');
+    return `${munPart}-${barPart}`;
+  }, [propLoc.municipalityCode, propLoc.barangayCode]);
+
+  const arpNo = useMemo(
+    () => arpPrefix ? `${arpPrefix}-${arpSeq}` : arpSeq,
+    [arpPrefix, arpSeq]
+  );
 
   // Fetch user profile to get assigned municipality
   useEffect(() => {
@@ -349,8 +371,15 @@ function BuildingOtherStructureFillPageContent() {
           const result = await response.json();
           if (result.success && result.data) {
             const data = result.data;
+            if (data.status === 'approved') {
+              router.replace(`/building-other-structure/print-preview?id=${draftId}`);
+              return;
+            }
             if (data.transaction_code) setTransactionCode(data.transaction_code);
-            if (data.arp_no) setArpNo(data.arp_no);
+            if (data.arp_no) {
+              const lastDash = (data.arp_no as string).lastIndexOf('-');
+              setArpSeq(lastDash !== -1 ? (data.arp_no as string).slice(lastDash + 1) : data.arp_no);
+            }
             if (data.oct_tct_cloa_no) {
               const stored = data.oct_tct_cloa_no as string;
               const spaceIdx = stored.indexOf(' ');
@@ -368,6 +397,11 @@ function BuildingOtherStructureFillPageContent() {
             if (data.survey_no) setSurveyNo(data.survey_no);
             if (data.lot_no) setLotNo(data.lot_no);
             if (data.blk) setBlk(data.blk);
+            if (data.previous_td_no) setPreviousTdNo(data.previous_td_no);
+            if (data.previous_owner) setPreviousOwner(data.previous_owner);
+            if (data.previous_av != null) setPreviousAv(String(data.previous_av));
+            if (data.previous_mv != null) setPreviousMv(String(data.previous_mv));
+            if (data.previous_area != null) setPreviousArea(String(data.previous_area));
             if (data.owner_name) setOwnerName(data.owner_name);
             if (data.admin_care_of) setAdminCareOf(data.admin_care_of);
             if (data.property_address) setPropertyStreet(data.property_address);
@@ -392,9 +426,31 @@ function BuildingOtherStructureFillPageContent() {
     loadDraft();
   }, [draftId]);
 
+  // Debounced lookup: when Previous TD No. changes, fetch matching approved building record
+  useEffect(() => {
+    if (prevTdLookupTimer.current) clearTimeout(prevTdLookupTimer.current);
+    if (!previousTdNo || previousTdNo.length < 5) return;
+    prevTdLookupTimer.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/faas/building-structures?arp_no=${encodeURIComponent(previousTdNo)}`);
+        if (!res.ok) return;
+        const record = await res.json();
+        if (record) {
+          if (record.owner_name) setPreviousOwner(record.owner_name);
+          setPreviousAv(record.estimated_value != null ? String(record.estimated_value) : "");
+          setPreviousMv(record.market_value != null ? String(record.market_value) : "");
+          setPreviousArea(record.total_floor_area != null ? String(record.total_floor_area) : "");
+        } else {
+          setPreviousAv(""); setPreviousMv(""); setPreviousArea("");
+        }
+      } catch { /* ignore */ }
+    }, 600);
+    return () => { if (prevTdLookupTimer.current) clearTimeout(prevTdLookupTimer.current); };
+  }, [previousTdNo]);
+
   // Persist basic strings
   useEffect(() => safeSetLS("rpfaas_transaction_code", transactionCode), [transactionCode]);
-  useEffect(() => safeSetLS("rpfaas_arp_no", arpNo), [arpNo]);
+  useEffect(() => safeSetLS("rpfaas_arp_no", arpNo), [arpNo]); // arpNo is derived from arpPrefix + arpSeq
   useEffect(() => safeSetLS("rpfaas_title_type", titleType), [titleType]);
   useEffect(() => safeSetLS("rpfaas_title_no", titleNo), [titleNo]);
   useEffect(() => safeSetLS("rpfaas_pin", pin), [pin]);
@@ -420,7 +476,7 @@ function BuildingOtherStructureFillPageContent() {
   const handleNext = useCallback(async () => {
     setIsSaving(true);
     try {
-      const formData = collectFormData(ownerName, adminCareOf, propertyStreet, ownerLoc, adminLoc, propLoc, transactionCode, arpNo, titleType, titleNo, pin, surveyNo, lotNo, blk);
+      const formData = collectFormData(ownerName, adminCareOf, propertyStreet, ownerLoc, adminLoc, propLoc, transactionCode, arpNo, titleType, titleNo, pin, surveyNo, lotNo, blk, previousTdNo, previousOwner, previousAv, previousMv, previousArea);
       formData.status = 'draft';
 
       let response;
@@ -465,12 +521,12 @@ function BuildingOtherStructureFillPageContent() {
     } finally {
       setIsSaving(false);
     }
-  }, [ownerName, adminCareOf, propertyStreet, ownerLoc, adminLoc, propLoc, transactionCode, arpNo, titleType, titleNo, pin, surveyNo, lotNo, blk, draftId, router]);
+  }, [ownerName, adminCareOf, propertyStreet, ownerLoc, adminLoc, propLoc, transactionCode, arpNo, titleType, titleNo, pin, surveyNo, lotNo, blk, previousTdNo, previousOwner, previousAv, previousMv, previousArea, draftId, router]);
 
   const handleSaveDraft = useCallback(async () => {
     setIsSavingDraft(true);
     try {
-      const formData = collectFormData(ownerName, adminCareOf, propertyStreet, ownerLoc, adminLoc, propLoc, transactionCode, arpNo, titleType, titleNo, pin, surveyNo, lotNo, blk);
+      const formData = collectFormData(ownerName, adminCareOf, propertyStreet, ownerLoc, adminLoc, propLoc, transactionCode, arpNo, titleType, titleNo, pin, surveyNo, lotNo, blk, previousTdNo, previousOwner, previousAv, previousMv, previousArea);
       formData.status = 'draft';
       const currentDraftId = draftId || localStorage.getItem('draft_id');
       let response;
@@ -501,7 +557,7 @@ function BuildingOtherStructureFillPageContent() {
     } finally {
       setIsSavingDraft(false);
     }
-  }, [ownerName, adminCareOf, propertyStreet, ownerLoc, adminLoc, propLoc, transactionCode, arpNo, titleType, titleNo, pin, surveyNo, lotNo, blk, draftId]);
+  }, [ownerName, adminCareOf, propertyStreet, ownerLoc, adminLoc, propLoc, transactionCode, arpNo, titleType, titleNo, pin, surveyNo, lotNo, blk, previousTdNo, previousOwner, previousAv, previousMv, previousArea, draftId]);
 
   return (
     <SidebarProvider>
@@ -582,14 +638,62 @@ function BuildingOtherStructureFillPageContent() {
                   </div>
                   <div className="space-y-1" data-comment-field="arp_no">
                     <Label className="rpfaas-fill-label">ARP No.</Label>
-                    <Input
-                      value={arpNo}
-                      onChange={(e) => setArpNo(formatArpNo(e.target.value))}
-                      placeholder="02-0001-01525"
-                      className="rpfaas-fill-input font-mono"
-                      maxLength={13}
-                    />
+                    <div
+                      className="flex items-center font-mono h-9 border border-input rounded-md overflow-hidden"
+                      style={{ background: 'var(--surface)' }}
+                    >
+                      <span className="pl-3 pr-1 text-sm shrink-0 select-none" style={{ color: 'var(--text)' }}>
+                        {arpPrefix ? `${arpPrefix}-` : "__-____-"}
+                      </span>
+                      <Input
+                        value={arpSeq}
+                        onChange={(e) => setArpSeq(e.target.value.replace(/\D/g, '').slice(0, 5))}
+                        placeholder="00000"
+                        className="border-0 shadow-none focus-visible:ring-0 bg-transparent font-mono h-full py-0 pr-3 pl-0"
+                        maxLength={5}
+                        disabled={!arpPrefix}
+                        style={{ color: 'var(--text)' }}
+                      />
+                    </div>
                   </div>
+                  {transactionCode && transactionCode !== "DC" && (
+                    <>
+                      <div className="space-y-1">
+                        <Label className="rpfaas-fill-label">Previous TD No.</Label>
+                        <Input
+                          value={previousTdNo}
+                          onChange={(e) => setPreviousTdNo(e.target.value)}
+                          placeholder="e.g. 02-0001-00123"
+                          className="rpfaas-fill-input"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="rpfaas-fill-label">Previous Owner</Label>
+                        <Input
+                          value={previousOwner}
+                          onChange={(e) => setPreviousOwner(e.target.value)}
+                          placeholder="Auto-filled from TD lookup"
+                          className="rpfaas-fill-input"
+                        />
+                      </div>
+                      {(previousAv || previousMv || previousArea) && (
+                        <div className="col-span-2 grid grid-cols-3 gap-3 rounded-md border border-dashed px-3 py-2 bg-muted/40 text-xs">
+                          <div>
+                            <div className="text-muted-foreground mb-0.5">Prev. Assessed Value</div>
+                            <div className="font-semibold">{previousAv ? `₱${parseFloat(previousAv).toLocaleString("en-PH", { minimumFractionDigits: 2 })}` : "—"}</div>
+                          </div>
+                          <div>
+                            <div className="text-muted-foreground mb-0.5">Prev. Market Value</div>
+                            <div className="font-semibold">{previousMv ? `₱${parseFloat(previousMv).toLocaleString("en-PH", { minimumFractionDigits: 2 })}` : "—"}</div>
+                          </div>
+                          <div>
+                            <div className="text-muted-foreground mb-0.5">Prev. Floor Area</div>
+                            <div className="font-semibold">{previousArea ? `${parseFloat(previousArea).toLocaleString("en-PH")} sqm` : "—"}</div>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
                   <div className="space-y-1" data-comment-field="oct_tct_cloa_no">
                     <Label className="rpfaas-fill-label">OCT/TCT/CLOA No.</Label>
                     <div className="flex gap-2">

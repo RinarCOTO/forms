@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserContext } from '@/lib/services/user.service';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
 
-export const maxDuration = 60; // seconds — requires Vercel Pro; on Hobby falls back to 10s
+export const maxDuration = 60;
 
 function getAdminClient() {
   return createAdminClient(
@@ -29,8 +29,8 @@ export async function GET(
     // 2. Verify the record exists and belongs to this user's municipality
     const admin = getAdminClient();
     const { data: record, error } = await admin
-      .from('building_structures')
-      .select('id, municipality, owner_name, arp_no')
+      .from('land_improvements')
+      .select('id, municipality')
       .eq('id', id)
       .single();
 
@@ -48,7 +48,7 @@ export async function GET(
 
     // 4. Derive the base URL from the incoming request
     const { origin } = new URL(request.url);
-    const printUrl = `${origin}/building-other-structure/print-only?id=${id}`;
+    const printUrl = `${origin}/land-other-improvements/print-only?id=${id}`;
 
     // 5. Launch Puppeteer
     let chromium: any;
@@ -82,7 +82,6 @@ export async function GET(
     try {
       const page = await browser.newPage();
 
-      // Pass auth cookies so the print page can fetch from the DB
       if (cookieHeader) {
         const cookies = cookieHeader.split(';').map((c) => {
           const [name, ...rest] = c.trim().split('=');
@@ -92,8 +91,6 @@ export async function GET(
       }
 
       await page.goto(printUrl, { waitUntil: 'networkidle0', timeout: 30000 });
-
-      // Wait until the form signals it has finished rendering DB data
       await page.waitForSelector('[data-print-ready="true"]', { timeout: 15000 });
       await new Promise((r) => setTimeout(r, 500));
 
@@ -101,6 +98,12 @@ export async function GET(
         content: `@media print { .min-h-screen { background: white !important; min-height: 0 !important; } }`,
       });
 
+      // DEBUG: screenshot in print media
+      // await page.emulateMediaType('print');
+      // const screenshot = await page.screenshot({ fullPage: true });
+      // return new NextResponse(screenshot, {
+      //   headers: { 'Content-Type': 'image/png', 'Content-Disposition': 'inline; filename="debug.png"' },
+      // });
 
       const pdf = await page.pdf({
         format: 'A4',
@@ -111,7 +114,7 @@ export async function GET(
       return new NextResponse(pdf, {
         headers: {
           'Content-Type': 'application/pdf',
-          'Content-Disposition': `attachment; filename="RPFAAS-Building_${record.owner_name ?? 'Unknown'}_${record.arp_no ?? 'Unknown'}_${new Date().toISOString().slice(0, 10)}.pdf"`,
+          'Content-Disposition': `attachment; filename="RPFAAS-Land-${id}.pdf"`,
         },
       });
     } finally {

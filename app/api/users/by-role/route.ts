@@ -2,22 +2,42 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
 
+const ALLOWED_ROLES = new Set([
+  'tax_mapper',
+  'municipal_tax_mapper',
+  'laoo',
+  'provincial_assessor',
+  'assistant_provincial_assessor',
+  'admin',
+  'super_admin',
+]);
+
 export async function GET(request: NextRequest) {
   const supabase = await createClient();
   const { data: { user }, error } = await supabase.auth.getUser();
   if (error || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-  const role = request.nextUrl.searchParams.get('role');
-  const userId = request.nextUrl.searchParams.get('id');
-
-  // role is required unless looking up a specific user by id
-  if (!role && !userId) return NextResponse.json({ error: 'role or id param required' }, { status: 400 });
 
   const admin = createAdminClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     { auth: { autoRefreshToken: false, persistSession: false } }
   );
+
+  // Use admin client to bypass RLS when reading the caller's own role
+  const { data: callerRow } = await admin
+    .from('users')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+  if (!callerRow || !ALLOWED_ROLES.has(callerRow.role)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
+  const role = request.nextUrl.searchParams.get('role');
+  const userId = request.nextUrl.searchParams.get('id');
+
+  // role is required unless looking up a specific user by id
+  if (!role && !userId) return NextResponse.json({ error: 'role or id param required' }, { status: 400 });
 
   const municipality = request.nextUrl.searchParams.get('municipality');
 

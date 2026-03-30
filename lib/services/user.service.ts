@@ -9,7 +9,7 @@ function getAdminClient() {
   )
 }
 
-export async function getCurrentUserContext(): Promise<{ municipality: string | null; isAdmin: boolean } | null> {
+export async function getCurrentUserContext(): Promise<{ userId: string; municipality: string | null; isAdmin: boolean; role: string } | null> {
   try {
     const supabase = await createClient()
     const { data: { user: authUser } } = await supabase.auth.getUser()
@@ -25,7 +25,7 @@ export async function getCurrentUserContext(): Promise<{ municipality: string | 
     if (!profile) return null
 
     const isAdmin = ['admin', 'super_admin'].includes(profile.role)
-    return { municipality: profile.municipality ?? null, isAdmin }
+    return { userId: authUser.id, municipality: profile.municipality ?? null, isAdmin, role: profile.role }
   } catch {
     return null
   }
