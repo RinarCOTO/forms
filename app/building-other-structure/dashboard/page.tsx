@@ -114,14 +114,6 @@ export default function BuildingOtherStructureDashboard() {
           });
         }
       )
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'building_structures' },
-        (payload) => {
-          const inserted = payload.new as FormSubmission;
-          setSubmissions(prev => [inserted, ...prev]);
-        }
-      )
       .subscribe((status, err) => {
         if (err) console.error('[Realtime] subscription error:', err);
         else console.log('[Realtime] building-structures status:', status);
