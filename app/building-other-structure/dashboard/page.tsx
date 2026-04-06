@@ -104,9 +104,14 @@ export default function BuildingOtherStructureDashboard() {
         { event: 'UPDATE', schema: 'public', table: 'building_structures' },
         (payload) => {
           const updated = payload.new as FormSubmission;
-          setSubmissions(prev =>
-            prev.map(s => s.id === updated.id ? { ...s, status: updated.status, updated_at: updated.updated_at } : s)
-          );
+          setSubmissions(prev => {
+            const exists = prev.some(s => s.id === updated.id);
+            if (exists) {
+              return prev.map(s => s.id === updated.id ? { ...s, status: updated.status, updated_at: updated.updated_at } : s);
+            }
+            // Row wasn't in the list (e.g. was a draft from another user) — add it now
+            return [updated, ...prev];
+          });
         }
       )
       .on(
@@ -221,7 +226,7 @@ export default function BuildingOtherStructureDashboard() {
       case 'laoo_approved':         return 'LAOO Approved';
       case 'approved':              return 'Approved';
       case 'draft':                 return 'Draft';
-      default:                      return status.charAt(0).toUpperCase() + status.slice(1);
+      default:                      return status ? status.charAt(0).toUpperCase() + status.slice(1) : 'Unknown';
     }
   };
 
