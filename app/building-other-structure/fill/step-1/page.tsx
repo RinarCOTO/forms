@@ -477,10 +477,10 @@ function BuildingOtherStructureFillPageContent() {
     setIsSaving(true);
     try {
       const formData = collectFormData(ownerName, adminCareOf, propertyStreet, ownerLoc, adminLoc, propLoc, transactionCode, arpNo, titleType, titleNo, pin, surveyNo, lotNo, blk, previousTdNo, previousOwner, previousAv, previousMv, previousArea);
-      formData.status = 'draft';
 
       let response;
       const currentDraftId = draftId || localStorage.getItem('draft_id');
+      if (!currentDraftId) formData.status = 'draft';
 
       if (currentDraftId) {
         response = await fetch(`/api/faas/building-structures/${currentDraftId}`, {
@@ -527,8 +527,8 @@ function BuildingOtherStructureFillPageContent() {
     setIsSavingDraft(true);
     try {
       const formData = collectFormData(ownerName, adminCareOf, propertyStreet, ownerLoc, adminLoc, propLoc, transactionCode, arpNo, titleType, titleNo, pin, surveyNo, lotNo, blk, previousTdNo, previousOwner, previousAv, previousMv, previousArea);
-      formData.status = 'draft';
       const currentDraftId = draftId || localStorage.getItem('draft_id');
+      if (!currentDraftId) formData.status = 'draft';
       let response;
       if (currentDraftId) {
         response = await fetch(`/api/faas/building-structures/${currentDraftId}`, {

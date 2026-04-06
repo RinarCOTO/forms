@@ -107,10 +107,13 @@ export default function BuildingOtherStructureDashboard() {
           setSubmissions(prev => {
             const exists = prev.some(s => s.id === updated.id);
             if (exists) {
+              // If somehow reverted to draft, remove it
+              if (updated.status === 'draft') return prev.filter(s => s.id !== updated.id);
               return prev.map(s => s.id === updated.id ? { ...s, status: updated.status, updated_at: updated.updated_at } : s);
             }
-            // Row wasn't in the list (e.g. was a draft from another user) — add it now
-            return [updated, ...prev];
+            // Only add if it just became non-draft (e.g. tax mapper submitted)
+            if (updated.status !== 'draft') return [updated, ...prev];
+            return prev;
           });
         }
       )

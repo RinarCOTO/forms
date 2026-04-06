@@ -313,13 +313,13 @@ const handleNext = useCallback(async () => {
         land_area: landArea,
         // We use the raw value here for the DB too
         cost_of_construction: rawCostValue === "0" ? null : rawCostValue,
-        status: 'draft',
       };
 
       // ... rest of your fetch logic remains the same ...
       let response;
       const currentDraftId = draftId || localStorage.getItem('draft_id');
       const method = currentDraftId ? 'PUT' : 'POST';
+      if (!currentDraftId) formData.status = 'draft';
       const endpoint = currentDraftId 
         ? `/api/faas/building-structures/${currentDraftId}` 
         : '/api/faas/building-structures';
@@ -370,10 +370,10 @@ const handleNext = useCallback(async () => {
         total_floor_area: totalFloorArea,
         land_owner: landOwner, td_arp_no: tdArpNo, land_area: landArea,
         cost_of_construction: rawCostValue === '0' ? null : rawCostValue,
-        status: 'draft',
       };
       const currentDraftId = draftId || localStorage.getItem('draft_id');
       const method = currentDraftId ? 'PUT' : 'POST';
+      if (!currentDraftId) formData.status = 'draft';
       const endpoint = currentDraftId ? `/api/faas/building-structures/${currentDraftId}` : '/api/faas/building-structures';
       const response = await fetch(endpoint, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(formData) });
       if (response.ok) {

@@ -283,8 +283,7 @@ if (loadedData?.additional_flat_rate_areas?.length > 0) {
       };
       localStorage.setItem("p4", JSON.stringify(p4LocalStorageData));
 
-      const formData = {
-        status: "draft",
+      const formData: Record<string, unknown> = {
         selected_deductions: selections.filter(Boolean),
         deduction_amounts: deductionAmounts,
         overall_comments: comments,
@@ -305,6 +304,7 @@ if (loadedData?.additional_flat_rate_areas?.length > 0) {
 
       const currentDraftId = draftId || localStorage.getItem("draft_id");
       const method = currentDraftId ? "PUT" : "POST";
+      if (!currentDraftId) formData.status = 'draft';
       const url = currentDraftId
         ? `${FORM_CONSTANTS.API_ENDPOINTS.BUILDING_STRUCTURE}/${currentDraftId}`
         : FORM_CONSTANTS.API_ENDPOINTS.BUILDING_STRUCTURE;
@@ -356,8 +356,7 @@ if (loadedData?.additional_flat_rate_areas?.length > 0) {
         additional_flat_rate_areas: additionalFlatRateAreas,
         market_value: financialSummary.netMarketValue,
       }));
-      const formData = {
-        status: 'draft',
+      const formData: Record<string, unknown> = {
         selected_deductions: selections.filter(Boolean),
         deduction_amounts: deductionAmountsDraft,
         overall_comments: comments,
@@ -371,6 +370,7 @@ if (loadedData?.additional_flat_rate_areas?.length > 0) {
       };
       const currentDraftId = draftId || localStorage.getItem('draft_id');
       const method = currentDraftId ? 'PUT' : 'POST';
+      if (!currentDraftId) formData.status = 'draft';
       const url = currentDraftId
         ? `${FORM_CONSTANTS.API_ENDPOINTS.BUILDING_STRUCTURE}/${currentDraftId}`
         : FORM_CONSTANTS.API_ENDPOINTS.BUILDING_STRUCTURE;

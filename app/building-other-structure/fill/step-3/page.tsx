@@ -269,12 +269,12 @@ const BuildingStructureFormFillPage3 = () => {
     setIsSaving(true);
     try {
       const formData = collectFormData(materials, materialsOtherText, flooringGrid, wallsGrid);
-      formData.status = 'draft';
-      
+
       console.log('Saving Step 3 form data:', formData);
-      
+
       let response;
       const currentDraftId = draftId || localStorage.getItem('draft_id');
+      if (!currentDraftId) formData.status = 'draft';
       
       if (currentDraftId) {
         response = await fetch(`/api/faas/building-structures/${currentDraftId}`, {
@@ -316,8 +316,8 @@ const BuildingStructureFormFillPage3 = () => {
     setIsSavingDraft(true);
     try {
       const formData = collectFormData(materials, materialsOtherText, flooringGrid, wallsGrid);
-      formData.status = 'draft';
       const currentDraftId = draftId || localStorage.getItem('draft_id');
+      if (!currentDraftId) formData.status = 'draft';
       let response;
       if (currentDraftId) {
         response = await fetch(`/api/faas/building-structures/${currentDraftId}`, {

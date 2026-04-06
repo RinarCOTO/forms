@@ -274,7 +274,6 @@ function BuildingStructureFormFillPage6() {
     setIsSaving(true);
     try {
       const formData = collectFormData(actualUse, assessedValue, amountInWords, assessmentLevel);
-      formData.status = 'draft';
       if (effectivityYear) {
         formData.effectivity_of_assessment = parseInt(effectivityYear);
         localStorage.setItem("effectivity_of_assessment_p5", effectivityYear);
@@ -302,6 +301,7 @@ function BuildingStructureFormFillPage6() {
 
       let response;
       const currentDraftId = draftId || localStorage.getItem('draft_id');
+      if (!currentDraftId) formData.status = 'draft';
 
       if (currentDraftId) {
         response = await fetch(`/api/faas/building-structures/${currentDraftId}`, {
