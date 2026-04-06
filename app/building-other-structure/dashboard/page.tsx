@@ -24,6 +24,7 @@ import { FileText, Plus, ArrowLeft, Loader2, Eye, Edit, Trash2, MoreHorizontal, 
 import { Input } from "@/components/ui/input";
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
@@ -94,6 +95,23 @@ export default function BuildingOtherStructureDashboard() {
     fetchUser();
     fetchSubmissions();
     fetchMunicipalAssessors();
+
+    const supabase = createClient();
+    const channel = supabase
+      .channel('building-structures-status')
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'building_structures' },
+        (payload) => {
+          const updated = payload.new as FormSubmission;
+          setSubmissions(prev =>
+            prev.map(s => s.id === updated.id ? { ...s, status: updated.status, updated_at: updated.updated_at } : s)
+          );
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
   const handleNewForm = useCallback(async () => {
