@@ -122,7 +122,10 @@ export default function BuildingOtherStructureDashboard() {
           setSubmissions(prev => [inserted, ...prev]);
         }
       )
-      .subscribe();
+      .subscribe((status, err) => {
+        if (err) console.error('[Realtime] subscription error:', err);
+        else console.log('[Realtime] building-structures status:', status);
+      });
 
     return () => { supabase.removeChannel(channel); };
   }, []);

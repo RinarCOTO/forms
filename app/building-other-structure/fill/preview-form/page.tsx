@@ -562,7 +562,7 @@ function PreviewFormPage() {
       alert("No form ID found. Please save as draft first.");
       return;
     }
-    if (!confirm("Submit this form for LAOO review? You will not be able to edit it until the LAOO returns it.")) return;
+    if (!confirm("Submit this form for Municipal Assessor review? You will not be able to edit it until it is returned.")) return;
 
     setIsSubmitting(true);
     try {
@@ -680,7 +680,7 @@ function PreviewFormPage() {
                   <div className="flex items-center gap-2 rounded-md border border-yellow-400/50 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
                     <Lock className="h-4 w-4 shrink-0" />
                     <span>
-                      <strong>Awaiting LAOO Review.</strong> This form has been submitted and is locked for editing until the LAOO returns it.
+                      <strong>Awaiting Municipal Assessor Review.</strong> This form has been submitted and is locked for editing until it is returned.
                     </span>
                   </div>
                 )}
@@ -688,7 +688,7 @@ function PreviewFormPage() {
                   <div className="flex items-center gap-2 rounded-md border border-blue-400/50 bg-blue-50 px-4 py-3 text-sm text-blue-800">
                     <Lock className="h-4 w-4 shrink-0" />
                     <span>
-                      <strong>Under LAOO Review.</strong> A LAOO officer is currently reviewing this form.
+                      <strong>Under Review.</strong> This form is currently being reviewed.
                     </span>
                   </div>
                 )}
@@ -696,7 +696,7 @@ function PreviewFormPage() {
                   <div className="flex items-center gap-2 rounded-md border border-orange-400/50 bg-orange-50 px-4 py-3 text-sm text-orange-800">
                     <AlertTriangle className="h-4 w-4 shrink-0" />
                     <span>
-                      <strong>Returned for Review.</strong> The LAOO has reviewed this form and left comments. Please address all comments before resubmitting.
+                      <strong>Returned for Review.</strong> This form has been returned with comments. Please address all comments before resubmitting.
                     </span>
                   </div>
                 )}
@@ -704,7 +704,7 @@ function PreviewFormPage() {
                   <div className="flex items-center gap-2 rounded-md border border-green-400/50 bg-green-50 px-4 py-3 text-sm text-green-800">
                     <Lock className="h-4 w-4 shrink-0" />
                     <span>
-                      <strong>Approved.</strong> This form has been approved by the LAOO. The Tax Declaration has been unlocked.
+                      <strong>Approved.</strong> This form has been fully approved. The Tax Declaration has been unlocked.
                     </span>
                   </div>
                 )}
@@ -795,8 +795,8 @@ function PreviewFormPage() {
                     <p>
                       <strong>{formStatus === "returned" ? "Resubmit for Review" : "Submit for Review"}:</strong>{" "}
                       {formStatus === "returned"
-                        ? "Send your revised form back to the LAOO."
-                        : "Send to LAOO for review. The form will be locked until they respond."}
+                        ? "Send your revised form back for review."
+                        : "Send to Municipal Assessor for review. The form will be locked until it is returned."}
                     </p>
                   </div>
                 )}
