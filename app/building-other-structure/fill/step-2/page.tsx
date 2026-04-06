@@ -296,7 +296,7 @@ const handleNext = useCallback(async () => {
         return str.length === 4 ? `${str}-01-01` : str;
       };
 
-      const formData = {
+      const formData: Record<string, unknown> = {
         type_of_building: typeOfBuilding,
         structure_type: structureType,
         building_permit_no: buildingPermitNo,
@@ -359,7 +359,7 @@ const handleNext = useCallback(async () => {
         const str = val.toString();
         return str.length === 4 ? `${str}-01-01` : str;
       };
-      const formData = {
+      const formData: Record<string, unknown> = {
         type_of_building: typeOfBuilding, structure_type: structureType,
         building_permit_no: buildingPermitNo, cct,
         completion_issued_on: formatYearToDate(completionIssuedOn),
