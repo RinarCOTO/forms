@@ -109,6 +109,14 @@ export default function BuildingOtherStructureDashboard() {
           );
         }
       )
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'building_structures' },
+        (payload) => {
+          const inserted = payload.new as FormSubmission;
+          setSubmissions(prev => [inserted, ...prev]);
+        }
+      )
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
