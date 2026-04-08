@@ -220,7 +220,7 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ id: 
     const isAdmin = userProfile.role === 'admin' || userProfile.role === 'super_admin';
 
     if (!isAdmin) {
-      // Non-admins can only delete their own drafts
+      // Non-admins can only delete their own drafts or returned forms
       const { data: record, error: fetchErr } = await supabase
         .from('building_structures')
         .select('status, created_by')
@@ -230,7 +230,7 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ id: 
       if (fetchErr || !record) {
         return NextResponse.json({ success: false, message: 'Record not found' }, { status: 404 });
       }
-      if (record.status !== 'draft' || record.created_by !== user.id) {
+      if (!['draft', 'returned'].includes(record.status) || record.created_by !== user.id) {
         return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 });
       }
     }

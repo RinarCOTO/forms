@@ -100,6 +100,38 @@ export async function POST(
       return NextResponse.json({ error: 'Failed to update form', detail: updateError?.message }, { status: 500 });
     }
 
+    // ── Broadcast status change for live dashboard/queue updates ─────────────
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/realtime/v1/api/broadcast`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+          'apikey': process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        },
+        body: JSON.stringify({
+          messages: [{
+            topic: 'building-structures-updates',
+            event: 'status_change',
+            payload: {
+              id: updated.id,
+              status: config.toStatus,
+              updated_at: updated.updated_at,
+              submitted_at: updated.submitted_at,
+              owner_name: updated.owner_name,
+              location_municipality: updated.location_municipality,
+              location_barangay: updated.location_barangay,
+              created_by: updated.created_by,
+              form_type: 'building',
+              form_label: 'Building & Structures',
+            },
+          }],
+        }),
+      });
+    } catch (broadcastErr) {
+      console.warn('Broadcast failed (non-fatal):', broadcastErr);
+    }
+
     // Cancel previous TD when approved (non-blocking)
     if (action === 'sign_approve' && record.previous_td_no) {
       try {

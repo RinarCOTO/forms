@@ -29,7 +29,9 @@ import TotalDeductionTableBase from "./totalDeductionTable";
 const TotalDeductionTable = TotalDeductionTableBase as any;
 
 import { Loader2 } from "lucide-react";
+import { useFormLock } from "@/hooks/useFormLock";
 import { toast } from "sonner";
+import { FormLockBanner } from "@/components/ui/form-lock-banner";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -50,7 +52,7 @@ const BuildingStructureFormFillPage4 = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const draftId = searchParams.get("id");
-
+  const { checking: lockChecking, locked, lockedBy } = useFormLock('building_structures', draftId);
   const [isSaving, setIsSaving] = useState(false);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
@@ -160,7 +162,7 @@ if (loadedData?.additional_flat_rate_areas?.length > 0) {
     
     // Note: You may need similar loading logic here for additionalPercentSelections/Areas
     // if you are saving them to the DB and want to reload them on edit.
-    setTimeout(() => { isInitializedRef.current = true; }, 150);
+    setTimeout(() => { isInitializedRef.current = true; }, 0);
   }, [loadedData, form]);
 
   // Track unsaved changes after initialization
@@ -410,11 +412,11 @@ if (loadedData?.additional_flat_rate_areas?.length > 0) {
           </Breadcrumb>
         </header>
 
-        <div className="flex-1 p-6 overflow-y-auto bg-stone-200">
-          <div className="max-w-4xl mx-auto">
-            <header className="flex items-center justify-between gap-4 mb-6">
+        <div className="flex-1 p-6 overflow-y-auto">
+          <div className="rpfaas-fill max-w-3xl mx-auto">
+            <header className="rpfaas-fill-header flex items-center justify-between gap-4 mb-6">
               <div>
-                <h1 className="text-2xl font-bold tracking-tight">Fill-up Form: General Description</h1>
+                <h1 className="rpfaas-fill-title">Fill-up Form: General Description</h1>
                 <p className="text-sm text-muted-foreground">Manage structure deductions and deviations.</p>
               </div>
               <Button
@@ -422,14 +424,15 @@ if (loadedData?.additional_flat_rate_areas?.length > 0) {
                 variant="outline"
                 size="sm"
                 onClick={() => form.handleSubmit(handleSaveDraft)()}
-                disabled={isSavingDraft || isSaving}
+                disabled={isSavingDraft || isSaving || locked || lockChecking}
                 className="shrink-0"
               >
                 {isSavingDraft ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving...</> : 'Save Draft'}
               </Button>
             </header>
-
-            <form onSubmit={form.handleSubmit(handleNext)} className="space-y-8">
+            <FormLockBanner locked={locked} lockedBy={lockedBy} />
+            <fieldset disabled={locked} className={`border-0 p-0 m-0 min-w-0 block${locked ? ' opacity-60' : ''}${lockChecking ? ' animate-pulse' : ''}`}>
+            <form onSubmit={form.handleSubmit(handleNext)} className="rpfaas-fill-form rpfaas-fill-form-single space-y-6">
               
               <div data-comment-field="selected_deductions">
                 <DeductionsTable
@@ -493,9 +496,10 @@ if (loadedData?.additional_flat_rate_areas?.length > 0) {
                 isDirty={isDirty}
                 onNext={() => form.handleSubmit(handleNext)()}
                 isNextLoading={isSaving}
-                isNextDisabled={isSaving || isSavingDraft}
+                isNextDisabled={isSaving || isSavingDraft || locked || lockChecking}
               />
             </form>
+            </fieldset>
           </div>
         </div>
       </SidebarInset>

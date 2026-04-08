@@ -507,7 +507,7 @@ function PreviewFormPage() {
                                 ) : (
                                   <Send className="mr-2 h-4 w-4" />
                                 )}
-                                {formStatus === "returned" ? "Resubmit for Review" : "Submit for Review"}
+                                {formStatus === "returned" ? "Resubmit to LAOO" : "Submit to LAOO"}
                               </>
                             )}
                           </Button>
@@ -521,7 +521,7 @@ function PreviewFormPage() {
                           <strong>Save as Draft:</strong> Save your progress and continue editing later.
                         </p>
                         <p>
-                          <strong>{formStatus === "returned" ? "Resubmit for Review" : "Submit for Review"}:</strong>{" "}
+                          <strong>{formStatus === "returned" ? "Resubmit to LAOO" : "Submit to LAOO"}:</strong>{" "}
                           {formStatus === "returned"
                             ? "Send your revised form back to the LAOO."
                             : "Send to LAOO for review. The form will be locked until they respond."}

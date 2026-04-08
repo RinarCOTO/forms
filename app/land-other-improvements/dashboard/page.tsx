@@ -16,6 +16,7 @@ import { FileText, Plus, ArrowLeft, Loader2, Eye, Edit, Trash2, MoreHorizontal, 
 import { Input } from "@/components/ui/input";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
@@ -68,6 +69,28 @@ export default function LandOtherImprovementsDashboard() {
 
     fetchUser();
     fetchSubmissions();
+
+    const VISIBLE_STATUSES = ['submitted', 'municipal_signed', 'laoo_approved', 'returned', 'returned_to_municipal', 'approved'];
+
+    const supabase = createClient();
+    const channel = supabase
+      .channel('building-structures-updates')
+      .on('broadcast', { event: 'status_change' }, ({ payload }) => {
+        if (payload?.form_type !== 'land') return;
+        const updated = payload as FormSubmission;
+        setSubmissions(prev => {
+          const exists = prev.some(s => s.id === updated.id);
+          if (exists) {
+            if (!VISIBLE_STATUSES.includes(updated.status)) return prev.filter(s => s.id !== updated.id);
+            return prev.map(s => s.id === updated.id ? { ...s, status: updated.status, updated_at: updated.updated_at } : s);
+          }
+          if (VISIBLE_STATUSES.includes(updated.status)) return [updated, ...prev];
+          return prev;
+        });
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
   const handleNewForm = async () => {
@@ -331,7 +354,7 @@ export default function LandOtherImprovementsDashboard() {
                                 </DropdownMenuItem>
                                 {SUBMITTABLE_STATUSES.includes(submission.status) && (
                                   <DropdownMenuItem onClick={() => handleSubmitForReview(submission.id)}>
-                                    <Send className="h-4 w-4 mr-2" /> Submit for Review
+                                    <Send className="h-4 w-4 mr-2" /> Submit to LAOO
                                   </DropdownMenuItem>
                                 )}
                                 {canDelete(submission) && (

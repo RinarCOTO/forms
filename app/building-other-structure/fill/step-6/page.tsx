@@ -26,6 +26,11 @@ import {
 } from "@/components/ui/sidebar";
 import { toast } from "sonner";
 import { TextArea } from "react-aria-components";
+import { Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { FormLockBanner } from "@/components/ui/form-lock-banner";
+import { FormSection } from "@/components/ui/form-section";
+import { useFormLock } from "@/hooks/useFormLock";
 
 // Helper function to collect form data from ONLY this step (step 5)
 function collectFormData(
@@ -109,8 +114,9 @@ function BuildingStructureFormFillPage6() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const draftId = searchParams.get('id');
-
+  const { checking: lockChecking, locked, lockedBy } = useFormLock('building_structures', draftId);
   const [isSaving, setIsSaving] = useState(false);
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
   const [actualUse, setActualUse] = useState("");
   const [taxStatus, setTaxStatus] = useState<"taxable" | "exempt">("taxable");
   const [memoranda, setMemoranda] = useState("");
@@ -270,6 +276,59 @@ function BuildingStructureFormFillPage6() {
     router.push("/building-other-structure");
   }, [router]);
 
+  const handleSaveDraft = useCallback(async () => {
+    setIsSavingDraft(true);
+    try {
+      const formData = collectFormData(actualUse, assessedValue, amountInWords, assessmentLevel);
+      if (effectivityYear) {
+        formData.effectivity_of_assessment = parseInt(effectivityYear);
+        localStorage.setItem("effectivity_of_assessment_p5", effectivityYear);
+      }
+      if (appraisedBy) {
+        formData.appraised_by = appraisedBy;
+        localStorage.setItem("appraised_by_p5", appraisedBy);
+      }
+      if (memoranda) {
+        formData.memoranda = memoranda;
+        localStorage.setItem("memoranda_p5", memoranda);
+      } else {
+        localStorage.removeItem("memoranda_p5");
+      }
+      localStorage.setItem("assessment_level_p5", assessmentLevel);
+      localStorage.setItem("estimated_value_p5", assessedValue.toString());
+      localStorage.setItem("actual_use_p5", actualUse);
+      localStorage.setItem("tax_status_p5", taxStatus);
+      formData.tax_status = taxStatus;
+
+      const currentDraftId = draftId || localStorage.getItem('draft_id');
+      if (!currentDraftId) formData.status = 'draft';
+      const endpoint = currentDraftId
+        ? `/api/faas/building-structures/${currentDraftId}`
+        : '/api/faas/building-structures';
+      const method = currentDraftId ? 'PUT' : 'POST';
+
+      const response = await fetch(endpoint, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+      if (response.ok) {
+        const result = await response.json();
+        if (result.data?.id) localStorage.setItem('draft_id', result.data.id.toString());
+        toast.success('Draft saved successfully.');
+      } else {
+        const raw = await response.text();
+        let message = 'Unknown error';
+        try { message = JSON.parse(raw)?.message || raw || message; } catch { message = raw || message; }
+        toast.error(`Failed to save draft: ${message}`);
+      }
+    } catch {
+      toast.error('Error saving draft. Please try again.');
+    } finally {
+      setIsSavingDraft(false);
+    }
+  }, [actualUse, assessedValue, amountInWords, assessmentLevel, draftId, effectivityYear, appraisedBy, memoranda, taxStatus]);
+
   const handlePreview = useCallback(async () => {
     setIsSaving(true);
     try {
@@ -366,11 +425,21 @@ function BuildingStructureFormFillPage6() {
                 <h1 className="rpfaas-fill-title">Fill-up Form: Property Assessment</h1>
                 <p className="text-sm text-muted-foreground">{PAGE_DESCRIPTION}</p>
               </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleSaveDraft}
+                disabled={isSavingDraft || isSaving || locked || lockChecking}
+                className="shrink-0"
+              >
+                {isSavingDraft ? <><Loader2 className="h-4 w-4 animate-spin mr-1" />Saving...</> : 'Save Draft'}
+              </Button>
             </header>
-
+            <FormLockBanner locked={locked} lockedBy={lockedBy} />
+            <fieldset disabled={locked} className={`border-0 p-0 m-0 min-w-0 block${locked ? ' opacity-60' : ''}${lockChecking ? ' animate-pulse' : ''}`}>
             <form id={`form_${FORM_NAME}`} data-form-name={FORM_NAME} onSubmit={handleSubmit} className="rpfaas-fill-form rpfaas-fill-form-single space-y-6 px-4 py-6">
-              <section className="rpfaas-fill-section">
-                <h2 className="rpfaas-fill-section-title mb-4">Property Assessment</h2>
+              <FormSection title="Property Assessment">
 
                 <div className="rpfaas-fill-field space-y-1" data-comment-field="actual_use">
                   <Label className="rpfaas-fill-label" htmlFor="actual_use_p5">Actual Use</Label>
@@ -477,8 +546,8 @@ function BuildingStructureFormFillPage6() {
                     </SelectContent>
                   </Select>
                 </div>
-              </section>
-              <section className="rpfaas-fill-section">
+              </FormSection>
+              <FormSection>
                 <div className="rpfaas-fill-field space-y-1" data-comment-field="appraised_by">
                   <Label className="rpfaas-fill-label" htmlFor="appraised_by_p5">Assessed/Appraised by:</Label>
                   {currentUser && currentUser.role !== 'tax_mapper' ? (
@@ -521,7 +590,7 @@ function BuildingStructureFormFillPage6() {
                     rows={3}
                   />
                 </div>
-              </section>
+              </FormSection>
 
               <StepPagination
                 currentStep={6}
@@ -530,9 +599,10 @@ function BuildingStructureFormFillPage6() {
                 onNext={handlePreview}
                 nextLabel="Preview"
                 isNextLoading={isSaving}
-                isNextDisabled={isSaving}
+                isNextDisabled={isSaving || locked || lockChecking}
               />
             </form>
+            </fieldset>
           </div>
         </div>
       </SidebarInset>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
@@ -124,6 +125,28 @@ export default function ReviewQueuePage() {
   }, [formTypeFilter, statusFilter, role]);
 
   useEffect(() => { fetchItems(); }, [fetchItems]);
+
+  useEffect(() => {
+    if (!role) return;
+    const visibleStatuses = getDefaultStatuses(role);
+    const supabase = createClient();
+    const channel = supabase
+      .channel('building-structures-updates')
+      .on('broadcast', { event: 'status_change' }, ({ payload }) => {
+        const item = payload as ReviewItem;
+        setItems(prev => {
+          const exists = prev.some(r => r.id === item.id && r.form_type === item.form_type);
+          if (exists) {
+            if (!visibleStatuses.includes(item.status)) return prev.filter(r => !(r.id === item.id && r.form_type === item.form_type));
+            return prev.map(r => r.id === item.id && r.form_type === item.form_type ? { ...r, status: item.status, updated_at: item.updated_at } : r);
+          }
+          if (visibleStatuses.includes(item.status)) return [item, ...prev];
+          return prev;
+        });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [role]);
 
   const uniqueMunicipalities = [...new Set(items.map(i => i.location_municipality).filter(Boolean) as string[])].sort();
 

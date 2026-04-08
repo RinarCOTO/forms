@@ -207,6 +207,27 @@ export async function POST(
       }
     }
 
+    // ── Broadcast status change for live dashboard updates ────────────────────
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/realtime/v1/api/broadcast`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+          'apikey': process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        },
+        body: JSON.stringify({
+          messages: [{
+            topic: 'building-structures-updates',
+            event: 'status_change',
+            payload: { id: updated.id, status: toStatus, updated_at: updated.updated_at, submitted_at: updated.submitted_at, owner_name: updated.owner_name, location_municipality: updated.location_municipality, location_barangay: updated.location_barangay, created_by: updated.created_by, form_type: 'building', form_label: 'Building & Structures' },
+          }],
+        }),
+      });
+    } catch (broadcastErr) {
+      console.warn('Broadcast failed (non-fatal):', broadcastErr);
+    }
+
     // ── Write audit entry (non-blocking — table may not exist yet) ─────────────
     try {
       await admin.from('form_review_history').insert({

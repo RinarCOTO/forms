@@ -24,6 +24,9 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { Loader2, Info } from "lucide-react";
+import { useFormLock } from "@/hooks/useFormLock";
+import { FormLockBanner } from "@/components/ui/form-lock-banner";
+import { FormSection } from "@/components/ui/form-section";
 import { toast } from "sonner";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { PH_PROVINCES, MOUNTAIN_PROVINCE_CODE } from "@/app/components/forms/RPFAAS/constants/philippineLocations";
@@ -291,6 +294,8 @@ function BuildingOtherStructureFillPageContent() {
   const searchParams = useSearchParams();
   const draftId = searchParams.get('id');
 
+  const { checking: lockChecking, locked, lockedBy } = useFormLock('building_structures', draftId);
+
   const [isSaving, setIsSaving] = useState(false);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
@@ -419,8 +424,7 @@ function BuildingOtherStructureFillPageContent() {
       } catch (error) {
         console.error('Failed to load draft data for step 1', error);
       } finally {
-        // Allow a frame for state to settle before tracking dirty
-        setTimeout(() => { isInitializedRef.current = true; }, 100);
+        isInitializedRef.current = true;
       }
     };
     loadDraft();
@@ -581,6 +585,9 @@ function BuildingOtherStructureFillPageContent() {
 
         <div className="flex-1 p-6 overflow-y-auto">
           <div className="rpfaas-fill max-w-3xl mx-auto">
+
+            <FormLockBanner locked={locked} lockedBy={lockedBy} />
+
             <header className="rpfaas-fill-header flex items-center justify-between gap-4 mb-6">
               <div>
                 <h1 className="rpfaas-fill-title">Fill-up Form: RPFAAS - Building &amp; Other Structures</h1>
@@ -591,18 +598,18 @@ function BuildingOtherStructureFillPageContent() {
                 variant="outline"
                 size="sm"
                 onClick={handleSaveDraft}
-                disabled={isSavingDraft || isSaving}
+                disabled={isSavingDraft || isSaving || locked || lockChecking}
                 className="shrink-0"
               >
                 {isSavingDraft ? <><Loader2 className="h-4 w-4 animate-spin mr-1" />Saving...</> : 'Save Draft'}
               </Button>
             </header>
 
+            <fieldset disabled={locked} className={`border-0 p-0 m-0 min-w-0 block${locked ? ' opacity-60' : ''}${lockChecking ? ' animate-pulse' : ''}`}>
             <form id={`form_${FORM_NAME}_main`} className="rpfaas-fill-form rpfaas-fill-form-single space-y-6" onChange={markDirty}>
 
 
-              <section className="rpfaas-fill-section">
-                <h2 className="rpfaas-fill-section-title mb-4">Property Identification</h2>
+              <FormSection title="Property Identification">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-1">
                     <div className="flex items-center gap-1.5">
@@ -751,10 +758,9 @@ function BuildingOtherStructureFillPageContent() {
                     </div>
                   </div>
                 </div>
-              </section>
+              </FormSection>
               {/* OWNER SECTION */}
-              <section className="rpfaas-fill-section">
-                <h2 className="rpfaas-fill-section-title mb-4">Owner Information</h2>
+              <FormSection title="Owner Information">
                 <div className="rpfaas-fill-field space-y-1" data-comment-field="owner_name">
                   <Label className="rpfaas-fill-label">Owner</Label>
                   <Input value={ownerName} onChange={(e) => setOwnerName(e.target.value)} className="rpfaas-fill-input" />
@@ -827,11 +833,10 @@ function BuildingOtherStructureFillPageContent() {
                     />
                   </div>
                 </div>
-              </section>
+              </FormSection>
 
               {/* PROPERTY LOCATION SECTION — Mountain Province only (static, no API) */}
-              <section className="rpfaas-fill-section" data-comment-field="location_municipality location_barangay location_province">
-                <h2 className="rpfaas-fill-section-title mb-4">Location Property</h2>
+              <FormSection title="Location Property" commentField="location_municipality location_barangay location_province">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                   <div className="space-y-1">
                     <Label className="rpfaas-fill-label">No/Street/Sitio</Label>
@@ -870,7 +875,7 @@ function BuildingOtherStructureFillPageContent() {
                     loading={propLoc.isLoadingBar}
                   />
                 </div>
-              </section>
+              </FormSection>
 
               <StepPagination
                 currentStep={1}
@@ -878,9 +883,10 @@ function BuildingOtherStructureFillPageContent() {
                 isDirty={isDirty}
                 onNext={handleNext}
                 isNextLoading={isSaving}
-                isNextDisabled={isSaving || isSavingDraft}
+                isNextDisabled={isSaving || isSavingDraft || locked || lockChecking}
               />
             </form>
+            </fieldset>
           </div>
         </div>
       </SidebarInset>

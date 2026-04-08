@@ -8,6 +8,7 @@ const SERVICE_URLS: Record<string, string> = {
   users:     process.env.USERS_SERVICE_URL     ?? 'http://localhost:3003',
   faas:      process.env.FAAS_SERVICE_URL      ?? 'http://localhost:3004',
   review:    process.env.REVIEW_SERVICE_URL    ?? 'http://localhost:3005',
+  print:     process.env.PRINT_SERVICE_URL     ?? 'http://localhost:3006',
 }
 
 async function proxy(req: NextRequest, service: string, path: string[]) {
@@ -29,6 +30,12 @@ async function proxy(req: NextRequest, service: string, path: string[]) {
 
   if (session?.access_token) {
     headers['Authorization'] = `Bearer ${session.access_token}`
+  }
+
+  // Print service needs the raw cookies so Puppeteer can authenticate against the main app
+  if (service === 'print') {
+    const cookieHeader = req.headers.get('cookie')
+    if (cookieHeader) headers['x-forwarded-cookies'] = cookieHeader
   }
 
   const isFormData = req.headers.get('content-type')?.includes('multipart/form-data')

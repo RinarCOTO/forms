@@ -25,7 +25,10 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { Loader2 } from "lucide-react";
+import { useFormLock } from "@/hooks/useFormLock";
 import { toast } from "sonner";
+import { FormLockBanner } from "@/components/ui/form-lock-banner";
+import { FormSection } from "@/components/ui/form-section";
 import { RoofMaterialsForm } from "@/components/forms/RoofMaterialsForm";
 
 // --- HELPER: Parse JSON Safely ---
@@ -133,7 +136,7 @@ const BuildingStructureFormFillPage3 = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const draftId = searchParams.get('id');
-  
+  const { checking: lockChecking, locked, lockedBy } = useFormLock('building_structures', draftId);
   const [isSaving, setIsSaving] = useState(false);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
@@ -229,7 +232,7 @@ const BuildingStructureFormFillPage3 = () => {
            setMaterials(prev => ({...prev, ...parsedRoof}));
         }
       }
-      setTimeout(() => { isInitializedRef.current = true; }, 100);
+      isInitializedRef.current = true;
     }
   }, [loadedData]);
 
@@ -384,13 +387,14 @@ const BuildingStructureFormFillPage3 = () => {
                 variant="outline"
                 size="sm"
                 onClick={handleSaveDraft}
-                disabled={isSavingDraft || isSaving}
+                disabled={isSavingDraft || isSaving || locked || lockChecking}
                 className="shrink-0"
               >
                 {isSavingDraft ? <><Loader2 className="h-4 w-4 animate-spin mr-1" />Saving...</> : 'Save Draft'}
               </Button>
             </header>
-
+            <FormLockBanner locked={locked} lockedBy={lockedBy} />
+            <fieldset disabled={locked} className={`border-0 p-0 m-0 min-w-0 block${locked ? ' opacity-60' : ''}${lockChecking ? ' animate-pulse' : ''}`}>
             <form
               id={`form_${FORM_NAME}`}
               data-form-name={FORM_NAME}
@@ -399,8 +403,7 @@ const BuildingStructureFormFillPage3 = () => {
               className="rpfaas-fill-form rpfaas-fill-form-single space-y-6"
             >
               {/* ROOF SECTION */}
-              <section className="rpfaas-fill-section" data-comment-field="roofing_material">
-                <h2 className="rpfaas-fill-section-title mb-4">Roof Information</h2>
+              <FormSection title="Roof Information" commentField="roofing_material">
                 <div>
                    <RoofMaterialsForm
                       materials={materials}
@@ -409,32 +412,34 @@ const BuildingStructureFormFillPage3 = () => {
                       setMaterialsOtherText={setMaterialsOtherText}
                     />
                 </div>
-              </section>
-              
+              </FormSection>
+
               {/* FLOORING & WALLS SECTION */}
-              <section className="rpfaas-fill-section" data-comment-field="flooring_material wall_material">
+              <FormSection commentField="flooring_material wall_material">
                 <div className="overflow-auto">
                    
                    {/* FLOORING TABLE */}
                   <table className="w-full table-auto border-collapse mb-8">
-                    <tbody>
+                    <thead>
                       <tr>
-                        <th colSpan={2 + numberOfStoreys} className="py-4 section-divider text-left text-lg font-semibold">
+                        <th colSpan={1 + numberOfStoreys} className="py-4 section-divider text-left text-lg font-semibold">
                           Flooring Materials
                         </th>
                       </tr>
                       <tr>
-                        <td className="border px-2 py-1 font-bold w-32 bg-gray-50">Material</td>
+                        <th scope="col" className="border px-2 py-1 font-bold w-32 bg-gray-50 text-left">Material</th>
                         {Array.from({ length: numberOfStoreys }).map((_, i) => (
-                          <td key={`floor-header-${i}`} className="border px-2 py-1 text-center font-bold bg-gray-50">
+                          <th key={`floor-header-${i}`} scope="col" className="border px-2 py-1 text-center font-bold bg-gray-50">
                             {i + 1}
                             <sup>{["st", "nd", "rd"][i] || "th"}</sup>
-                          </td>
+                          </th>
                         ))}
                       </tr>
+                    </thead>
+                    <tbody>
                       {flooringLabels.map((label, rIdx) => (
                         <tr key={label}>
-                          <td className="border px-2 py-1 font-medium">{label}</td>
+                          <th scope="row" className="border px-2 py-1 font-medium text-left">{label}</th>
                           {Array.from({ length: numberOfStoreys }).map((_, cIdx) => {
                              const isChecked = flooringGrid[rIdx]?.[cIdx] || false;
                              return (
@@ -459,24 +464,26 @@ const BuildingStructureFormFillPage3 = () => {
 
                   {/* WALLS TABLE */}
                   <table className="w-full table-auto border-collapse">
-                    <tbody>
+                    <thead>
                       <tr>
-                        <th colSpan={2 + numberOfStoreys} className="py-4 section-divider text-left text-lg font-semibold">
+                        <th colSpan={1 + numberOfStoreys} className="py-4 section-divider text-left text-lg font-semibold">
                           Wall Materials
                         </th>
                       </tr>
                       <tr>
-                        <td className="border px-2 py-1 font-bold w-32 bg-gray-50">Material</td>
+                        <th scope="col" className="border px-2 py-1 font-bold w-32 bg-gray-50 text-left">Material</th>
                         {Array.from({ length: numberOfStoreys }).map((_, i) => (
-                          <td key={`wall-header-${i}`} className="border px-2 py-1 text-center font-bold bg-gray-50">
+                          <th key={`wall-header-${i}`} scope="col" className="border px-2 py-1 text-center font-bold bg-gray-50">
                             {i + 1}
                             <sup>{["st", "nd", "rd"][i] || "th"}</sup>
-                          </td>
+                          </th>
                         ))}
                       </tr>
+                    </thead>
+                    <tbody>
                       {wallLabels.map((label, rIdx) => (
                         <tr key={label}>
-                          <td className="border px-2 py-1 font-medium">{label}</td>
+                          <th scope="row" className="border px-2 py-1 font-medium text-left">{label}</th>
                           {Array.from({ length: numberOfStoreys }).map((_, cIdx) => {
                              const isChecked = wallsGrid[rIdx]?.[cIdx] || false;
                              return (
@@ -499,7 +506,7 @@ const BuildingStructureFormFillPage3 = () => {
                     </tbody>
                   </table>
                 </div>
-              </section>
+              </FormSection>
 
               <StepPagination
                 currentStep={3}
@@ -507,9 +514,10 @@ const BuildingStructureFormFillPage3 = () => {
                 isDirty={isDirty}
                 onNext={handleNext}
                 isNextLoading={isSaving}
-                isNextDisabled={isSaving || isSavingDraft}
+                isNextDisabled={isSaving || isSavingDraft || locked || lockChecking}
               />
             </form>
+            </fieldset>
           </div>
         </div>
       </SidebarInset>

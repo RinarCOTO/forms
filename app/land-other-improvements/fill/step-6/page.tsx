@@ -25,8 +25,9 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { Loader2 } from "lucide-react";
+import { Loader2, Lock } from "lucide-react";
 import { toast } from "sonner";
+import { useFormLock } from "@/hooks/useFormLock";
 
 const API_ENDPOINT = "/api/faas/land-improvements";
 
@@ -89,6 +90,7 @@ function LandImprovementsFormFillPage6() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const draftId = searchParams.get("id");
+  const { checking: lockChecking, locked, lockedBy } = useFormLock('land_improvements', draftId);
 
   const [isSaving, setIsSaving] = useState(false);
   const [taxStatus, setTaxStatus] = useState<"taxable" | "exempt">("taxable");
@@ -293,13 +295,25 @@ function LandImprovementsFormFillPage6() {
                 variant="outline"
                 size="sm"
                 onClick={handleSaveDraft}
-                disabled={isSaving}
+                disabled={isSaving || locked || lockChecking}
                 className="shrink-0"
               >
                 {isSaving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving...</> : "Save Draft"}
               </Button>
             </header>
-
+            {lockChecking && (
+              <div className="flex items-center gap-2 mb-4 rounded-md border bg-muted px-4 py-3 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Checking form availability…
+              </div>
+            )}
+            {!lockChecking && locked && (
+              <div className="flex items-center gap-2 mb-4 rounded-md border border-yellow-400/50 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
+                <Lock className="h-4 w-4 shrink-0" />
+                <span><strong>{lockedBy}</strong> is currently editing this form. You can view it but cannot make changes.</span>
+              </div>
+            )}
+            <fieldset disabled={locked || lockChecking} className={`border-0 p-0 m-0 min-w-0 block${locked || lockChecking ? ' opacity-60' : ''}`}>
             <form className="rpfaas-fill-form rpfaas-fill-form-single space-y-6">
               <section className="rpfaas-fill-section">
                 <h2 className="rpfaas-fill-section-title mb-4">Property Assessment</h2>
@@ -454,12 +468,13 @@ function LandImprovementsFormFillPage6() {
                 onNext={handlePreview}
                 nextLabel="Preview"
                 isNextLoading={isSaving}
-                isNextDisabled={isSaving}
+                isNextDisabled={isSaving || locked || lockChecking}
                 basePath="land-other-improvements"
                 steps={LAND_IMPROVEMENT_STEPS}
                 draftStorageKey="land_draft_id"
               />
             </form>
+            </fieldset>
           </div>
         </div>
       </SidebarInset>

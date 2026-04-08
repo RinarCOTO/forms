@@ -23,6 +23,8 @@ import {
 } from "@/components/ui/sidebar";
 import { Loader2, Upload, X, ImageIcon, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
+import { useFormLock } from "@/hooks/useFormLock";
+import { FormLockBanner } from "@/components/ui/form-lock-banner";
 import {
   Dialog,
   DialogContent,
@@ -253,6 +255,7 @@ function BuildingStructureFormFillPage5() {
   // Resolve draftId from URL param first, then fall back to localStorage
   const urlId = searchParams.get("id");
   const [draftId, setDraftId] = useState<string | null>(urlId);
+  const { checking: lockChecking, locked, lockedBy } = useFormLock('building_structures', draftId);
 
   useEffect(() => {
     if (!urlId) {
@@ -271,6 +274,7 @@ function BuildingStructureFormFillPage5() {
     Partial<Record<PhotoType, boolean>>
   >({});
   const [isLoading, setIsLoading] = useState(true);
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
   const [removeDialogOpen, setRemoveDialogOpen] = useState(false);
   const [photoToRemove, setPhotoToRemove] = useState<PhotoType | null>(null);
 
@@ -399,6 +403,30 @@ function BuildingStructureFormFillPage5() {
     }
   }, [photoToRemove, photos]);
 
+  const handleSaveDraft = useCallback(async () => {
+    if (!draftId) {
+      toast.error('No draft found. Go back and save a previous step first.');
+      return;
+    }
+    setIsSavingDraft(true);
+    try {
+      const response = await fetch(`/api/faas/building-structures/${draftId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'draft' }),
+      });
+      if (response.ok) {
+        toast.success('Draft saved successfully.');
+      } else {
+        toast.error('Failed to save draft.');
+      }
+    } catch {
+      toast.error('Error saving draft.');
+    } finally {
+      setIsSavingDraft(false);
+    }
+  }, [draftId]);
+
   const navParams = draftId ? `?id=${draftId}` : "";
 
   return (
@@ -431,16 +459,30 @@ function BuildingStructureFormFillPage5() {
         <div className="flex-1 p-6 overflow-y-auto">
           <div className="rpfaas-fill max-w-3xl mx-auto">
             {/* Title */}
-            <header className="rpfaas-fill-header mb-6">
-              <h1 className="rpfaas-fill-title">
-                Fill-up Form: Supporting Documents
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                Upload the required supporting documents for this property
-                assessment. Images are stored securely and will be included in
-                the preview and print.
-              </p>
+            <header className="rpfaas-fill-header flex items-center justify-between gap-4 mb-6">
+              <div>
+                <h1 className="rpfaas-fill-title">
+                  Fill-up Form: Supporting Documents
+                </h1>
+                <p className="text-sm text-muted-foreground">
+                  Upload the required supporting documents for this property
+                  assessment. Images are stored securely and will be included in
+                  the preview and print.
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleSaveDraft}
+                disabled={isSavingDraft || !draftId || locked || lockChecking}
+                className="shrink-0"
+              >
+                {isSavingDraft ? <><Loader2 className="h-4 w-4 animate-spin mr-1" />Saving...</> : 'Save Draft'}
+              </Button>
             </header>
+
+            <FormLockBanner locked={locked} lockedBy={lockedBy} />
 
             {/* No-draft warning */}
             {!draftId && (
@@ -474,7 +516,7 @@ function BuildingStructureFormFillPage5() {
                     inputRef={(el) => {
                       fileInputRefs.current[type] = el;
                     }}
-                    disabled={!draftId}
+                    disabled={!draftId || locked || lockChecking}
                   />
                 ))}
               </div>

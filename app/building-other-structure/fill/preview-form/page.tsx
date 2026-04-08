@@ -18,6 +18,9 @@ import {
 } from "@/components/ui/sidebar";
 import "@/app/styles/forms-fill.css";
 import { useState, useCallback, useEffect, Suspense } from "react";
+import { SuccessModal } from "@/components/ui/success-modal";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { toast } from "sonner";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2, Save, Send, Lock, AlertTriangle, RotateCcw, MessageSquare, User, Clock, FileText } from "lucide-react";
 import BuildingStructureForm from "@/app/components/forms/RPFAAS/building_structure_form";
@@ -240,6 +243,12 @@ function PreviewFormPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPdfLoading, setIsPdfLoading] = useState(false);
+
+  // Modal state
+  const [successModal, setSuccessModal] = useState<{ open: boolean; title: string; description?: string; onConfirm: () => void }>({
+    open: false, title: "", onConfirm: () => {},
+  });
+  const [confirmSubmitOpen, setConfirmSubmitOpen] = useState(false);
 
   // Current form status from DB
   const [formStatus, setFormStatus] = useState<string>("draft");
@@ -538,19 +547,19 @@ function PreviewFormPage() {
         });
       }
       if (response.ok) {
-        const result = await response.json();
-        alert(
-          `Draft ${currentDraftId ? "updated" : "saved"} successfully! ID: ` +
-            result.data?.id
-        );
         localStorage.clear();
-        router.push("/building-other-structure/dashboard");
+        setSuccessModal({
+          open: true,
+          title: `Draft ${currentDraftId ? "updated" : "saved"}`,
+          description: "Your draft has been saved successfully.",
+          onConfirm: () => router.push("/building-other-structure/dashboard"),
+        });
       } else {
         const error = await response.json();
-        alert("Failed to save draft: " + (error.message ?? "Unknown error"));
+        toast.error("Failed to save draft: " + (error.message ?? "Unknown error"));
       }
     } catch {
-      alert("Error saving draft. Please try again.");
+      toast.error("Error saving draft. Please try again.");
     } finally {
       setIsSaving(false);
     }
@@ -559,11 +568,15 @@ function PreviewFormPage() {
   const handleSubmit = useCallback(async () => {
     const currentDraftId = draftId ?? localStorage.getItem("draft_id");
     if (!currentDraftId) {
-      alert("No form ID found. Please save as draft first.");
+      toast.error("No form ID found. Please save as draft first.");
       return;
     }
-    if (!confirm("Submit this form for Municipal Assessor review? You will not be able to edit it until it is returned.")) return;
+    setConfirmSubmitOpen(true);
+  }, [draftId]);
 
+  const handleConfirmSubmit = useCallback(async () => {
+    const currentDraftId = draftId ?? localStorage.getItem("draft_id");
+    setConfirmSubmitOpen(false);
     setIsSubmitting(true);
     try {
       const submitResponse = await fetch(
@@ -577,13 +590,18 @@ function PreviewFormPage() {
 
       if (submitResponse.ok) {
         localStorage.clear();
-        router.push("/building-other-structure/dashboard");
+        setSuccessModal({
+          open: true,
+          title: "Form submitted",
+          description: "Your form has been submitted for Municipal Assessor review.",
+          onConfirm: () => router.push("/building-other-structure/dashboard"),
+        });
       } else {
         const error = await submitResponse.json();
-        alert("Failed to submit: " + (error.message ?? "Unknown error"));
+        toast.error("Failed to submit: " + (error.message ?? "Unknown error"));
       }
     } catch {
-      alert("Error submitting form. Please try again.");
+      toast.error("Error submitting form. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -779,7 +797,7 @@ function PreviewFormPage() {
                             ) : (
                               <Send className="mr-2 h-4 w-4" />
                             )}
-                            {formStatus === "returned" ? "Resubmit for Review" : "Submit for Review"}
+                            {formStatus === "returned" ? "Resubmit to LAOO" : "Submit to LAOO"}
                           </>
                         )}
                       </Button>
@@ -793,7 +811,7 @@ function PreviewFormPage() {
                       <strong>Save as Draft:</strong> Save your progress and continue editing later.
                     </p>
                     <p>
-                      <strong>{formStatus === "returned" ? "Resubmit for Review" : "Submit for Review"}:</strong>{" "}
+                      <strong>{formStatus === "returned" ? "Resubmit to LAOO" : "Submit to LAOO"}:</strong>{" "}
                       {formStatus === "returned"
                         ? "Send your revised form back for review."
                         : "Send to Municipal Assessor for review. The form will be locked until it is returned."}
@@ -886,6 +904,26 @@ function PreviewFormPage() {
           </div>{/* end max-w wrapper */}
         </div>
       </SidebarInset>
+
+      <SuccessModal
+        open={successModal.open}
+        title={successModal.title}
+        description={successModal.description}
+        onConfirm={() => {
+          setSuccessModal((prev) => ({ ...prev, open: false }));
+          successModal.onConfirm();
+        }}
+      />
+
+      <ConfirmDialog
+        open={confirmSubmitOpen}
+        title="Submit for review?"
+        description="You will not be able to edit this form until it is returned by the Municipal Assessor."
+        confirmLabel="Submit"
+        cancelLabel="Cancel"
+        onConfirm={handleConfirmSubmit}
+        onCancel={() => setConfirmSubmitOpen(false)}
+      />
     </SidebarProvider>
   );
 }

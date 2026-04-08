@@ -27,9 +27,10 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { Loader2, Info } from "lucide-react";
+import { Loader2, Info, Lock } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Separator } from "@/components/ui/separator";
+import { useFormLock } from "@/hooks/useFormLock";
 
 const LAND_CLASSIFICATION_DESCRIPTIONS: Record<string, string> = {
   residential: "R – Residential: Land principally devoted to habitation or housing.",
@@ -47,6 +48,7 @@ const LandOtherImprovementFormFillPage3 = () => {
     const router = useRouter();
     const searchParams = useSearchParams();
     const draftId = searchParams.get("id");
+    const { checking: lockChecking, locked, lockedBy } = useFormLock('land_improvements', draftId);
 
     const [classification, setClassification] = useState("");
     const [subClassification, setSubClassification] = useState("");
@@ -192,12 +194,25 @@ const baseMarketValue = (() => {
                                 variant="outline"
                                 size="sm"
                                 onClick={handleSave}
-                                disabled={isSaving}
+                                disabled={isSaving || locked || lockChecking}
                                 className="shrink-0"
                             >
                                 {isSaving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving...</> : "Save Draft"}
                             </Button>
                         </header>
+                        {lockChecking && (
+                          <div className="flex items-center gap-2 mb-4 rounded-md border bg-muted px-4 py-3 text-sm text-muted-foreground">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Checking form availability…
+                          </div>
+                        )}
+                        {!lockChecking && locked && (
+                          <div className="flex items-center gap-2 mb-4 rounded-md border border-yellow-400/50 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
+                            <Lock className="h-4 w-4 shrink-0" />
+                            <span><strong>{lockedBy}</strong> is currently editing this form. You can view it but cannot make changes.</span>
+                          </div>
+                        )}
+                        <fieldset disabled={locked || lockChecking} className={`border-0 p-0 m-0 min-w-0 block${locked || lockChecking ? ' opacity-60' : ''}`}>
                         <form
                             id={`form_${FORM_NAME}_main`}
                             onSubmit={handleSubmit}
@@ -315,12 +330,13 @@ const baseMarketValue = (() => {
                                 isDirty={false}
                                 onNext={handleNext}
                                 isNextLoading={isSaving}
-                                isNextDisabled={isSaving}
+                                isNextDisabled={isSaving || locked || lockChecking}
                                 basePath="land-other-improvements"
                                 steps={LAND_IMPROVEMENT_STEPS}
                                 draftStorageKey="land_draft_id"
                             />
                         </form>
+                        </fieldset>
                     </div>
                 </div>
             </SidebarInset>

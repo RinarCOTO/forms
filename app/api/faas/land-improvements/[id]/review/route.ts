@@ -129,6 +129,27 @@ export async function POST(
       console.warn('form_review_history insert failed:', histErr);
     }
 
+    // ── Broadcast status change for live dashboard/queue updates ─────────────
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/realtime/v1/api/broadcast`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+          'apikey': process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        },
+        body: JSON.stringify({
+          messages: [{
+            topic: 'building-structures-updates',
+            event: 'status_change',
+            payload: { id: updated.id, status: config.toStatus, updated_at: updated.updated_at, submitted_at: updated.submitted_at, owner_name: updated.owner_name, location_municipality: updated.location_municipality, location_barangay: updated.location_barangay, created_by: updated.created_by, form_type: 'land', form_label: 'Land & Other Improvements' },
+          }],
+        }),
+      });
+    } catch (broadcastErr) {
+      console.warn('Broadcast failed (non-fatal):', broadcastErr);
+    }
+
     return NextResponse.json({ success: true, data: updated });
   } catch (err) {
     console.error('POST /land-improvements review error:', err);

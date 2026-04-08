@@ -96,31 +96,24 @@ export default function BuildingOtherStructureDashboard() {
     fetchSubmissions();
     fetchMunicipalAssessors();
 
+    const VISIBLE_STATUSES = ['submitted', 'municipal_signed', 'laoo_approved', 'returned', 'returned_to_municipal', 'approved'];
+
     const supabase = createClient();
     const channel = supabase
-      .channel('building-structures-status')
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'building_structures' },
-        (payload) => {
-          const updated = payload.new as FormSubmission;
-          setSubmissions(prev => {
-            const exists = prev.some(s => s.id === updated.id);
-            if (exists) {
-              // If somehow reverted to draft, remove it
-              if (updated.status === 'draft') return prev.filter(s => s.id !== updated.id);
-              return prev.map(s => s.id === updated.id ? { ...s, status: updated.status, updated_at: updated.updated_at } : s);
-            }
-            // Only add if it just became non-draft (e.g. tax mapper submitted)
-            if (updated.status !== 'draft') return [updated, ...prev];
-            return prev;
-          });
-        }
-      )
-      .subscribe((status, err) => {
-        if (err) console.error('[Realtime] subscription error:', err);
-        else console.log('[Realtime] building-structures status:', status);
-      });
+      .channel('building-structures-updates')
+      .on('broadcast', { event: 'status_change' }, ({ payload }) => {
+        const updated = payload as FormSubmission;
+        setSubmissions(prev => {
+          const exists = prev.some(s => s.id === updated.id);
+          if (exists) {
+            if (!VISIBLE_STATUSES.includes(updated.status)) return prev.filter(s => s.id !== updated.id);
+            return prev.map(s => s.id === updated.id ? { ...s, status: updated.status, updated_at: updated.updated_at } : s);
+          }
+          if (VISIBLE_STATUSES.includes(updated.status)) return [updated, ...prev];
+          return prev;
+        });
+      })
+      .subscribe();
 
     return () => { supabase.removeChannel(channel); };
   }, []);
@@ -193,7 +186,7 @@ export default function BuildingOtherStructureDashboard() {
   const canDelete = (submission: FormSubmission) =>
     user && (
       user.role === 'admin' || user.role === 'super_admin' ||
-      (submission.status === 'draft' && submission.created_by === user.id)
+      (['draft', 'returned'].includes(submission.status) && submission.created_by === user.id)
     );
 
   const SUBMITTABLE_STATUSES = ['draft', 'returned', 'returned_to_municipal'];
@@ -499,7 +492,7 @@ export default function BuildingOtherStructureDashboard() {
                                 </DropdownMenuItem>
                                 {SUBMITTABLE_STATUSES.includes(submission.status) && (
                                   <DropdownMenuItem onClick={() => handleSubmitForReview(submission.id)}>
-                                    <Send className="h-4 w-4 mr-2" /> Submit for Review
+                                    <Send className="h-4 w-4 mr-2" /> Submit to LAOO
                                   </DropdownMenuItem>
                                 )}
                                 {canDelete(submission) && (

@@ -19,7 +19,10 @@ import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/s
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Separator } from "@/components/ui/separator";
 import { Loader2 } from "lucide-react";
+import { useFormLock } from "@/hooks/useFormLock";
 import { toast } from "sonner";
+import { FormLockBanner } from "@/components/ui/form-lock-banner";
+import { FormSection } from "@/components/ui/form-section";
 // Pure helper — lives at module scope so it's never recreated on render
 function formatPeso(value: string | number) {
   if (value === "" || value === undefined) return "";
@@ -51,6 +54,7 @@ const BuildingStructureFormFillPage2 = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const draftId = searchParams.get('id');
+  const { checking: lockChecking, locked, lockedBy } = useFormLock('building_structures', draftId);
   const [isSaving, setIsSaving] = useState(false);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
@@ -227,7 +231,7 @@ const handleCostOfConstructionChange = useCallback((e: React.ChangeEvent<HTMLInp
         setCostOfConstruction("");
         setCostOfConstructionDisplay("");
       }
-      setTimeout(() => { isInitializedRef.current = true; }, 100);
+      isInitializedRef.current = true;
     }
   }, [loadedData]);
 
@@ -410,17 +414,18 @@ const handleNext = useCallback(async () => {
                 variant="outline"
                 size="sm"
                 onClick={handleSaveDraft}
-                disabled={isSavingDraft || isSaving}
+                disabled={isSavingDraft || isSaving || locked || lockChecking}
                 className="shrink-0"
               >
                 {isSavingDraft ? <><Loader2 className="h-4 w-4 animate-spin mr-1" />Saving...</> : 'Save Draft'}
               </Button>
             </header>
+            <FormLockBanner locked={locked} lockedBy={lockedBy} />
+            <fieldset disabled={locked} className={`border-0 p-0 m-0 min-w-0 block${locked ? ' opacity-60' : ''}${lockChecking ? ' animate-pulse' : ''}`}>
             <form className="rpfaas-fill-form rpfaas-fill-form-single space-y-6" onChange={markDirty}>
-              
-              <section className="rpfaas-fill-section">
-                <h2 className="rpfaas-fill-section-title mb-4">General Description</h2>
-                <div className=" gap-3">
+
+              <FormSection title="General Description">
+                <div className="flex flex-col gap-3">
                   {/* TYPE OF BUILDING */}
                   <div className="space-y-1" data-comment-field="type_of_building">
                     <Label className="rpfaas-fill-label">Type of Building</Label>
@@ -506,7 +511,7 @@ const handleNext = useCallback(async () => {
                 <div className="grid grid-cols-3 gap-3">
                     {/* COMPLETION DATE - NOW USING GENERATE YEARS + STATE */}
                     <div className="rpfaas-fill-field" data-comment-field="completion_issued_on">
-                      <Label className="rpfaas-fill-label ">Certificate of Completion Issued On</Label>
+                      <Label className="rpfaas-fill-label ">Cert of Completion Issued On</Label>
                       <div className="relative group">
                         <select
                           className="rpfaas-fill-input appearance-none"
@@ -569,11 +574,10 @@ const handleNext = useCallback(async () => {
                     </div>
                   </div>
                 </div>
-              </section>
+              </FormSection>
 
               {/* ... Floors Section (This part was fine) ... */}
-              <section className="rpfaas-fill-section">
-                <h2 className="rpfaas-fill-section-title mb-4">Floor Information</h2>
+              <FormSection title="Floor Information">
                 <div className="grid grid-cols-3">
                   <div className="rpfaas-fill-field space-y-1" data-comment-field="number_of_storeys">
                     <Label className="rpfaas-fill-label">Number of Storeys</Label>
@@ -619,11 +623,10 @@ const handleNext = useCallback(async () => {
                     </div>
                   </div>
                 </div>
-              </section>
+              </FormSection>
 
               {/* LAND REFERENCE - NOW USING STATE */}
-              <section className="rpfaas-fill-section">
-                <h2 className="rpfaas-fill-section-title mb-4">LAND REFERENCE</h2>
+              <FormSection title="LAND REFERENCE">
                 <div className="rpfaas-fill-field space-y-1" data-comment-field="land_owner">
                   <Label className="rpfaas-fill-label">Land Owner</Label>
                     <Input 
@@ -658,8 +661,8 @@ const handleNext = useCallback(async () => {
                     </div>
                   </div>
                 </div>
-                
-              </section>
+
+              </FormSection>
 
               <StepPagination
                 currentStep={2}
@@ -667,9 +670,10 @@ const handleNext = useCallback(async () => {
                 isDirty={isDirty}
                 onNext={handleNext}
                 isNextLoading={isSaving}
-                isNextDisabled={isSaving || isSavingDraft}
+                isNextDisabled={isSaving || isSavingDraft || locked || lockChecking}
               />
             </form>
+            </fieldset>
           </div>
         </div>
       </SidebarInset>

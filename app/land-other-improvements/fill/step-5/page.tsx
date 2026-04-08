@@ -21,8 +21,9 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { Loader2, Upload, X, ImageIcon, AlertTriangle, Info } from "lucide-react";
+import { Loader2, Upload, X, ImageIcon, AlertTriangle, Info, Lock } from "lucide-react";
 import { toast } from "sonner";
+import { useFormLock } from "@/hooks/useFormLock";
 import {
   Dialog,
   DialogContent,
@@ -289,6 +290,7 @@ function LandImprovementsFormFillPage5() {
 
   const urlId = searchParams.get("id");
   const [draftId, setDraftId] = useState<string | null>(urlId);
+  const { checking: lockChecking, locked, lockedBy } = useFormLock('land_improvements', draftId);
 
   // Draft metadata needed to determine photo requirements
   const [transactionCode, setTransactionCode] = useState<string>("");
@@ -475,6 +477,19 @@ function LandImprovementsFormFillPage5() {
               </p>
             </header>
 
+            {lockChecking && (
+              <div className="flex items-center gap-2 mb-4 rounded-md border bg-muted px-4 py-3 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Checking form availability…
+              </div>
+            )}
+            {!lockChecking && locked && (
+              <div className="flex items-center gap-2 mb-4 rounded-md border border-yellow-400/50 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
+                <Lock className="h-4 w-4 shrink-0" />
+                <span><strong>{lockedBy}</strong> is currently editing this form. You can view it but cannot make changes.</span>
+              </div>
+            )}
+
             {/* No-draft warning */}
             {!draftId && (
               <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-md p-4 mb-6">
@@ -513,7 +528,7 @@ function LandImprovementsFormFillPage5() {
                     onFileSelect={(file) => handleFileSelect(type, file)}
                     onRemove={() => handleRemove(type)}
                     inputRef={(el) => { fileInputRefs.current[type] = el; }}
-                    disabled={!draftId}
+                    disabled={!draftId || locked || lockChecking}
                   />
                 ))}
               </div>

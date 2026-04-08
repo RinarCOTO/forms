@@ -93,7 +93,7 @@
   font-weight: 600;
   color: var(--text);
 }
-.rpfaas-fill-labe-sub {
+.rpfaas-fill-label-sub {
     font-size: 0.9rem;
     font-weight: 500;
     color: var(--text);
@@ -217,7 +217,7 @@ input.rpfaas-fill-input,
 .rpfaas-fill-field,
 .rpfaas-fill-section-title,
 .rpfaas-fill-label,
-.rpfaas-fill-labe-sub {
+.rpfaas-fill-label-sub {
   -webkit-user-select: none;
   user-select: none;
   cursor: default;
