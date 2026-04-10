@@ -1,10 +1,10 @@
-"use client";
+"use client"
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useCallback, Suspense, useRef, useMemo } from "react";
+import "@/app/styles/forms-fill.css";
 import { StepPagination } from "@/components/ui/step-pagination";
 import { ReviewCommentsFloat } from "@/components/review-comments-float";
-import "@/app/styles/forms-fill.css";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -25,16 +25,15 @@ import { PreviousTdBlock } from "@/components/rpfaas/previous-td-block";
 import { TransactionCodeSelect, type TransactionCode } from "@/components/rpfaas/transaction-code-select";
 
 const TRANSACTION_CODES: TransactionCode[] = [
-  { code: "DC", label: "DC – Discovery / Newly Discovered", description: "Used for newly constructed buildings, or for existing structures that were previously undeclared and are being assessed for the very first time." },
-  { code: "TR", label: "TR – Transfer", description: "Used when the ownership of the building is being transferred to a new owner." },
-  { code: "PC", label: "PC – Physical Change", description: "Used when an existing building undergoes structural changes that affect its market value, such as major renovations, extensions, additions, or partial demolitions." },
-  { code: "RC", label: "RC – Reassessment / Reclassification", description: "Used when there is a change in the building's actual use (e.g., a residential house is converted into a commercial establishment) or when an owner requests a value review outside of a general revision period." },
-  { code: "DM", label: "DM – Demolition / Destruction", description: "Used to cancel or lower an assessment when a building is entirely torn down, condemned, or destroyed by a calamity (like a fire or typhoon)." },
-  { code: "GR", label: "GR – General Revision", description: "Used during the LGU's mandated, periodic city-wide or municipality-wide updating of property assessments and fair market values." },
-  { code: "DP", label: "DP – Depreciation", description: "Used when a tax declaration is updated specifically to apply the allowable physical depreciation to the building's value based on its age and condition." },
+  { code: "ND", label: "ND – New Discovery", description: "Used when declaring machinery for the first time. Covers: Newly Installed/Brand New (just affixed to the property); Previously Undeclared/Omitted (older machinery just discovered by the assessor — may trigger back taxes up to 10 years); or Imported (special appraisal using foreign exchange rates, import duties, and freight costs at acquisition)." },
+  { code: "TR", label: "TR – Transfer of Ownership", description: "Used when machinery changes hands. The transfer method determines required BIR clearances: Sale/Purchase (Deed of Sale); Donation (requires Donor's Tax clearance); Succession/Inheritance (requires Estate Tax clearance); or Foreclosure/Public Auction (acquired after the previous owner defaulted on a loan or taxes)." },
+  { code: "PC", label: "PC – Physical Change", description: "Used when the machinery undergoes changes that affect its market value. Covers: Expansion/Addition (new components increasing capacity or production speed); Rehabilitation/Overhaul (major repairs significantly extending economic life); or Partial Dismantling (removing components, lowering value but keeping the core machine operational)." },
+  { code: "DC", label: "DC – Decrease in Value", description: "Used when the machinery's value is reduced without physical dismantling. Typically applied for Economic Obsolescence — the machinery is still operational, but newer and faster technology has made it functionally outdated, severely reducing its market value." },
+  { code: "RC", label: "RC – Reclassification", description: "Used when the assessment level changes due to a change in actual use. Examples: Agricultural to Industrial/Commercial (e.g., a farm tractor now rented for construction); Exempt to Taxable (e.g., equipment sold by a tax-exempt entity to a private corporation); or Taxable to Exempt (e.g., a generator donated to a public hospital or church)." },
+  { code: "CN", label: "CN – Cancellation", description: "Used to permanently remove machinery from the tax roll. Reasons must be documented: Dismantled/Retired (permanently shut down or sold as scrap); Destroyed (fire, earthquake, typhoon, or accident); or Transferred to Another LGU (machinery physically moved to a different city or municipality — the receiving LGU will tag it as New Discovery)." },
 ];
 
-const FORM_NAME = "building_other_structure_fill";
+const FORM_NAME = "machinery_fill";
 
 function collectFormData(
   ownerName: string,
@@ -107,17 +106,17 @@ function collectFormData(
   return data;
 }
 
-function BuildingOtherStructureFillPageContent() {
+function MachineryFillPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const draftId = searchParams.get('id');
+  const draftId = searchParams.get("id");
 
-  const { checking: lockChecking, locked, lockedBy } = useFormLock('building_structures', draftId);
+  const { checking: lockChecking, locked, lockedBy } = useFormLock('machinery', draftId);
 
   const [isSaving, setIsSaving] = useState(false);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
-  const [isDirty, setIsDirty] = useState(false);
   const isInitializedRef = useRef(false);
+  const [isDirty, setIsDirty] = useState(false);
   const markDirty = useCallback(() => {
     if (isInitializedRef.current) setIsDirty(true);
   }, []);
@@ -144,7 +143,7 @@ function BuildingOtherStructureFillPageContent() {
 
   const ownerLoc = useLocationSelect("rpfaas_owner_address");
   const adminLoc = useLocationSelect("rpfaas_admin");
-  const propLoc  = useLocationSelect("rpfaas_location", MOUNTAIN_PROVINCE_CODE);
+  const propLoc = useLocationSelect("rpfaas_location", MOUNTAIN_PROVINCE_CODE);
 
   const arpPrefix = useMemo(() => {
     if (!propLoc.municipalityCode || !propLoc.barangayCode) return "";
@@ -175,13 +174,13 @@ function BuildingOtherStructureFillPageContent() {
     if (!draftId) { isInitializedRef.current = true; return; }
     const loadDraft = async () => {
       try {
-        const response = await fetch(`/api/faas/building-structures/${draftId}`);
+        const response = await fetch(`/api/faas/machinery/${draftId}`);
         if (response.ok) {
           const result = await response.json();
           if (result.success && result.data) {
             const data = result.data;
             if (data.status === 'approved') {
-              router.replace(`/building-other-structure/print-preview?id=${draftId}`);
+              router.replace(`/machinery/print-preview?id=${draftId}`);
               return;
             }
             if (data.transaction_code) setTransactionCode(data.transaction_code);
@@ -229,13 +228,12 @@ function BuildingOtherStructureFillPageContent() {
     loadDraft();
   }, [draftId]);
 
-  // Debounced lookup: when Previous TD No. changes, fetch matching approved building record
   useEffect(() => {
     if (prevTdLookupTimer.current) clearTimeout(prevTdLookupTimer.current);
     if (!previousTdNo || previousTdNo.length < 5) return;
     prevTdLookupTimer.current = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/faas/building-structures?arp_no=${encodeURIComponent(previousTdNo)}`);
+        const res = await fetch(`/api/faas/machinery?arp_no=${encodeURIComponent(previousTdNo)}`);
         if (!res.ok) return;
         const record = await res.json();
         if (record) {
@@ -263,11 +261,13 @@ function BuildingOtherStructureFillPageContent() {
   useEffect(() => safeSetLS("rpfaas_admin_careof", adminCareOf), [adminCareOf]);
   useEffect(() => safeSetLS("rpfaas_location_street", propertyStreet), [propertyStreet]);
   useEffect(() => safeSetLS("rpfaas_location_province", "Mountain Province"), []);
+
   useEffect(() => {
     if (!propLoc.municipalityCode || propLoc.municipalities.length === 0) return;
     const name = propLoc.municipalities.find(m => m.code === propLoc.municipalityCode)?.name || '';
     if (name) safeSetLS("rpfaas_location_municipality", name);
   }, [propLoc.municipalityCode, propLoc.municipalities]);
+
   useEffect(() => {
     if (!propLoc.barangayCode || propLoc.barangays.length === 0) return;
     const name = propLoc.barangays.find(b => b.code === propLoc.barangayCode)?.name || '';
@@ -282,11 +282,11 @@ function BuildingOtherStructureFillPageContent() {
       if (!currentDraftId) formData.status = 'draft';
       let response;
       if (currentDraftId) {
-        response = await fetch(`/api/faas/building-structures/${currentDraftId}`, {
+        response = await fetch(`/api/faas/machinery/${currentDraftId}`, {
           method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(formData),
         });
       } else {
-        response = await fetch('/api/faas/building-structures', {
+        response = await fetch('/api/faas/machinery', {
           method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(formData),
         });
       }
@@ -295,7 +295,7 @@ function BuildingOtherStructureFillPageContent() {
         if (result.data?.id) {
           setIsDirty(false);
           localStorage.setItem('draft_id', result.data.id.toString());
-          router.push(`/building-other-structure/fill/step-2?id=${result.data.id}`);
+          router.push(`/machinery/fill/step-2?id=${result.data.id}`);
         } else {
           toast.error('Save completed but no ID returned. Please try again.');
         }
@@ -325,11 +325,11 @@ function BuildingOtherStructureFillPageContent() {
       if (!currentDraftId) formData.status = 'draft';
       let response;
       if (currentDraftId) {
-        response = await fetch(`/api/faas/building-structures/${currentDraftId}`, {
+        response = await fetch(`/api/faas/machinery/${currentDraftId}`, {
           method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(formData),
         });
       } else {
-        response = await fetch('/api/faas/building-structures', {
+        response = await fetch('/api/faas/machinery', {
           method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(formData),
         });
       }
@@ -351,15 +351,15 @@ function BuildingOtherStructureFillPageContent() {
 
   return (
     <FormFillLayout
-      breadcrumbParent={{ label: "Building Your Application", href: "#" }}
+      breadcrumbParent={{ label: "Machinery", href: "#" }}
       pageTitle="Step 1: Enter Owner and Property Location Details."
-      sidePanel={<ReviewCommentsFloat draftId={draftId} stepFields={["arp_no","oct_tct_cloa_no","survey_no","pin","lot_no","owner_name","owner_address","admin_care_of","location_municipality","location_barangay","location_province"]} />}
+      sidePanel={<ReviewCommentsFloat draftId={draftId} stepFields={["arp_no", "oct_tct_cloa_no", "survey_no", "pin", "lot_no", "owner_name", "owner_address", "admin_care_of", "location_municipality", "location_barangay", "location_province"]} />}
     >
       <FormLockBanner locked={locked} lockedBy={lockedBy} />
 
       <header className="rpfaas-fill-header flex items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="rpfaas-fill-title">Fill-up Form: RPFAAS - Building &amp; Other Structures</h1>
+          <h1 className="rpfaas-fill-title">Fill-up Form: RPFAAS - Machinery</h1>
           <p className="text-sm text-muted-foreground">Enter the details below. You can generate the printable version afterwards.</p>
         </div>
         <Button
@@ -455,10 +455,10 @@ function BuildingOtherStructureFillPageContent() {
   );
 }
 
-export default function BuildingOtherStructureFillPage() {
+export default function MachineryFillPage() {
   return (
     <Suspense fallback={<div>Loading...</div>}>
-      <BuildingOtherStructureFillPageContent />
+      <MachineryFillPageContent />
     </Suspense>
   );
 }

@@ -138,11 +138,32 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ id: 
       );
     }
 
-    if (userProfile.role !== 'admin' && userProfile.role !== 'super_admin') {
-      return NextResponse.json(
-        { success: false, message: 'Forbidden', error: 'Only admins and super admins can delete records' },
-        { status: 403 }
-      );
+    const isAdmin = userProfile.role === 'admin' || userProfile.role === 'super_admin';
+
+    if (!isAdmin) {
+      // Non-admins can only delete their own draft or returned records
+      const { data: record, error: recordError } = await supabase
+        .from('machinery')
+        .select('created_by, status')
+        .eq('id', id)
+        .single();
+
+      if (recordError || !record) {
+        return NextResponse.json(
+          { success: false, message: 'Record not found', error: 'No record found with the specified ID' },
+          { status: 404 }
+        );
+      }
+
+      const isDeletableStatus = ['draft', 'returned'].includes(record.status);
+      const isOwner = record.created_by === user.id;
+
+      if (!isDeletableStatus || !isOwner) {
+        return NextResponse.json(
+          { success: false, message: 'Forbidden', error: 'You can only delete your own draft or returned records' },
+          { status: 403 }
+        );
+      }
     }
 
     const { data: deletedRecord, error } = await supabase
