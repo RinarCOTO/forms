@@ -14,10 +14,7 @@ import "@/app/styles/forms-fill.css";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { AppSidebar } from "@/components/app-sidebar";
-import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { Separator } from "@/components/ui/separator";
+import { FormFillLayout } from "@/components/ui/form-fill-layout";
 import { Loader2 } from "lucide-react";
 import { useFormLock } from "@/hooks/useFormLock";
 import { toast } from "sonner";
@@ -398,12 +395,11 @@ const handleNext = useCallback(async () => {
 
   // --- JSX RENDER ---
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        {/* Header omitted for brevity */}
-        <div className="flex-1 p-6 overflow-y-auto">
-          <div className="rpfaas-fill max-w-3xl mx-auto">
+    <FormFillLayout
+      breadcrumbParent={{ label: "Building Your Application", href: "#" }}
+      pageTitle="Building Details"
+      sidePanel={<ReviewCommentsFloat draftId={draftId} stepFields={["type_of_building","structure_type","building_permit_no","cct","completion_issued_on","date_constructed","date_occupied","building_age","unit_cost","number_of_storeys","total_floor_area","land_owner","td_arp_no","land_area"]} />}
+    >
             <header className="rpfaas-fill-header flex items-center justify-between gap-4 mb-6">
               <div>
                 <h1 className="rpfaas-fill-title">Fill-up Form: Building Details</h1>
@@ -674,11 +670,7 @@ const handleNext = useCallback(async () => {
               />
             </form>
             </fieldset>
-          </div>
-        </div>
-      </SidebarInset>
-      <ReviewCommentsFloat draftId={draftId} stepFields={["type_of_building","structure_type","building_permit_no","cct","completion_issued_on","date_constructed","date_occupied","building_age","unit_cost","number_of_storeys","total_floor_area","land_owner","td_arp_no","land_area"]} />
-    </SidebarProvider>
+    </FormFillLayout>
   );
 };
 

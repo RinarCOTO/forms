@@ -112,8 +112,8 @@ export async function POST(
       return NextResponse.json({ error: 'comment_text is required' }, { status: 400 });
     }
 
-    // Normalise role — municipal_tax_mapper used to be municipal_assessor in old constraint
-    const COMMENT_ROLES = ['laoo', 'tax_mapper', 'municipal_tax_mapper', 'admin', 'super_admin',
+    // Normalise role — municipal_assessor used to be municipal_assessor in old constraint
+    const COMMENT_ROLES = ['laoo', 'municipal_tax_mapper', 'municipal_assessor', 'admin', 'super_admin',
       'assistant_provincial_assessor', 'provincial_assessor'];
     const authorRole = COMMENT_ROLES.includes(profile.role) ? profile.role : 'admin';
 

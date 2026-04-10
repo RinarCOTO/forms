@@ -103,7 +103,7 @@ export async function GET(
       return new NextResponse(pdf, {
         headers: {
           'Content-Type': 'application/pdf',
-          'Content-Disposition': `attachment; filename="RPFAAS-Land-${id}.pdf"`,
+          'Content-Disposition': `inline; filename="RPFAAS-Land-${id}.pdf"`,
         },
       })
     } finally {

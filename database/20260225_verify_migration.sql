@@ -76,11 +76,11 @@ WHERE role IN (
 ORDER BY role;
 
 
--- ── 7. municipal_tax_mapper fully renamed ────────────────────────────────────
+-- ── 7. municipal_assessor fully renamed ────────────────────────────────────
 -- Expected: 0 rows (old name gone)
 SELECT COUNT(*) AS old_role_remaining
 FROM role_permissions
-WHERE role = 'municipal_tax_mapper';
+WHERE role = 'municipal_assessor';
 
 -- Expected: 23 rows (municipal_assessor now has all permissions)
 SELECT COUNT(*) AS municipal_assessor_rows

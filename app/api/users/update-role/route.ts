@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { userId, role } = body as { userId?: string; role?: string };
 
-    const ALLOWED_ROLES = ['super_admin', 'admin', 'tax_mapper', 'municipal_tax_mapper', 'accountant', 'user'];
+    const ALLOWED_ROLES = ['super_admin', 'admin', 'municipal_tax_mapper', 'municipal_assessor', 'accountant', 'user'];
 
     if (!userId || typeof userId !== 'string') {
       return NextResponse.json({ error: 'userId is required' }, { status: 400 });

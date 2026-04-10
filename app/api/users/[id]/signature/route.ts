@@ -12,7 +12,7 @@ function getAdmin() {
   );
 }
 
-const ALLOWED_ROLES = ['super_admin', 'admin', 'laoo', 'municipal_tax_mapper', 'assistant_provincial_assessor', 'provincial_assessor'];
+const ALLOWED_ROLES = ['super_admin', 'admin', 'laoo', 'municipal_assessor', 'assistant_provincial_assessor', 'provincial_assessor'];
 const BUCKET = 'user-signatures';
 
 export async function GET(

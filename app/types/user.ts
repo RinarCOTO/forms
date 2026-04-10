@@ -3,8 +3,8 @@
 export type UserRole =
   | 'super_admin'
   | 'admin'
-  | 'tax_mapper'
   | 'municipal_tax_mapper'
+  | 'municipal_assessor'
   | 'laoo'
   | 'assistant_provincial_assessor'
   | 'provincial_assessor'

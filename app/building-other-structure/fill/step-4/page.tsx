@@ -6,21 +6,7 @@ import { StepPagination } from "@/components/ui/step-pagination";
 import { ReviewCommentsFloat } from "@/components/review-comments-float";
 import "@/app/styles/forms-fill.css";
 import { Button } from "@/components/ui/button";
-import { AppSidebar } from "@/components/app-sidebar";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-import { Separator } from "@/components/ui/separator";
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar";
+import { FormFillLayout } from "@/components/ui/form-fill-layout";
 
 import { DeductionsTable } from "./deductionsTable";
 import { AdditionalTable } from "./additionalTable";
@@ -393,27 +379,11 @@ if (loadedData?.additional_flat_rate_areas?.length > 0) {
   }, [financialSummary, selections, comments, additionalPercentSelections, additionalPercentAreas, additionalFlatRateSelections, additionalFlatRateAreas, draftId]);
 
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
-          <SidebarTrigger className="-ml-1" />
-          <Separator orientation="vertical" className="mr-2 h-4" />
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem className="hidden md:block">
-                <BreadcrumbLink href="#">Building Your Application</BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator className="hidden md:block" />
-              <BreadcrumbItem>
-                <BreadcrumbPage>Additional Structure Details</BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
-        </header>
-
-        <div className="flex-1 p-6 overflow-y-auto">
-          <div className="rpfaas-fill max-w-3xl mx-auto">
+    <FormFillLayout
+      breadcrumbParent={{ label: "Building Your Application", href: "#" }}
+      pageTitle="Additional Structure Details"
+      sidePanel={<ReviewCommentsFloat draftId={draftId} stepFields={["selected_deductions","market_value","unit_cost"]} />}
+    >
             <header className="rpfaas-fill-header flex items-center justify-between gap-4 mb-6">
               <div>
                 <h1 className="rpfaas-fill-title">Fill-up Form: General Description</h1>
@@ -500,11 +470,7 @@ if (loadedData?.additional_flat_rate_areas?.length > 0) {
               />
             </form>
             </fieldset>
-          </div>
-        </div>
-      </SidebarInset>
-      <ReviewCommentsFloat draftId={draftId} stepFields={["selected_deductions","market_value","unit_cost"]} />
-    </SidebarProvider>
+    </FormFillLayout>
   );
 };
 

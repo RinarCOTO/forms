@@ -43,8 +43,8 @@ import { MUNICIPALITIES, MUNICIPALITY_LABELS } from "@/app/types/user";
 const ROLE_LABELS: Record<UserRole, string> = {
   super_admin:                  "Super Admin",
   admin:                        "Admin",
-  tax_mapper:                   "Tax Mapper",
-  municipal_tax_mapper:         "Municipal Tax Mapper",
+  municipal_tax_mapper:                   "Municipal Tax Mapper",
+  municipal_assessor:                     "Municipal Assessor",
   laoo:                         "LAOO (Local Assessment Operations Officer)",
   assistant_provincial_assessor:"Assistant Provincial Assessor",
   provincial_assessor:          "Provincial Assessor",
@@ -55,8 +55,8 @@ const ROLE_LABELS: Record<UserRole, string> = {
 const ROLE_OPTIONS: UserRole[] = [
   "super_admin",
   "admin",
-  "tax_mapper",
   "municipal_tax_mapper",
+  "municipal_assessor",
   "laoo",
   "assistant_provincial_assessor",
   "provincial_assessor",
@@ -65,7 +65,7 @@ const ROLE_OPTIONS: UserRole[] = [
 ];
 
 // Roles that require a municipality assignment
-const MUNICIPALITY_ROLES: UserRole[] = ["tax_mapper", "municipal_tax_mapper", "laoo"];
+const MUNICIPALITY_ROLES: UserRole[] = ["municipal_tax_mapper", "municipal_assessor", "laoo"];
 
 // Roles that have a LAOO level
 const LAOO_ROLES: UserRole[] = ["laoo"];

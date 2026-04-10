@@ -10,26 +10,11 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 
 import { Button } from "@/components/ui/button";
-import { AppSidebar } from "@/components/app-sidebar";
 import { useSaveDraft } from "@/hooks/useSaveDraft";
 import { municipalityData } from "@/app/smv/land-other-improvements/data";
-
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
 import { Loader2, Info, Lock } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
-import { Separator } from "@/components/ui/separator";
+import { FormFillLayout } from "@/components/ui/form-fill-layout";
 import { useFormLock } from "@/hooks/useFormLock";
 
 const LAND_CLASSIFICATION_DESCRIPTIONS: Record<string, string> = {
@@ -161,30 +146,10 @@ const baseMarketValue = (() => {
     }, [router, draftId, handleSave]);
 
     return (
-        <SidebarProvider>
-            <AppSidebar />
-            <SidebarInset>
-                <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
-                    <SidebarTrigger className="-ml-1" />
-                    <Separator
-                        orientation="vertical"
-                        className="mr-2 data-[orientation=vertical]:h-4"
-                    />
-                    <Breadcrumb>
-                        <BreadcrumbList>
-                            <BreadcrumbItem className="hidden md:block">
-                                <BreadcrumbLink href="/land-other-improvements/dashboard">Land &amp; Other Improvements Dashboard</BreadcrumbLink>
-                            </BreadcrumbItem>
-                            <BreadcrumbSeparator className="hidden md:block" />
-                            <BreadcrumbItem>
-                                <BreadcrumbPage>Classification</BreadcrumbPage>
-                            </BreadcrumbItem>
-                        </BreadcrumbList>
-                    </Breadcrumb>
-                </header>
-
-                <div className="flex-1 p-6 overflow-y-auto">
-                    <div className="rpfaas-fill max-w-3xl mx-auto">
+        <FormFillLayout
+            breadcrumbParent={{ label: "Land & Other Improvements Dashboard", href: "/land-other-improvements/dashboard" }}
+            pageTitle="Classification"
+        >
                         <header className="rpfaas-fill-header flex items-center justify-between gap-4 mb-6">
                             <div>
                                 <h1 className="rpfaas-fill-title">Fill-up form: Classification</h1>
@@ -337,10 +302,7 @@ const baseMarketValue = (() => {
                             />
                         </form>
                         </fieldset>
-                    </div>
-                </div>
-            </SidebarInset>
-        </SidebarProvider>
+        </FormFillLayout>
     );
 };
 

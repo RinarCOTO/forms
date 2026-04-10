@@ -39,12 +39,14 @@ interface ReviewItem {
 }
 
 // Role group helpers
-const MUNICIPAL_ROLES  = ['municipal_tax_mapper', 'admin', 'super_admin'];
-const LAOO_ROLES       = ['laoo', 'admin', 'super_admin'];
-const PROVINCIAL_ROLES = ['assistant_provincial_assessor', 'provincial_assessor', 'admin', 'super_admin'];
+const MUNICIPAL_ROLES  = ['municipal_tax_mapper', 'municipal_assessor'];
+const LAOO_ROLES       = ['laoo'];
+const PROVINCIAL_ROLES = ['assistant_provincial_assessor', 'provincial_assessor'];
+const ADMIN_ROLES      = ['admin', 'super_admin'];
 
 function getDefaultStatuses(role: string | null): string[] {
   if (!role) return [];
+  if (ADMIN_ROLES.includes(role))      return ['submitted', 'municipal_signed', 'laoo_approved', 'returned_to_municipal'];
   if (MUNICIPAL_ROLES.includes(role))  return ['submitted', 'returned_to_municipal'];
   if (LAOO_ROLES.includes(role))       return ['municipal_signed'];
   if (PROVINCIAL_ROLES.includes(role)) return ['laoo_approved'];
@@ -210,11 +212,11 @@ export default function ReviewQueuePage() {
   };
 
   const actionLabel: Record<ReviewAction, string> = {
-    sign_forward:      'Sign & Forward to LAOO',
+    sign_forward:      'Approve & Forward to LAOO',
     return_to_mapper:  'Return to Tax Mapper',
     laoo_approve:      'Approve & Forward to Provincial',
     laoo_return:       'Return to Municipal',
-    sign_approve:      'Sign & Approve',
+    sign_approve:      'Approve',
     provincial_return: 'Return to Municipal',
   };
 
@@ -223,21 +225,21 @@ export default function ReviewQueuePage() {
     if (!role) return [];
     const s = item.status;
     const actions: { action: ReviewAction; label: string; danger?: boolean }[] = [];
-    if (MUNICIPAL_ROLES.includes(role)) {
+    if (MUNICIPAL_ROLES.includes(role) || ADMIN_ROLES.includes(role)) {
       if (['submitted', 'returned_to_municipal'].includes(s)) {
-        actions.push({ action: 'sign_forward', label: 'Sign & Forward' });
+        actions.push({ action: 'sign_forward', label: 'Approve & Forward' });
         actions.push({ action: 'return_to_mapper', label: 'Return to Mapper', danger: true });
       }
     }
-    if (LAOO_ROLES.includes(role)) {
+    if (LAOO_ROLES.includes(role) || ADMIN_ROLES.includes(role)) {
       if (s === 'municipal_signed') {
         actions.push({ action: 'laoo_approve', label: 'Approve & Forward' });
         actions.push({ action: 'laoo_return', label: 'Return to Municipal', danger: true });
       }
     }
-    if (PROVINCIAL_ROLES.includes(role)) {
+    if (PROVINCIAL_ROLES.includes(role) || ADMIN_ROLES.includes(role)) {
       if (s === 'laoo_approved') {
-        actions.push({ action: 'sign_approve', label: 'Sign & Approve' });
+        actions.push({ action: 'sign_approve', label: 'Approve' });
         actions.push({ action: 'provincial_return', label: 'Return to Municipal', danger: true });
       }
     }

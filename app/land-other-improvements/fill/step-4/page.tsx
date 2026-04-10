@@ -6,21 +6,7 @@ import { StepPagination, LAND_IMPROVEMENT_STEPS } from "@/components/ui/step-pag
 import { ReviewCommentsFloat } from "@/components/review-comments-float";
 import "@/app/styles/forms-fill.css";
 import { Button } from "@/components/ui/button";
-import { AppSidebar } from "@/components/app-sidebar";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-import { Separator } from "@/components/ui/separator";
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar";
+import { FormFillLayout } from "@/components/ui/form-fill-layout";
 
 import { DeductionsTable, AdjustmentTable, SelectOption } from "./improvementsTable";
 import TotalImprovements from "./improvementsTable";
@@ -395,29 +381,12 @@ const LandImprovementsFormFillPage4 = () => {
   }, [adjustedMarketValue, financialSummary, selections, comments, additionalPercentSelections, additionalPercentAreas, additionalFlatRateSelections, additionalFlatRateAreas, draftId]);
 
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
-          <SidebarTrigger className="-ml-1" />
-          <Separator orientation="vertical" className="mr-2 h-4" />
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem className="hidden md:block">
-                <BreadcrumbLink href="/land-other-improvements/dashboard">
-                  Land &amp; Other Improvements
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator className="hidden md:block" />
-              <BreadcrumbItem>
-                <BreadcrumbPage>Other Improvements</BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
-        </header>
-
-        <div className="flex-1 p-6 overflow-y-auto">
-          <div className="max-w-4xl mx-auto">
+    <FormFillLayout
+      breadcrumbParent={{ label: "Land & Other Improvements", href: "/land-other-improvements/dashboard" }}
+      pageTitle="Other Improvements"
+      contentClassName="max-w-4xl mx-auto"
+      sidePanel={<ReviewCommentsFloat draftId={draftId} />}
+    >
             <header className="flex items-center justify-between gap-4 mb-6">
               <div>
                 <h1 className="text-2xl font-bold tracking-tight">Fill-up Form: Other Improvements</h1>
@@ -504,11 +473,7 @@ const LandImprovementsFormFillPage4 = () => {
               />
             </form>
             </fieldset>
-          </div>
-        </div>
-      </SidebarInset>
-      <ReviewCommentsFloat draftId={draftId} />
-    </SidebarProvider>
+    </FormFillLayout>
   );
 };
 

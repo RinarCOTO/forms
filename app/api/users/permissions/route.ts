@@ -42,21 +42,7 @@ const DEFAULT_PERMISSIONS: Record<string, Record<string, boolean>> = {
     'dashboard.view': true,
     'forms.submit': true, 'review.laoo': false, 'review.sign': false,
   },
-  tax_mapper: {
-    'building_structures.view': true, 'building_structures.create': true,
-    'building_structures.edit': true, 'building_structures.delete': false,
-    'land_improvements.view': true, 'land_improvements.create': true,
-    'land_improvements.edit': true, 'land_improvements.delete': false,
-    'machinery.view': true, 'machinery.create': true,
-    'machinery.edit': true, 'machinery.delete': false,
-    'accounting.view': false,
-    'user_management.view': false, 'user_management.create': false,
-    'user_management.edit': false, 'user_management.delete': false,
-    'role_management.view': false, 'role_management.edit': false,
-    'dashboard.view': true,
-    'forms.submit': true, 'review.laoo': false, 'review.sign': false,
-  },
-  // Municipal-level overseer. Can create/submit forms and sign FAAS + Tax Declarations.
+  // Municipal-level form filler. Can create and submit FAAS forms for review.
   municipal_tax_mapper: {
     'building_structures.view': true, 'building_structures.create': true,
     'building_structures.edit': true, 'building_structures.delete': false,
@@ -71,12 +57,27 @@ const DEFAULT_PERMISSIONS: Record<string, Record<string, boolean>> = {
     'dashboard.view': true,
     'forms.submit': true, 'review.laoo': false, 'review.sign': true,
   },
-  // Provincial-level reviewer. Views all municipalities, comments, approves FAAS.
+  // Municipal-level overseer. Can create/submit forms and sign & forward FAAS to LAOO.
+  municipal_assessor: {
+    'building_structures.view': true, 'building_structures.create': true,
+    'building_structures.edit': true, 'building_structures.delete': false,
+    'land_improvements.view': true, 'land_improvements.create': true,
+    'land_improvements.edit': true, 'land_improvements.delete': false,
+    'machinery.view': true, 'machinery.create': true,
+    'machinery.edit': true, 'machinery.delete': false,
+    'accounting.view': false,
+    'user_management.view': false, 'user_management.create': false,
+    'user_management.edit': false, 'user_management.delete': false,
+    'role_management.view': false, 'role_management.edit': false,
+    'dashboard.view': true,
+    'forms.submit': true, 'review.laoo': false, 'review.sign': true,
+  },
+  // Provincial-level reviewer. Views all municipalities, comments, approves FAAS. Can also create and submit forms.
   laoo: {
-    'building_structures.view': true, 'building_structures.create': false,
-    'building_structures.edit': false, 'building_structures.delete': false,
-    'land_improvements.view': true, 'land_improvements.create': false,
-    'land_improvements.edit': false, 'land_improvements.delete': false,
+    'building_structures.view': true, 'building_structures.create': true,
+    'building_structures.edit': true, 'building_structures.delete': false,
+    'land_improvements.view': true, 'land_improvements.create': true,
+    'land_improvements.edit': true, 'land_improvements.delete': false,
     'machinery.view': true, 'machinery.create': false,
     'machinery.edit': false, 'machinery.delete': false,
     'accounting.view': false,

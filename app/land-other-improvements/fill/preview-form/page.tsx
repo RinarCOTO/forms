@@ -20,9 +20,10 @@ import "@/app/styles/forms-fill.css";
 import { useState, useCallback, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
-  Loader2, Save, Send, Lock, AlertTriangle, RotateCcw,
+  Loader2, Save, Send, RotateCcw,
   MessageSquare, User, Clock, FileText, History, ArrowRight,
 } from "lucide-react";
+import { FormStatusBanner } from "@/components/ui/form-status-banner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import LandImprovementForm from "@/app/components/forms/RPFAAS/land_improvement_form";
 
@@ -161,18 +162,20 @@ function PreviewFormPage() {
   const [commentsLoading, setCommentsLoading] = useState(false);
   const [activeComment, setActiveComment] = useState<ReviewComment | null>(null);
 
-  const SUBMIT_ALLOWED_ROLES = ["tax_mapper", "municipal_tax_mapper", "admin", "super_admin"];
+  const SUBMIT_ALLOWED_ROLES = ["municipal_tax_mapper", "municipal_assessor", "laoo", "assistant_provincial_assessor", "provincial_assessor", "admin", "super_admin"];
   const HISTORY_ALLOWED_ROLES = ["provincial_assessor", "assistant_provincial_assessor", "admin", "super_admin"];
   const PRINT_ALLOWED_ROLES = ["provincial_assessor", "assistant_provincial_assessor"];
   const [canSubmit, setCanSubmit] = useState(false);
   const [canViewHistory, setCanViewHistory] = useState(false);
   const [canPrint, setCanPrint] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
   useEffect(() => {
     fetch("/api/users/permissions")
       .then((r) => r.json())
       .then((d) => {
         console.log('[preview] permissions:', d);
         console.log('[preview] canViewHistory:', HISTORY_ALLOWED_ROLES.includes(d?.role));
+        if (d?.role) setUserRole(d.role);
         if (d?.role && SUBMIT_ALLOWED_ROLES.includes(d.role)) setCanSubmit(true);
         if (d?.role && HISTORY_ALLOWED_ROLES.includes(d.role)) setCanViewHistory(true);
         if (d?.role && PRINT_ALLOWED_ROLES.includes(d.role)) setCanPrint(true);
@@ -402,42 +405,18 @@ function PreviewFormPage() {
                 </div>
 
                 {/* Status banners */}
-                {!statusLoading && !isPrintMode && (
-                  <div className="print:hidden mb-4 space-y-2">
-                    {formStatus === "submitted" && (
-                      <div className="flex items-center gap-2 rounded-md border border-yellow-400/50 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
-                        <Lock className="h-4 w-4 shrink-0" />
-                        <span>
-                          <strong>Awaiting LAOO Review.</strong> This form has been submitted and is locked until the LAOO returns it.
-                        </span>
-                      </div>
-                    )}
-                    {formStatus === "under_review" && (
-                      <div className="flex items-center gap-2 rounded-md border border-blue-400/50 bg-blue-50 px-4 py-3 text-sm text-blue-800">
-                        <Lock className="h-4 w-4 shrink-0" />
-                        <span>
-                          <strong>Under LAOO Review.</strong> A LAOO officer is currently reviewing this form.
-                        </span>
-                      </div>
-                    )}
-                    {formStatus === "returned" && (
-                      <div className="flex items-center gap-2 rounded-md border border-orange-400/50 bg-orange-50 px-4 py-3 text-sm text-orange-800">
-                        <AlertTriangle className="h-4 w-4 shrink-0" />
-                        <span>
-                          <strong>Returned for Review.</strong> The LAOO has left comments. Please address all comments before resubmitting.
-                        </span>
-                      </div>
-                    )}
-                    {formStatus === "approved" && (
-                      <div className="flex items-center gap-2 rounded-md border border-green-400/50 bg-green-50 px-4 py-3 text-sm text-green-800">
-                        <Lock className="h-4 w-4 shrink-0" />
-                        <span>
-                          <strong>Approved.</strong> This form has been approved by the LAOO.
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                )}
+                {/* ── Status banners ── */}
+                <FormStatusBanner
+                  status={formStatus}
+                  statusLoading={statusLoading}
+                  isPrintMode={isPrintMode}
+                  messages={{
+                    submitted: { title: "Awaiting LAOO Review.", message: "This form has been submitted and is locked until the LAOO returns it." },
+                    under_review: { title: "Under LAOO Review.", message: "A LAOO officer is currently reviewing this form." },
+                    returned: { title: "Returned for Review.", message: "The LAOO has left comments. Please address all comments before resubmitting." },
+                    approved: { title: "Approved.", message: "This form has been approved by the LAOO." },
+                  }}
+                />
 
                 {/* Tax Declaration button — approved forms only */}
                 {!isPrintMode && formStatus === "approved" && draftId && (
@@ -507,7 +486,7 @@ function PreviewFormPage() {
                                 ) : (
                                   <Send className="mr-2 h-4 w-4" />
                                 )}
-                                {formStatus === "returned" ? "Resubmit to LAOO" : "Submit to LAOO"}
+                                {formStatus === "returned" ? "Resubmit to Municipal Assessor" : "Submit to Municipal Assessor"}
                               </>
                             )}
                           </Button>
@@ -521,10 +500,10 @@ function PreviewFormPage() {
                           <strong>Save as Draft:</strong> Save your progress and continue editing later.
                         </p>
                         <p>
-                          <strong>{formStatus === "returned" ? "Resubmit to LAOO" : "Submit to LAOO"}:</strong>{" "}
+                          <strong>{formStatus === "returned" ? "Resubmit to Municipal Assessor" : "Submit to Municipal Assessor"}:</strong>{" "}
                           {formStatus === "returned"
-                            ? "Send your revised form back to the LAOO."
-                            : "Send to LAOO for review. The form will be locked until they respond."}
+                            ? "Send your revised form back for review."
+                            : "Send for review. The form will be locked until it is returned."}
                         </p>
                       </div>
                     )}

@@ -11,8 +11,8 @@ function getAdminClient() {
 }
 
 const SUBMIT_ALLOWED_ROLES = [
-  'tax_mapper',
   'municipal_tax_mapper',
+  'municipal_assessor',
   'laoo',
   'provincial_assessor',
   'assistant_provincial_assessor',
@@ -24,7 +24,7 @@ const SUBMITTABLE_STATUSES = ['draft', 'returned', 'returned_to_municipal'];
 // Higher-level roles bypass lower approval steps when they create/submit forms themselves
 function getBypassStatus(role: string): string {
   switch (role) {
-    case 'municipal_tax_mapper':
+    case 'municipal_assessor':
       return 'municipal_signed'; // they are the municipal reviewer
     case 'laoo':
       return 'laoo_approved';    // they clear municipal + laoo
@@ -34,7 +34,7 @@ function getBypassStatus(role: string): string {
     case 'super_admin':
       return 'approved';         // they clear all stages
     default:
-      return 'submitted';        // normal flow for tax_mapper
+      return 'submitted';        // normal flow for municipal_tax_mapper
   }
 }
 
@@ -111,7 +111,7 @@ export async function POST(
           .eq('form_type', 'land_improvements')
           .eq('form_id', parseInt(id))
           .is('parent_id', null)
-          .neq('author_role', 'tax_mapper')
+          .neq('author_role', 'municipal_tax_mapper')
           .order('created_at', { ascending: true }),
       ]);
       fullRecord = formRes.data ?? null;

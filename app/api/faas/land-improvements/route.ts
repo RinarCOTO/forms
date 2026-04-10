@@ -41,20 +41,31 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(data || null)
     }
 
+    // Provincial/LAOO roles see all municipalities — do not scope by municipality.
+    // Municipal roles are scoped to their assigned municipality.
+    const PROVINCIAL_ROLES = ['laoo', 'assistant_provincial_assessor', 'provincial_assessor'];
+
     let query = admin
       .from('land_improvements')
-      .select('id, owner_name, updated_at, status, municipality, arp_no, location_municipality, location_barangay, created_by')
+      .select('id, owner_name, updated_at, status, municipality, arp_no, location_municipality, location_barangay, created_by, assigned_to')
       .order('updated_at', { ascending: false })
 
-    if (!userCtx.isAdmin && userCtx.municipality) {
-      query = query.eq('municipality', userCtx.municipality)
-    }
+    if (userCtx.role === 'municipal_tax_mapper') {
+      // Tax mapper: show forms they created OR are assigned to — no municipality filter needed
+      query = query.or(`created_by.eq.${userCtx.userId},assigned_to.eq.${userCtx.userId}`)
+    } else {
+      if (!userCtx.isAdmin && !PROVINCIAL_ROLES.includes(userCtx.role) && userCtx.municipality) {
+        query = query.eq('municipality', userCtx.municipality)
+      }
 
-    // Reviewer roles only see submitted/processed forms — drafts are noise for them,
-    // except for drafts they created themselves.
-    const HIDE_DRAFTS_ROLES = ['municipal_tax_mapper', 'laoo', 'provincial_assessor', 'assistant_provincial_assessor'];
-    if (HIDE_DRAFTS_ROLES.includes(userCtx.role)) {
-      query = query.or(`status.neq.draft,created_by.eq.${userCtx.userId}`)
+      const HIDE_DRAFTS_ROLES = ['municipal_assessor', 'laoo', 'provincial_assessor', 'assistant_provincial_assessor'];
+      if (HIDE_DRAFTS_ROLES.includes(userCtx.role)) {
+        if (userCtx.role === 'laoo') {
+          query = query.or(`and(status.neq.draft,status.neq.returned),and(status.eq.draft,created_by.eq.${userCtx.userId})`)
+        } else {
+          query = query.not('status', 'in', '("draft","returned")')
+        }
+      }
     }
 
     const { data, error } = await query

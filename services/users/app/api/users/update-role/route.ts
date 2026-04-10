@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyBearerToken, getAdminClient } from '../../../../lib/auth'
 
-const ALLOWED_ROLES = ['super_admin', 'admin', 'tax_mapper', 'municipal_tax_mapper', 'accountant', 'user']
+const ALLOWED_ROLES = ['super_admin', 'admin', 'municipal_tax_mapper', 'municipal_assessor', 'accountant', 'user']
 
 export async function POST(req: NextRequest) {
   try {

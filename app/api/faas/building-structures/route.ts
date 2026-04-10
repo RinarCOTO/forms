@@ -41,28 +41,47 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(data || null)
     }
 
+    // Provincial/LAOO roles see all municipalities — do not scope by municipality.
+    // Municipal roles are scoped to their assigned municipality.
+    const PROVINCIAL_ROLES = ['laoo', 'assistant_provincial_assessor', 'provincial_assessor'];
+
     let query = admin
       .from('building_structures')
-      .select('id, owner_name, updated_at, status, municipality, location_municipality, location_barangay, submitted_at, td_arp_no, created_by, approved_at')
+      .select('id, owner_name, updated_at, status, municipality, location_municipality, location_barangay, submitted_at, td_arp_no, created_by, approved_at, assigned_to')
       .order('updated_at', { ascending: false })
 
-    // Restrict to municipality if user is not admin and has a municipality assigned
-    if (!userCtx.isAdmin && userCtx.municipality) {
-      query = query.eq('municipality', userCtx.municipality)
-    }
+    if (userCtx.role === 'municipal_tax_mapper') {
+      // Tax mapper: show forms they created OR are assigned to — no municipality filter needed
+      // since assigned forms (e.g. from LAOO) may have null municipality
+      query = query.or(`created_by.eq.${userCtx.userId},assigned_to.eq.${userCtx.userId}`)
+    } else {
+      // All other non-admin roles: scope to their municipality
+      if (!userCtx.isAdmin && !PROVINCIAL_ROLES.includes(userCtx.role) && userCtx.municipality) {
+        query = query.eq('municipality', userCtx.municipality)
+      }
 
-    // Reviewer roles only see submitted/processed forms — drafts are noise for them,
-    // except for drafts they created themselves.
-    const HIDE_DRAFTS_ROLES = ['municipal_tax_mapper', 'laoo', 'provincial_assessor', 'assistant_provincial_assessor'];
-    if (HIDE_DRAFTS_ROLES.includes(userCtx.role)) {
-      query = query.or(`status.neq.draft,created_by.eq.${userCtx.userId}`)
+      // Reviewer roles hide drafts and returned forms (those belong to the assigned tax mapper)
+      const HIDE_DRAFTS_ROLES = ['municipal_assessor', 'laoo', 'provincial_assessor', 'assistant_provincial_assessor'];
+      if (HIDE_DRAFTS_ROLES.includes(userCtx.role)) {
+        if (userCtx.role === 'laoo') {
+          // LAOO sees all non-draft/non-returned + only their own drafts (to submit)
+          query = query.or(`and(status.neq.draft,status.neq.returned),and(status.eq.draft,created_by.eq.${userCtx.userId})`)
+        } else {
+          // municipal_assessor, provincial: hide drafts and returned entirely
+          query = query.not('status', 'in', '("draft","returned")')
+        }
+      }
     }
 
     const { data, error } = await query
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error) {
+      console.error('GET /api/faas/building-structures error:', error)
+      return NextResponse.json({ error: error.message, details: error }, { status: 500 })
+    }
 
     return NextResponse.json(data || [])
   } catch (error: any) {
+    console.error('GET /api/faas/building-structures exception:', error)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }

@@ -5,22 +5,8 @@ import { useState, useEffect, useCallback, useRef, Suspense } from "react";
 import { StepPagination } from "@/components/ui/step-pagination";
 import { ReviewCommentsFloat } from "@/components/review-comments-float";
 import "@/app/styles/forms-fill.css";
-import { AppSidebar } from "@/components/app-sidebar";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar";
+import { FormFillLayout } from "@/components/ui/form-fill-layout";
 import { Loader2, Upload, X, ImageIcon, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { useFormLock } from "@/hooks/useFormLock";
@@ -430,34 +416,31 @@ function BuildingStructureFormFillPage5() {
   const navParams = draftId ? `?id=${draftId}` : "";
 
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        {/* ── Header ── */}
-        <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
-          <SidebarTrigger className="-ml-1" />
-          <Separator
-            orientation="vertical"
-            className="mr-2 data-[orientation=vertical]:h-4"
-          />
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem className="hidden md:block">
-                <BreadcrumbLink href="/building-other-structure">
-                  Building &amp; Other Structures
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator className="hidden md:block" />
-              <BreadcrumbItem>
-                <BreadcrumbPage>Supporting Documents</BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
-        </header>
-
-        {/* ── Body ── */}
-        <div className="flex-1 p-6 overflow-y-auto">
-          <div className="rpfaas-fill max-w-3xl mx-auto">
+    <FormFillLayout
+      breadcrumbParent={{ label: "Building & Other Structures", href: "/building-other-structure" }}
+      pageTitle="Supporting Documents"
+      sidePanel={<>
+        <ReviewCommentsFloat draftId={draftId} stepFields={["additional_items"]} />
+        <Dialog open={removeDialogOpen} onOpenChange={setRemoveDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Remove Image</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to remove this image? This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setRemoveDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button variant="destructive" onClick={confirmRemove}>
+                Remove
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </>}
+    >
             {/* Title */}
             <header className="rpfaas-fill-header flex items-center justify-between gap-4 mb-6">
               <div>
@@ -529,30 +512,7 @@ function BuildingStructureFormFillPage5() {
               isDirty={false}
               onNext={() => router.push(`/building-other-structure/fill/step-6${navParams}`)}
             />
-          </div>
-        </div>
-      </SidebarInset>
-      <ReviewCommentsFloat draftId={draftId} stepFields={["additional_items"]} />
-
-      <Dialog open={removeDialogOpen} onOpenChange={setRemoveDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Remove Image</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to remove this image? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setRemoveDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={confirmRemove}>
-              Remove
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </SidebarProvider>
+    </FormFillLayout>
   );
 }
 

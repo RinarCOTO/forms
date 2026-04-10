@@ -88,7 +88,7 @@ const LS_OPEN_KEY = "review_comments_panel_open";
 // Roles that should NOT see municipal-tier comments
 const LAOO_TIER = new Set(["laoo", "assistant_provincial_assessor", "provincial_assessor"]);
 // Comments authored by municipal-tier that LAOO should not see
-const MUNICIPAL_AUTHOR_ROLES = new Set(["municipal_tax_mapper", "municipal_assessor"]);
+const MUNICIPAL_AUTHOR_ROLES = new Set(["municipal_assessor", "municipal_assessor"]);
 
 function CommentSkeleton() {
   return (
@@ -153,7 +153,7 @@ export function ReviewCommentsFloat({ draftId, stepFields, formType = "building"
 
         // Apply .has-laoo-comment badge to fields with reviewer comments on this page
         const reviewerComments = allComments.filter(
-          (c) => !c.parent_id && c.author_role !== "tax_mapper"
+          (c) => !c.parent_id && c.author_role !== "municipal_tax_mapper"
         );
         const commentedFields = new Set<string>();
         for (const c of reviewerComments) {
@@ -203,7 +203,7 @@ export function ReviewCommentsFloat({ draftId, stepFields, formType = "building"
   const allTopLevel = comments
     .filter((c) => {
       if (c.parent_id) return false;
-      if (c.author_role === "tax_mapper") return false;
+      if (c.author_role === "municipal_tax_mapper") return false;
       // LAOO-tier viewers don't see municipal-tier comments
       if (viewerRole && LAOO_TIER.has(viewerRole) && c.author_role && MUNICIPAL_AUTHOR_ROLES.has(c.author_role)) return false;
       return true;

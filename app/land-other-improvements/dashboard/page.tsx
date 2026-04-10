@@ -354,7 +354,7 @@ export default function LandOtherImprovementsDashboard() {
                                 </DropdownMenuItem>
                                 {SUBMITTABLE_STATUSES.includes(submission.status) && (
                                   <DropdownMenuItem onClick={() => handleSubmitForReview(submission.id)}>
-                                    <Send className="h-4 w-4 mr-2" /> Submit to LAOO
+                                    <Send className="h-4 w-4 mr-2" /> Submit to Municipal Assessor
                                   </DropdownMenuItem>
                                 )}
                                 {canDelete(submission) && (

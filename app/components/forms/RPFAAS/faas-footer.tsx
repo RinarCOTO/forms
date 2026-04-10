@@ -15,8 +15,8 @@ const SectionHeader = ({ children, colSpan = 3, className = "" }: SectionHeaderP
 const MUNICIPALITY_MAP: Record<string, string> = { paracelis: 'paracellis' };
 
 const ROLE_LABELS: Record<string, string> = {
-  tax_mapper:                    'Tax Mapper',
-  municipal_tax_mapper:          'Municipal Tax Mapper',
+  municipal_tax_mapper:                    'Tax Mapper',
+  municipal_assessor:          'Municipal Tax Mapper',
   laoo:                          'LAOO',
   provincial_assessor:           'Provincial Assessor',
   assistant_provincial_assessor: 'Asst. Provincial Assessor',
@@ -103,7 +103,7 @@ const FaasFooter = ({
     if (!locationMunicipality) return;
     const normalized = locationMunicipality.toLowerCase();
     const municipality = MUNICIPALITY_MAP[normalized] ?? normalized;
-    fetch(`/api/users/by-role?role=municipal_tax_mapper&municipality=${municipality}`)
+    fetch(`/api/users/by-role?role=municipal_assessor&municipality=${municipality}`)
       .then(res => res.json())
       .then(data => {
         const user = data.users?.[0];
@@ -114,7 +114,7 @@ const FaasFooter = ({
       });
   }, [municipalReviewerId, locationMunicipality]);
 
-  // Appraised by name — use reviewer ID if set, else fall back to tax_mapper for municipality
+  // Appraised by name — use reviewer ID if set, else fall back to municipal_tax_mapper for municipality
   useEffect(() => {
     if (appraisedById) {
       fetch(`/api/users/by-role?id=${appraisedById}`)
@@ -132,7 +132,7 @@ const FaasFooter = ({
     if (!locationMunicipality) return;
     const normalized = locationMunicipality.toLowerCase();
     const municipality = MUNICIPALITY_MAP[normalized] ?? normalized;
-    fetch(`/api/users/by-role?role=tax_mapper&municipality=${municipality}`)
+    fetch(`/api/users/by-role?role=municipal_tax_mapper&municipality=${municipality}`)
       .then(res => res.json())
       .then(data => {
         const user = data.users?.[0];

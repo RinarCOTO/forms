@@ -10,7 +10,7 @@ function getAdmin() {
   );
 }
 
-const REVIEW_ROLES = ['municipal_tax_mapper', 'laoo', 'assistant_provincial_assessor', 'provincial_assessor', 'admin', 'super_admin'];
+const REVIEW_ROLES = ['municipal_tax_mapper', 'municipal_assessor', 'laoo', 'assistant_provincial_assessor', 'provincial_assessor', 'admin', 'super_admin'];
 
 export async function GET(request: NextRequest) {
   try {

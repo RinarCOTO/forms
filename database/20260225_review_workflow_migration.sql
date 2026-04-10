@@ -9,7 +9,7 @@
 --   4.  Creates form_attachments       – documents for either party
 --   5.  Creates tax_declarations       – unlocked when FAAS is approved
 --   6.  Creates form_review_history    – full audit trail of every status change
---   7.  Renames municipal_tax_mapper   → municipal_assessor in role_permissions
+--   7.  Renames municipal_assessor   → municipal_assessor in role_permissions
 --   8.  Seeds permissions for new roles: laoo, assistant_provincial_assessor,
 --       provincial_assessor; adds new features: forms.submit, review.laoo, review.sign
 --   9.  Applies RLS and grants
@@ -83,7 +83,7 @@ CREATE TABLE IF NOT EXISTS form_comments (
   author_role      TEXT        NOT NULL
                      CHECK (author_role IN (
                        'laoo',
-                       'tax_mapper',
+                       'municipal_tax_mapper',
                        'municipal_assessor',
                        'admin',
                        'super_admin'
@@ -215,10 +215,10 @@ CREATE TRIGGER trg_tax_declarations_updated_at
 
 -- ── 8. Role permissions ───────────────────────────────────────────────────────
 
--- 8a. Rename municipal_tax_mapper → municipal_assessor
+-- 8a. Rename municipal_assessor → municipal_assessor
 UPDATE role_permissions
   SET role = 'municipal_assessor'
-  WHERE role = 'municipal_tax_mapper';
+  WHERE role = 'municipal_assessor';
 
 -- 8b. Seed three new roles
 --     New permission features introduced:
@@ -321,11 +321,11 @@ INSERT INTO role_permissions (role, feature, allowed) VALUES
   ('admin',              'review.laoo',  false),
   ('admin',              'review.sign',  false),
 
-  ('tax_mapper',         'forms.submit', true),
-  ('tax_mapper',         'review.laoo',  false),
-  ('tax_mapper',         'review.sign',  false),
+  ('municipal_tax_mapper',         'forms.submit', true),
+  ('municipal_tax_mapper',         'review.laoo',  false),
+  ('municipal_tax_mapper',         'review.sign',  false),
 
-  -- municipal_assessor (was municipal_tax_mapper; already renamed above)
+  -- municipal_assessor (was municipal_assessor; already renamed above)
   ('municipal_assessor', 'forms.submit', true),
   ('municipal_assessor', 'review.laoo',  false),
   ('municipal_assessor', 'review.sign',  false),

@@ -3,8 +3,8 @@ import { createClient } from '@/lib/supabase/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
 
 const ALLOWED_ROLES = new Set([
-  'tax_mapper',
   'municipal_tax_mapper',
+  'municipal_assessor',
   'laoo',
   'provincial_assessor',
   'assistant_provincial_assessor',

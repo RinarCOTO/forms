@@ -2,9 +2,8 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState, useEffect, useRef } from "react";
-import { ArrowLeft, Edit, History, ArrowRight, User, Clock, Printer } from "lucide-react";
+import { ArrowLeft, Edit, History, ArrowRight, User, Clock, Printer, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 
 const HISTORY_ALLOWED_ROLES = [
@@ -18,6 +17,7 @@ const PRINT_ALLOWED_ROLES = [
   "provincial_assessor",
   "assistant_provincial_assessor",
   "super_admin",
+  "municipal_assessor",
   "municipal_tax_mapper",
 ];
 
@@ -43,7 +43,28 @@ function PrintPreviewPage() {
   const [formStatus, setFormStatus] = useState<string | null>(null);
   const [canViewHistory, setCanViewHistory] = useState(false);
   const [canPrint, setCanPrint] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
+
+  const handleExport = async () => {
+    if (!formId) return;
+    setIsExporting(true);
+    try {
+      const res = await fetch(`/api/print/building-structures/${formId}`);
+      if (!res.ok) throw new Error(await res.text());
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `RPFAAS-Building-${formId}-${new Date().toISOString().slice(0, 10)}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Export failed:', err);
+    } finally {
+      setIsExporting(false);
+    }
+  };
   const [historyLoading, setHistoryLoading] = useState(false);
 
   useEffect(() => {
@@ -64,6 +85,15 @@ function PrintPreviewPage() {
         if (d?.role && PRINT_ALLOWED_ROLES.includes(d.role)) setCanPrint(true);
       })
       .catch(() => {});
+  }, []);
+
+  // Always block browser printing — users must use the Download PDF button (server-generated)
+  useEffect(() => {
+    const style = document.createElement("style");
+    style.id = "print-blocked";
+    style.textContent = `@media print { body { display: none !important; } }`;
+    document.head.appendChild(style);
+    return () => document.getElementById("print-blocked")?.remove();
   }, []);
 
   useEffect(() => {
@@ -111,14 +141,26 @@ function PrintPreviewPage() {
             </span>
           )}
           {formStatus === "approved" && canPrint && (
-            <Button
-              size="sm"
-              onClick={() => { window.location.href = `/api/print/building-structures/${formId}`; }}
-              className="gap-1.5"
-            >
-              <Printer className="h-4 w-4" />
-              Download PDF
-            </Button>
+            <>
+              <Button
+                size="sm"
+                onClick={() => { window.open(`/api/print/building-structures/${formId}`, '_blank'); }}
+                className="gap-1.5"
+              >
+                <Printer className="h-4 w-4" />
+                Print
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleExport}
+                disabled={isExporting}
+                className="gap-1.5"
+              >
+                {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                {isExporting ? 'Exporting…' : 'Export'}
+              </Button>
+            </>
           )}
         </div>
       </div>

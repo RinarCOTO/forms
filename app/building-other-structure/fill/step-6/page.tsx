@@ -7,23 +7,9 @@ import { ReviewCommentsFloat } from "@/components/review-comments-float";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import "@/app/styles/forms-fill.css";
 import { getAssessmentLevel } from "@/config/assessment-level";
-import { AppSidebar } from "@/components/app-sidebar";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar";
+import { FormFillLayout } from "@/components/ui/form-fill-layout";
 import { toast } from "sonner";
 import { TextArea } from "react-aria-components";
 import { Loader2 } from "lucide-react";
@@ -163,10 +149,10 @@ function BuildingStructureFormFillPage6() {
     }).catch(() => {});
   }, []);
 
-  // Auto-select self for all roles except base tax_mapper (who may select a different mapper)
+  // Auto-select self for all roles except base municipal_tax_mapper (who may select a different mapper)
   useEffect(() => {
     if (!currentUser) return;
-    if (currentUser.role !== 'tax_mapper' && !appraisedBy) setAppraisedBy(currentUser.id);
+    if (currentUser.role !== 'municipal_tax_mapper' && !appraisedBy) setAppraisedBy(currentUser.id);
   }, [currentUser, appraisedBy]);
 
   const PSGC_TO_SLUG: Record<string, string> = {
@@ -225,7 +211,7 @@ function BuildingStructureFormFillPage6() {
   useEffect(() => {
     if (!locationMunicipalitySlug) return;
     setTaxMappersLoading(true);
-    const params = new URLSearchParams({ role: "tax_mapper", municipality: locationMunicipalitySlug });
+    const params = new URLSearchParams({ role: "municipal_tax_mapper", municipality: locationMunicipalitySlug });
     fetch(`/api/users/by-role?${params}`)
       .then(r => r.json())
       .then(data => { if (Array.isArray(data.users)) setTaxMappers(data.users); })
@@ -399,27 +385,11 @@ function BuildingStructureFormFillPage6() {
   }, [actualUse, assessedValue, amountInWords, assessmentLevel, draftId, router, effectivityYear, appraisedBy, memoranda]);
 
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
-          <SidebarTrigger className="-ml-1" />
-          <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4" />
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem className="hidden md:block">
-                <BreadcrumbLink href="/building-other-structure">Building & Other Structures</BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator className="hidden md:block" />
-              <BreadcrumbItem>
-                <BreadcrumbPage>{PAGE_DESCRIPTION}</BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
-        </header>
-
-        <div className="flex-1 p-6 overflow-y-auto">
-          <div className="rpfaas-fill max-w-3xl mx-auto">
+    <FormFillLayout
+      breadcrumbParent={{ label: "Building & Other Structures", href: "/building-other-structure" }}
+      pageTitle={PAGE_DESCRIPTION}
+      sidePanel={<ReviewCommentsFloat draftId={draftId} stepFields={["actual_use","market_value","assessment_level","assessed_value","amount_in_words","effectivity_of_assessment","appraised_by","memoranda"]} />}
+    >
             <header className="rpfaas-fill-header flex items-center justify-between gap-4 mb-6">
               <div>
                 <h1 className="rpfaas-fill-title">Fill-up Form: Property Assessment</h1>
@@ -550,7 +520,7 @@ function BuildingStructureFormFillPage6() {
               <FormSection>
                 <div className="rpfaas-fill-field space-y-1" data-comment-field="appraised_by">
                   <Label className="rpfaas-fill-label" htmlFor="appraised_by_p5">Assessed/Appraised by:</Label>
-                  {currentUser && currentUser.role !== 'tax_mapper' ? (
+                  {currentUser && currentUser.role !== 'municipal_tax_mapper' ? (
                     <Input
                       id="appraised_by_p5"
                       value={currentUser.full_name}
@@ -603,11 +573,7 @@ function BuildingStructureFormFillPage6() {
               />
             </form>
             </fieldset>
-          </div>
-        </div>
-      </SidebarInset>
-      <ReviewCommentsFloat draftId={draftId} stepFields={["actual_use","market_value","assessment_level","assessed_value","amount_in_words","effectivity_of_assessment","appraised_by","memoranda"]} />
-    </SidebarProvider>
+    </FormFillLayout>
   );
 }
 

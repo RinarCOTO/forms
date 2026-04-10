@@ -29,7 +29,7 @@ const DEFAULT_PERMISSIONS: Record<string, Record<string, boolean>> = {
     'role_management.view': false, 'role_management.edit': false,
     'dashboard.view': true, 'forms.submit': true, 'review.laoo': false, 'review.sign': false,
   },
-  tax_mapper: {
+  municipal_tax_mapper: {
     'building_structures.view': true, 'building_structures.create': true,
     'building_structures.edit': true, 'building_structures.delete': false,
     'land_improvements.view': true, 'land_improvements.create': true,
@@ -42,7 +42,7 @@ const DEFAULT_PERMISSIONS: Record<string, Record<string, boolean>> = {
     'role_management.view': false, 'role_management.edit': false,
     'dashboard.view': true, 'forms.submit': true, 'review.laoo': false, 'review.sign': false,
   },
-  municipal_tax_mapper: {
+  municipal_assessor: {
     'building_structures.view': true, 'building_structures.create': true,
     'building_structures.edit': true, 'building_structures.delete': false,
     'land_improvements.view': true, 'land_improvements.create': true,

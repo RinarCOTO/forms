@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyBearerToken, getAdminClient } from '../../../../lib/auth'
 
-const ALL_ROLES = ['super_admin', 'admin', 'tax_mapper', 'municipal_tax_mapper', 'accountant', 'user'] as const
+const ALL_ROLES = ['super_admin', 'admin', 'municipal_tax_mapper', 'municipal_assessor', 'accountant', 'user'] as const
 const ALL_FEATURES = [
   'building_structures.view', 'building_structures.create', 'building_structures.edit', 'building_structures.delete',
   'land_improvements.view', 'land_improvements.create', 'land_improvements.edit', 'land_improvements.delete',
@@ -22,7 +22,7 @@ const DEFAULT_PERMISSIONS: Record<string, Record<string, boolean>> = {
     'user_management.view': true, 'user_management.create': true, 'user_management.edit': true, 'user_management.delete': true,
     'role_management.view': false, 'role_management.edit': false, 'dashboard.view': true,
   },
-  tax_mapper: {
+  municipal_tax_mapper: {
     'building_structures.view': true, 'building_structures.create': true, 'building_structures.edit': true, 'building_structures.delete': false,
     'land_improvements.view': true, 'land_improvements.create': true, 'land_improvements.edit': true, 'land_improvements.delete': false,
     'machinery.view': true, 'machinery.create': true, 'machinery.edit': true, 'machinery.delete': false,
@@ -30,7 +30,7 @@ const DEFAULT_PERMISSIONS: Record<string, Record<string, boolean>> = {
     'user_management.view': false, 'user_management.create': false, 'user_management.edit': false, 'user_management.delete': false,
     'role_management.view': false, 'role_management.edit': false, 'dashboard.view': true,
   },
-  municipal_tax_mapper: {
+  municipal_assessor: {
     'building_structures.view': true, 'building_structures.create': true, 'building_structures.edit': true, 'building_structures.delete': false,
     'land_improvements.view': true, 'land_improvements.create': true, 'land_improvements.edit': true, 'land_improvements.delete': false,
     'machinery.view': true, 'machinery.create': true, 'machinery.edit': true, 'machinery.delete': false,

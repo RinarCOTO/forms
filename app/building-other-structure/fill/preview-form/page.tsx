@@ -22,7 +22,8 @@ import { SuccessModal } from "@/components/ui/success-modal";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { toast } from "sonner";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Loader2, Save, Send, Lock, AlertTriangle, RotateCcw, MessageSquare, User, Clock, FileText } from "lucide-react";
+import { Loader2, Save, Send, RotateCcw, MessageSquare, User, Clock, FileText } from "lucide-react";
+import { FormStatusBanner } from "@/components/ui/form-status-banner";
 import BuildingStructureForm from "@/app/components/forms/RPFAAS/building_structure_form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -242,7 +243,6 @@ function PreviewFormPage() {
 
   const [isSaving, setIsSaving] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isPdfLoading, setIsPdfLoading] = useState(false);
 
   // Modal state
   const [successModal, setSuccessModal] = useState<{ open: boolean; title: string; description?: string; onConfirm: () => void }>({
@@ -305,14 +305,16 @@ function PreviewFormPage() {
   }, [activeComment]);
 
   // Permission: only roles allowed by the submit API can save/submit
-  const SUBMIT_ALLOWED_ROLES = ["tax_mapper", "municipal_tax_mapper", "admin", "super_admin"];
+  const SUBMIT_ALLOWED_ROLES = ["municipal_tax_mapper", "municipal_assessor", "laoo", "assistant_provincial_assessor", "provincial_assessor", "admin", "super_admin"];
   const PRINT_ALLOWED_ROLES = ["provincial_assessor", "assistant_provincial_assessor"];
   const [canSubmit, setCanSubmit] = useState(false);
   const [canPrint, setCanPrint] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
   useEffect(() => {
     fetch("/api/users/permissions")
       .then((r) => r.json())
       .then((data) => {
+        if (data?.role) setUserRole(data.role);
         if (data?.role && SUBMIT_ALLOWED_ROLES.includes(data.role)) setCanSubmit(true);
         if (data?.role && PRINT_ALLOWED_ROLES.includes(data.role)) setCanPrint(true);
       })
@@ -501,28 +503,10 @@ function PreviewFormPage() {
       .finally(() => setCommentsLoading(false));
   }, [draftId]);
 
-  // ── Server-side PDF download (tamper-proof) ──
-  const handleDownloadPdf = useCallback(async () => {
+  // ── Server-side PDF print (tamper-proof — opens in browser PDF viewer) ──
+  const handleDownloadPdf = useCallback(() => {
     if (!draftId) return;
-    setIsPdfLoading(true);
-    try {
-      const res = await fetch(`/api/print/building-structures/${draftId}`);
-      if (!res.ok) throw new Error(await res.text());
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      const owner = dbRecord?.owner_name ?? "Unknown";
-      const arp = dbRecord?.arp_no ?? "Unknown";
-      const date = new Date().toISOString().slice(0, 10);
-      a.download = `RPFAAS-Building_${owner}_${arp}_${date}.pdf`;
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error('PDF download failed:', err);
-    } finally {
-      setIsPdfLoading(false);
-    }
+    window.open(`/api/print/building-structures/${draftId}`, '_blank');
   }, [draftId]);
 
 
@@ -653,12 +637,11 @@ function PreviewFormPage() {
               <div className="hidden sm:flex items-center gap-2">
                 <Button
                   onClick={handleDownloadPdf}
-                  disabled={isPdfLoading}
                   variant="outline"
                   className="flex items-center gap-2"
                 >
-                  {isPdfLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
-                  {isPdfLoading ? 'Generating…' : 'Download PDF'}
+                  <FileText className="h-4 w-4" />
+                  Print
                 </Button>
               </div>
             </header>
@@ -692,42 +675,17 @@ function PreviewFormPage() {
             </div>
 
             {/* ── Status banners ── */}
-            {!statusLoading && !isPrintMode && (
-              <div className="print:hidden mb-4 space-y-2">
-                {formStatus === "submitted" && (
-                  <div className="flex items-center gap-2 rounded-md border border-yellow-400/50 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
-                    <Lock className="h-4 w-4 shrink-0" />
-                    <span>
-                      <strong>Awaiting Municipal Assessor Review.</strong> This form has been submitted and is locked for editing until it is returned.
-                    </span>
-                  </div>
-                )}
-                {formStatus === "under_review" && (
-                  <div className="flex items-center gap-2 rounded-md border border-blue-400/50 bg-blue-50 px-4 py-3 text-sm text-blue-800">
-                    <Lock className="h-4 w-4 shrink-0" />
-                    <span>
-                      <strong>Under Review.</strong> This form is currently being reviewed.
-                    </span>
-                  </div>
-                )}
-                {formStatus === "returned" && (
-                  <div className="flex items-center gap-2 rounded-md border border-orange-400/50 bg-orange-50 px-4 py-3 text-sm text-orange-800">
-                    <AlertTriangle className="h-4 w-4 shrink-0" />
-                    <span>
-                      <strong>Returned for Review.</strong> This form has been returned with comments. Please address all comments before resubmitting.
-                    </span>
-                  </div>
-                )}
-                {formStatus === "approved" && (
-                  <div className="flex items-center gap-2 rounded-md border border-green-400/50 bg-green-50 px-4 py-3 text-sm text-green-800">
-                    <Lock className="h-4 w-4 shrink-0" />
-                    <span>
-                      <strong>Approved.</strong> This form has been fully approved. The Tax Declaration has been unlocked.
-                    </span>
-                  </div>
-                )}
-              </div>
-            )}
+            <FormStatusBanner
+              status={formStatus}
+              statusLoading={statusLoading}
+              isPrintMode={isPrintMode}
+              messages={{
+                submitted: { title: "Awaiting Municipal Assessor Review.", message: "This form has been submitted and is locked for editing until it is returned." },
+                under_review: { title: "Under Review.", message: "This form is currently being reviewed." },
+                returned: { title: "Returned for Review.", message: "This form has been returned with comments. Please address all comments before resubmitting." },
+                approved: { title: "Approved.", message: "This form has been fully approved. The Tax Declaration has been unlocked." },
+              }}
+            />
 
             {/* Tax Declaration button — approved forms only */}
             {!isPrintMode && formStatus === "approved" && draftId && (
@@ -797,7 +755,7 @@ function PreviewFormPage() {
                             ) : (
                               <Send className="mr-2 h-4 w-4" />
                             )}
-                            {formStatus === "returned" ? "Resubmit to LAOO" : "Submit to LAOO"}
+                            {formStatus === "returned" ? "Resubmit to Municipal Assessor" : "Submit to Municipal Assessor"}
                           </>
                         )}
                       </Button>
@@ -811,7 +769,7 @@ function PreviewFormPage() {
                       <strong>Save as Draft:</strong> Save your progress and continue editing later.
                     </p>
                     <p>
-                      <strong>{formStatus === "returned" ? "Resubmit to LAOO" : "Submit to LAOO"}:</strong>{" "}
+                      <strong>{formStatus === "returned" ? "Resubmit to Municipal Assessor" : "Submit to Municipal Assessor"}:</strong>{" "}
                       {formStatus === "returned"
                         ? "Send your revised form back for review."
                         : "Send to Municipal Assessor for review. The form will be locked until it is returned."}

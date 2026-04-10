@@ -33,8 +33,8 @@ import { toast } from "sonner";
 type UserRole =
   | "super_admin"
   | "admin"
-  | "tax_mapper"
   | "municipal_tax_mapper"
+  | "municipal_assessor"
   | "laoo"
   | "assistant_provincial_assessor"
   | "provincial_assessor"
@@ -47,8 +47,8 @@ type PermissionMap = Record<string, Record<string, boolean>>;
 const ROLES: { key: UserRole; label: string; short: string }[] = [
   { key: "super_admin",                  label: "Super Admin",               short: "SA"   },
   { key: "admin",                        label: "Admin",                     short: "Ad"   },
-  { key: "tax_mapper",                   label: "Tax Mapper",                short: "TM"   },
-  { key: "municipal_tax_mapper",         label: "Municipal Tax Mapper",      short: "MTM"  },
+  { key: "municipal_tax_mapper",                   label: "Municipal Tax Mapper",      short: "MTM"  },
+  { key: "municipal_assessor",         label: "Municipal Assessor",        short: "MA"   },
   { key: "laoo",                         label: "LAOO",                      short: "LAOO" },
   { key: "assistant_provincial_assessor",label: "Asst. Provincial Assessor", short: "APA"  },
   { key: "provincial_assessor",          label: "Provincial Assessor",       short: "PA"   },
@@ -59,8 +59,8 @@ const ROLES: { key: UserRole; label: string; short: string }[] = [
 const ROLE_BADGE_COLORS: Record<UserRole, string> = {
   super_admin:                  "bg-red-900/40 text-red-300 border-red-700",
   admin:                        "bg-blue-900/40 text-blue-300 border-blue-700",
-  tax_mapper:                   "bg-emerald-900/40 text-emerald-300 border-emerald-700",
-  municipal_tax_mapper:         "bg-teal-900/40 text-teal-300 border-teal-700",
+  municipal_tax_mapper:                   "bg-emerald-900/40 text-emerald-300 border-emerald-700",
+  municipal_assessor:         "bg-teal-900/40 text-teal-300 border-teal-700",
   laoo:                         "bg-cyan-900/40 text-cyan-300 border-cyan-700",
   assistant_provincial_assessor:"bg-amber-900/40 text-amber-300 border-amber-700",
   provincial_assessor:          "bg-orange-900/40 text-orange-300 border-orange-700",

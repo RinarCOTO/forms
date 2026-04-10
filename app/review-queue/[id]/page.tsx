@@ -14,9 +14,10 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Loader2, ArrowLeft, CheckCircle, RotateCcw,
-  MessageSquare, Send, User, Clock,
+  MessageSquare, Send, User, Clock, UserCheck,
 } from "lucide-react";
 import ReviewFormInline from "./ReviewFormInline";
 import { toast } from "sonner";
@@ -138,11 +139,16 @@ function ReviewDetailInner({ id }: { id: string }) {
   const searchParams = useSearchParams();
   const formType = (searchParams.get("type") ?? "building") as "building" | "land";
 
-  const [currentUser, setCurrentUser] = useState<{ id: string; role: string } | null>(null);
+  const [currentUser, setCurrentUser] = useState<{ id: string; role: string; municipality?: string } | null>(null);
   const [record, setRecord] = useState<FormRecord | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
+
+  // Tax mapper assignment
+  const [taxMappers, setTaxMappers] = useState<{ id: string; full_name: string }[]>([]);
+  const [assignedTo, setAssignedTo] = useState<string>("");
+  const [assignLoading, setAssignLoading] = useState(false);
 
   // Comment form
   const [selectedFields, setSelectedFields] = useState<string[]>([]);
@@ -159,9 +165,9 @@ function ReviewDetailInner({ id }: { id: string }) {
     fetch("/api/users/permissions")
       .then(r => r.json())
       .then(data => {
-        const allowed = ["municipal_tax_mapper", "laoo", "assistant_provincial_assessor", "provincial_assessor", "admin", "super_admin"];
+        const allowed = ["municipal_tax_mapper", "municipal_assessor", "laoo", "assistant_provincial_assessor", "provincial_assessor", "admin", "super_admin"];
         if (!data?.role || !allowed.includes(data.role)) router.replace("/dashboard");
-        else setCurrentUser({ id: data.id ?? "", role: data.role });
+        else setCurrentUser({ id: data.id ?? "", role: data.role, municipality: data.municipality ?? undefined });
       })
       .catch(() => router.replace("/dashboard"));
   }, [router]);
@@ -181,6 +187,7 @@ function ReviewDetailInner({ id }: { id: string }) {
       if (formRes.ok) {
         const json = await formRes.json();
         setRecord(json.data ?? null);
+        setAssignedTo(json.data?.assigned_to ?? "");
       } else {
         toast.error("Could not load form.");
       }
@@ -198,6 +205,39 @@ function ReviewDetailInner({ id }: { id: string }) {
   useEffect(() => {
     if (currentUser) loadData();
   }, [currentUser, loadData]);
+
+  // Load tax mappers for assignment (only for municipal-tier reviewers)
+  useEffect(() => {
+    if (!currentUser) return;
+    const MUNICIPAL_REVIEWER_ROLES = ['municipal_tax_mapper', 'municipal_assessor', 'admin', 'super_admin'];
+    if (!MUNICIPAL_REVIEWER_ROLES.includes(currentUser.role)) return;
+    const municipality = (record as any)?.location_municipality;
+    const params = municipality ? `&municipality=${encodeURIComponent(municipality)}` : '';
+    const url = `/api/users/by-role?role=municipal_tax_mapper,municipal_assessor${params}`;
+
+    fetch(url)
+      .then(r => r.json())
+      .then(d => setTaxMappers(d.users ?? []))
+      .catch(() => {});
+  }, [currentUser, record]);
+
+  const handleAssign = useCallback(async (userId: string) => {
+    setAssignLoading(true);
+    try {
+      const res = await fetch(`${apiBase}/assign`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ assigned_to: userId || null }),
+      });
+      if (!res.ok) throw new Error();
+      setAssignedTo(userId);
+      toast.success(userId ? "Tax mapper assigned." : "Assignment cleared.");
+    } catch {
+      toast.error("Failed to update assignment.");
+    } finally {
+      setAssignLoading(false);
+    }
+  }, [apiBase]);
 
   // ── Review actions ──────────────────────────────────────────────────────────
   type ReviewAction = 'sign_forward' | 'return_to_mapper' | 'laoo_approve' | 'laoo_return' | 'sign_approve' | 'provincial_return';
@@ -326,10 +366,10 @@ function ReviewDetailInner({ id }: { id: string }) {
   }
 
   const userRole = currentUser.role;
-  const isReviewer = ["municipal_tax_mapper", "laoo", "assistant_provincial_assessor", "provincial_assessor", "admin", "super_admin"]
+  const isReviewer = ["municipal_tax_mapper", "municipal_assessor", "laoo", "assistant_provincial_assessor", "provincial_assessor", "admin", "super_admin"]
     .includes(userRole);
 
-  const MUNICIPAL_ROLES_LOCAL  = ['municipal_tax_mapper', 'admin', 'super_admin'];
+  const MUNICIPAL_ROLES_LOCAL  = ['municipal_tax_mapper', 'municipal_assessor', 'admin', 'super_admin'];
   const LAOO_ROLES_LOCAL       = ['laoo', 'admin', 'super_admin'];
   const PROVINCIAL_ROLES_LOCAL = ['assistant_provincial_assessor', 'provincial_assessor', 'admin', 'super_admin'];
 
@@ -370,10 +410,19 @@ function ReviewDetailInner({ id }: { id: string }) {
                   <>
                     <Button onClick={() => doAction('sign_forward')} disabled={actionLoading} className="bg-blue-600 hover:bg-blue-700 text-white">
                       {actionLoading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <CheckCircle className="h-4 w-4 mr-1" />}
-                      Sign & Forward to LAOO
+                      Approve & Forward to LAOO
                     </Button>
-                    <Button variant="outline" onClick={() => setReturnDialogOpen(true)} disabled={actionLoading} className="text-red-600 border-red-300 hover:bg-red-50">
-                      <RotateCcw className="h-4 w-4 mr-1" /> Return to Mapper
+                    <Button
+                      variant="outline"
+                      onClick={() => setReturnDialogOpen(true)}
+                      disabled={actionLoading || !assignedTo}
+                      title={!assignedTo ? "Select an appraiser first" : undefined}
+                      className="text-red-600 border-red-300 hover:bg-red-50 disabled:opacity-40"
+                    >
+                      <RotateCcw className="h-4 w-4 mr-1" />
+                      {assignedTo
+                        ? `Return to ${taxMappers.find(u => u.id === assignedTo)?.full_name ?? "Mapper"}`
+                        : "Return to Mapper"}
                     </Button>
                   </>
                 )}
@@ -392,7 +441,7 @@ function ReviewDetailInner({ id }: { id: string }) {
                   <>
                     <Button onClick={() => doAction('sign_approve')} disabled={actionLoading} className="bg-green-600 hover:bg-green-700 text-white">
                       {actionLoading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <CheckCircle className="h-4 w-4 mr-1" />}
-                      Sign & Approve
+                      Approve
                     </Button>
                     <Button variant="outline" onClick={() => setReturnDialogOpen(true)} disabled={actionLoading} className="text-red-600 border-red-300 hover:bg-red-50">
                       <RotateCcw className="h-4 w-4 mr-1" /> Return to Municipal
@@ -409,6 +458,33 @@ function ReviewDetailInner({ id }: { id: string }) {
                 </span>
               )}
             </div>
+
+            {/* Appraised/Assessed By — only shown to municipal-tier reviewers */}
+            {canMunicipalAct && taxMappers.length > 0 && (
+              <div className="flex items-center gap-3">
+                <UserCheck className="h-4 w-4 text-muted-foreground shrink-0" />
+                <span className="text-sm text-muted-foreground shrink-0">Appraised / Assessed By:</span>
+                <Select
+                  value={assignedTo || "none"}
+                  onValueChange={v => handleAssign(v === "none" ? "" : v)}
+                  disabled={assignLoading}
+                >
+                  <SelectTrigger className="w-56 h-8 text-sm">
+                    <SelectValue placeholder="Select tax mapper…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">— Not selected —</SelectItem>
+                    {taxMappers.map(u => (
+                      <SelectItem key={u.id} value={u.id}>{u.full_name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {assignLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                {!assignedTo && (
+                  <span className="text-xs text-amber-600">Required before returning</span>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Main: form iframe + comments sidebar */}

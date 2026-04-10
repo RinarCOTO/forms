@@ -11,7 +11,7 @@ function getAdmin() {
 }
 
 // Role groups
-const MUNICIPAL_ROLES  = ['municipal_tax_mapper', 'admin', 'super_admin'];
+const MUNICIPAL_ROLES  = ['municipal_tax_mapper', 'municipal_assessor', 'admin', 'super_admin'];
 const LAOO_ROLES       = ['laoo', 'admin', 'super_admin'];
 const PROVINCIAL_ROLES = ['assistant_provincial_assessor', 'provincial_assessor', 'admin', 'super_admin'];
 

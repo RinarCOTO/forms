@@ -42,7 +42,7 @@ forms/
 │   ├── role_permissions_migration.sql       ← role_permissions table + seed
 │   ├── photos_migration.sql                 ← building_structure_photos table
 │   ├── 20260225_review_workflow_migration.sql ← Review workflow tables + columns
-│   └── 20260225_patch_revert_role_rename.sql  ← Keeps municipal_tax_mapper, adds review.sign
+│   └── 20260225_patch_revert_role_rename.sql  ← Keeps municipal_assessor, adds review.sign
 └── WORKFLOW_GUIDE.md                        ← Non-technical user guide
 ```
 
@@ -63,7 +63,7 @@ field_name       TEXT        -- NULL = general comment
 comment_text     TEXT        NOT NULL
 suggested_value  TEXT        -- LAOO's recommended correction
 author_id        UUID        -- auth.uid()
-author_role      TEXT        CHECK IN ('laoo','tax_mapper','municipal_tax_mapper',...)
+author_role      TEXT        CHECK IN ('laoo','municipal_tax_mapper','municipal_assessor',...)
 parent_id        UUID        REFERENCES form_comments(id)  -- for threaded replies
 is_resolved      BOOLEAN     DEFAULT false
 created_at       TIMESTAMPTZ DEFAULT NOW()
@@ -204,7 +204,7 @@ Returns all submitted/under_review FAAS forms across building_structures and lan
 
 Transitions a FAAS from `draft` or `returned` → `submitted`.
 
-**Auth:** tax_mapper, municipal_tax_mapper, admin, super_admin
+**Auth:** municipal_tax_mapper, municipal_assessor, admin, super_admin
 
 **Body:** `{}` (empty — form data must be saved via PUT before calling this)
 
@@ -341,8 +341,8 @@ review.sign         ← new: who can sign Tax Declarations
 |---|---|---|---|
 | super_admin | ✓ | ✓ | ✓ |
 | admin | ✓ | ✗ | ✗ |
-| tax_mapper | ✓ | ✗ | ✗ |
-| municipal_tax_mapper | ✓ | ✗ | ✓ |
+| municipal_tax_mapper | ✓ | ✗ | ✗ |
+| municipal_assessor | ✓ | ✗ | ✓ |
 | laoo | ✗ | ✓ | ✗ |
 | assistant_provincial_assessor | ✗ | ✗ | ✓ |
 | provincial_assessor | ✗ | ✗ | ✓ |
@@ -460,4 +460,4 @@ A LAOO with `municipality = NULL` in their profile sees all municipalities (prov
 | Tax Declaration form unlock | `app/api/building-other-structure/[id]/review/route.ts` — create tax_declaration on approve; new `app/tax-declarations/[id]/page.tsx` |
 | Signature queue | `app/signature-queue/page.tsx`, `app/api/signature-queue/route.ts` |
 | Land Improvements submit + review | Mirror of building-other-structure routes for `land_improvements` table |
-| `form_comments` constraint fix | The `author_role` CHECK still lists `municipal_assessor` — needs updating to `municipal_tax_mapper` via ALTER TABLE |
+| `form_comments` constraint fix | The `author_role` CHECK still lists `municipal_assessor` — needs updating to `municipal_assessor` via ALTER TABLE |

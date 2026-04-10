@@ -82,7 +82,7 @@ export default function BuildingOtherStructureDashboard() {
 
     const fetchMunicipalAssessors = async () => {
       try {
-        const response = await fetch('/api/users/by-role?role=municipal_tax_mapper');
+        const response = await fetch('/api/users/by-role?role=municipal_assessor');
         if (response.ok) {
           const data = await response.json();
           setMunicipalAssessors(data.users ?? []);
@@ -188,6 +188,21 @@ export default function BuildingOtherStructureDashboard() {
       user.role === 'admin' || user.role === 'super_admin' ||
       (['draft', 'returned'].includes(submission.status) && submission.created_by === user.id)
     );
+
+  const PRINT_ALLOWED_ROLES = ['provincial_assessor', 'assistant_provincial_assessor', 'super_admin', 'municipal_assessor', 'municipal_tax_mapper'];
+  const canPrint = user && PRINT_ALLOWED_ROLES.includes(user.role);
+
+  const handleExportSingle = useCallback(async (submission: FormSubmission) => {
+    const res = await fetch(`/api/print/building-structures/${submission.id}`);
+    if (!res.ok) return;
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `RPFAAS-Building_${submission.owner_name ?? 'Unknown'}_${submission.id}_${new Date().toISOString().slice(0, 10)}.pdf`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, []);
 
   const SUBMITTABLE_STATUSES = ['draft', 'returned', 'returned_to_municipal'];
   // Statuses the tax mapper can still edit (not locked by the review workflow)
@@ -492,8 +507,20 @@ export default function BuildingOtherStructureDashboard() {
                                 </DropdownMenuItem>
                                 {SUBMITTABLE_STATUSES.includes(submission.status) && (
                                   <DropdownMenuItem onClick={() => handleSubmitForReview(submission.id)}>
-                                    <Send className="h-4 w-4 mr-2" /> Submit to LAOO
+                                    <Send className="h-4 w-4 mr-2" />
+                                    Submit to Municipal Assessor
                                   </DropdownMenuItem>
+                                )}
+                                {submission.status === 'approved' && canPrint && (
+                                  <>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem onClick={() => window.open(`/api/print/building-structures/${submission.id}`, '_blank')}>
+                                      <FileText className="h-4 w-4 mr-2" /> Print
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleExportSingle(submission)}>
+                                      <Download className="h-4 w-4 mr-2" /> Export
+                                    </DropdownMenuItem>
+                                  </>
                                 )}
                                 {canDelete(submission) && (
                                   <>

@@ -28,8 +28,8 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const ROLE_LABELS: Record<string, string> = {
-  tax_mapper:                    'Tax Mapper',
-  municipal_tax_mapper:          'Municipal Tax Mapper',
+  municipal_tax_mapper:                    'Tax Mapper',
+  municipal_assessor:          'Municipal Tax Mapper',
   laoo:                          'LAOO',
   provincial_assessor:           'Provincial Assessor',
   assistant_provincial_assessor: 'Assistant Provincial Assessor',

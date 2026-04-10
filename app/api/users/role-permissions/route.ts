@@ -14,8 +14,8 @@ function getAdminClient() {
 const ALL_ROLES = [
   'super_admin',
   'admin',
-  'tax_mapper',
   'municipal_tax_mapper',
+  'municipal_assessor',
   'accountant',
   'user',
 ] as const;
@@ -68,7 +68,7 @@ const DEFAULT_PERMISSIONS: Record<string, Record<string, boolean>> = {
     'role_management.edit': false,
     'dashboard.view': true,
   },
-  tax_mapper: {
+  municipal_tax_mapper: {
     'building_structures.view': true,
     'building_structures.create': true,
     'building_structures.edit': true,
@@ -90,7 +90,7 @@ const DEFAULT_PERMISSIONS: Record<string, Record<string, boolean>> = {
     'role_management.edit': false,
     'dashboard.view': true,
   },
-  municipal_tax_mapper: {
+  municipal_assessor: {
     'building_structures.view': true,
     'building_structures.create': true,
     'building_structures.edit': true,

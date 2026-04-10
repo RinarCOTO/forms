@@ -43,19 +43,19 @@ This is the largest migration. It:
 - Seeds permissions for `laoo`, `assistant_provincial_assessor`, `provincial_assessor`
 - Adds `forms.submit`, `review.laoo`, `review.sign` permission features
 
-> ⚠️ This migration also renames `municipal_tax_mapper` → `municipal_assessor` by mistake. Run the patch immediately after.
+> ⚠️ This migration also renames `municipal_assessor` → `municipal_assessor` by mistake. Run the patch immediately after.
 
 ### 1e. Patch (`database/20260225_patch_revert_role_rename.sql`)
 Fixes the accidental rename. Run this right after 1d.
-- Renames `municipal_assessor` back to `municipal_tax_mapper` in role_permissions
-- Gives `municipal_tax_mapper` the `review.sign = true` permission
+- Renames `municipal_assessor` back to `municipal_assessor` in role_permissions
+- Gives `municipal_assessor` the `review.sign = true` permission
 
 ### Verify the migration worked
 Run this in SQL Editor:
 ```sql
--- Should return 'municipal_tax_mapper' rows (not municipal_assessor)
+-- Should return 'municipal_assessor' rows (not municipal_assessor)
 SELECT role, feature, allowed FROM role_permissions
-WHERE role = 'municipal_tax_mapper'
+WHERE role = 'municipal_assessor'
 AND feature IN ('forms.submit', 'review.laoo', 'review.sign');
 
 -- Should show 4 new columns on building_structures
@@ -72,7 +72,7 @@ WHERE table_name IN ('form_comments','form_attachments','tax_declarations','form
 
 ## Step 2 — Fix the `form_comments` Constraint (Known Issue)
 
-The migration created `form_comments` with an `author_role` CHECK that still lists `municipal_assessor` instead of `municipal_tax_mapper`. Run this in SQL Editor to fix it:
+The migration created `form_comments` with an `author_role` CHECK that still lists `municipal_assessor` instead of `municipal_assessor`. Run this in SQL Editor to fix it:
 
 ```sql
 ALTER TABLE form_comments DROP CONSTRAINT IF EXISTS form_comments_author_role_check;
@@ -80,8 +80,8 @@ ALTER TABLE form_comments DROP CONSTRAINT IF EXISTS form_comments_author_role_ch
 ALTER TABLE form_comments ADD CONSTRAINT form_comments_author_role_check
   CHECK (author_role IN (
     'laoo',
-    'tax_mapper',
     'municipal_tax_mapper',
+    'municipal_assessor',
     'admin',
     'super_admin',
     'assistant_provincial_assessor',
@@ -114,8 +114,8 @@ Key change — extend the `UserRole` type:
 export type UserRole =
   | "super_admin"
   | "admin"
-  | "tax_mapper"
   | "municipal_tax_mapper"
+  | "municipal_assessor"
   | "laoo"                          // ← new
   | "assistant_provincial_assessor" // ← new
   | "provincial_assessor"           // ← new
@@ -228,7 +228,7 @@ const ROLE_LABELS: Record<UserRole, string> = {
 };
 
 // Roles that need municipality assigned:
-const MUNICIPALITY_ROLES: UserRole[] = ["tax_mapper", "municipal_tax_mapper", "laoo"];
+const MUNICIPALITY_ROLES: UserRole[] = ["municipal_tax_mapper", "municipal_assessor", "laoo"];
 
 // Roles that have LAOO level:
 const LAOO_ROLES: UserRole[] = ["laoo"];
@@ -509,8 +509,8 @@ Expected results:
 |---|---|---|---|
 | super_admin | true | true | true |
 | admin | true | false | false |
-| tax_mapper | true | false | false |
-| municipal_tax_mapper | true | false | true |
+| municipal_tax_mapper | true | false | false |
+| municipal_assessor | true | false | true |
 | laoo | false | true | false |
 | assistant_provincial_assessor | false | false | true |
 | provincial_assessor | false | false | true |

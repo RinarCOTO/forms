@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyBearerToken, getAdminClient } from '../../../../../lib/auth'
 
-const SUBMIT_ALLOWED_ROLES = ['tax_mapper', 'municipal_tax_mapper', 'admin', 'super_admin']
+const SUBMIT_ALLOWED_ROLES = ['municipal_tax_mapper', 'municipal_assessor', 'admin', 'super_admin']
 const SUBMITTABLE_STATUSES = ['draft', 'returned']
 
 export async function POST(
@@ -70,7 +70,7 @@ export async function POST(
           .eq('form_type', 'building_structures')
           .eq('form_id', parseInt(id))
           .is('parent_id', null)
-          .neq('author_role', 'tax_mapper')
+          .neq('author_role', 'municipal_tax_mapper')
           .order('created_at', { ascending: true }),
       ])
       fullRecord = formRes.data ?? null

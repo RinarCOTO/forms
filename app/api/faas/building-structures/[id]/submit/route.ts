@@ -10,8 +10,8 @@ function getAdminClient() {
   );
 }
 
-// Roles allowed to submit a FAAS form for LAOO review
-const SUBMIT_ALLOWED_ROLES = ['tax_mapper', 'municipal_tax_mapper', 'admin', 'super_admin'];
+// Roles allowed to submit a FAAS form for review
+const SUBMIT_ALLOWED_ROLES = ['municipal_tax_mapper', 'municipal_assessor', 'laoo', 'assistant_provincial_assessor', 'provincial_assessor', 'admin', 'super_admin'];
 
 // Only these statuses can transition to 'submitted'
 const SUBMITTABLE_STATUSES = ['draft', 'returned', 'returned_to_municipal'];
@@ -79,11 +79,11 @@ export async function POST(
     const fromStatus = record.status;
     const now = new Date().toISOString();
 
-    // ── When a municipal_tax_mapper re-submits from 'returned_to_municipal',
+    // ── When a municipal_assessor re-submits from 'returned_to_municipal',
     //    skip back to 'submitted' and go directly to 'municipal_signed' so LAOO
     //    can immediately see and approve the form without a redundant sign_forward step.
     const skipToMunicipalSigned =
-      fromStatus === 'returned_to_municipal' && profile.role === 'municipal_tax_mapper';
+      fromStatus === 'returned_to_municipal' && profile.role === 'municipal_assessor';
 
     if (skipToMunicipalSigned && !profile.signature_path) {
       return NextResponse.json(
@@ -105,7 +105,7 @@ export async function POST(
           .eq('form_type', 'building_structures')
           .eq('form_id', parseInt(id))
           .is('parent_id', null)
-          .neq('author_role', 'tax_mapper')
+          .neq('author_role', 'municipal_tax_mapper')
           .order('created_at', { ascending: true }),
       ]);
       fullRecord = formRes.data ?? null;
