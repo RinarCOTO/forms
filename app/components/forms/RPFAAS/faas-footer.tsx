@@ -1,16 +1,8 @@
 "use client";
 
-import { ReactNode, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 // import Image from "next/image"; // preserved for signature feature
 
-type SectionHeaderProps = { children: ReactNode; colSpan?: number; className?: string };
-const SectionHeader = ({ children, colSpan = 3, className = "" }: SectionHeaderProps) => (
-  <tr>
-    <td colSpan={colSpan} className={`font-bold rpfaas-table-header ${className}`}>
-      {children}
-    </td>
-  </tr>
-);
 
 const MUNICIPALITY_MAP: Record<string, string> = { paracelis: 'paracellis' };
 
@@ -170,7 +162,7 @@ const FaasFooter = ({
     <div className={className}>
       <div className="w-full flex gap-4">
         <div>Amount in Words:</div>
-        <div className="uppercase border-b border-black">{amountInWords ? `${amountInWords} Pesos Only` : '—'}</div>
+        <div className="uppercase" style={{ minWidth: "75%" }}>{amountInWords ? `${amountInWords} Pesos Only` : '—'}</div>
       </div>
 
       <div className="grid grid-cols-4 items-center mt-4 print:mt-1">
@@ -237,9 +229,9 @@ const FaasFooter = ({
             <col style={{ width: '16.7%' }} />
           </colgroup>
           <tbody>
-            <SectionHeader colSpan={6}>Memoranda:</SectionHeader>
             <tr>
-              <td colSpan={6} style={{ minHeight: '1.5rem', paddingLeft: 4 }}>{memoranda || ''}</td>
+              <td className="font-bold rpfaas-table-header whitespace-nowrap" style={{ borderRight: 'none' }}>Memoranda:</td>
+              <td colSpan={5} style={{ minHeight: '1.5rem', borderLeft: 'none' }}>{memoranda || ''}</td>
             </tr>
             <tr>
               <td>Prev. TD:</td><td className="font-bold">{previousTdNo || ''}</td>

@@ -2,8 +2,10 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect, useMemo, useCallback, Suspense } from "react";
-import { StepPagination, LAND_IMPROVEMENT_STEPS } from "@/components/ui/step-pagination";
+import { StepPagination } from "@/components/ui/step-pagination";
+import { LAND_STEPS } from "@/app/land-other-improvements/fill/constants";
 import { ReviewCommentsFloat } from "@/components/review-comments-float";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import "@/app/styles/forms-fill.css";
@@ -251,7 +253,7 @@ function LandImprovementsFormFillPage6() {
     <FormFillLayout
       breadcrumbParent={{ label: "Land & Other Improvements", href: "/land-other-improvements/dashboard" }}
       pageTitle="Property Assessment"
-      sidePanel={<ReviewCommentsFloat draftId={draftId} />}
+      sidePanel={<ErrorBoundary><ReviewCommentsFloat draftId={draftId} /></ErrorBoundary>}
     >
             <header className="rpfaas-fill-header flex items-center justify-between gap-4 mb-6">
               <div>
@@ -438,7 +440,7 @@ function LandImprovementsFormFillPage6() {
                 isNextLoading={isSaving}
                 isNextDisabled={isSaving || locked || lockChecking}
                 basePath="land-other-improvements"
-                steps={LAND_IMPROVEMENT_STEPS}
+                steps={LAND_STEPS}
                 draftStorageKey="land_draft_id"
               />
             </form>

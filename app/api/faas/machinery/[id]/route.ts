@@ -65,6 +65,10 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
     const body = await req.json();
     const { id: _bodyId, ...updateData } = body;
 
+    console.log('[PUT machinery] id:', id);
+    console.log('[PUT machinery] updateData keys:', Object.keys(updateData));
+    console.log('[PUT machinery] updateData:', JSON.stringify(updateData, null, 2));
+
     const supabase = getSupabaseAdmin();
 
     const { data: updatedRecord, error } = await supabase
@@ -75,6 +79,7 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
       .single();
 
     if (error) {
+      console.error('[PUT machinery] Supabase error:', JSON.stringify(error, null, 2));
       return NextResponse.json(
         { success: false, message: 'Failed to update record', error: error.message, details: error },
         { status: 500 }
@@ -90,7 +95,7 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
 
     return NextResponse.json({ success: true, data: updatedRecord });
   } catch (error) {
-    console.error('PUT - Error:', error);
+    console.error('[PUT machinery] Caught exception:', error);
     return NextResponse.json(
       { success: false, message: 'Server error', error: String(error) },
       { status: 500 }

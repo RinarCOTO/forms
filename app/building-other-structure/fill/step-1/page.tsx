@@ -3,7 +3,9 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useCallback, Suspense, useRef, useMemo } from "react";
 import { StepPagination } from "@/components/ui/step-pagination";
+import { BUILDING_STEPS } from "@/app/building-other-structure/fill/constants";
 import { ReviewCommentsFloat } from "@/components/review-comments-float";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 import "@/app/styles/forms-fill.css";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -353,7 +355,7 @@ function BuildingOtherStructureFillPageContent() {
     <FormFillLayout
       breadcrumbParent={{ label: "Building Your Application", href: "#" }}
       pageTitle="Step 1: Enter Owner and Property Location Details."
-      sidePanel={<ReviewCommentsFloat draftId={draftId} stepFields={["arp_no","oct_tct_cloa_no","survey_no","pin","lot_no","owner_name","owner_address","admin_care_of","location_municipality","location_barangay","location_province"]} />}
+      sidePanel={<ErrorBoundary><ReviewCommentsFloat draftId={draftId} stepFields={["arp_no","oct_tct_cloa_no","survey_no","pin","lot_no","owner_name","owner_address","admin_care_of","location_municipality","location_barangay","location_province"]} /></ErrorBoundary>}
     >
       <FormLockBanner locked={locked} lockedBy={lockedBy} />
 
@@ -382,16 +384,18 @@ function BuildingOtherStructureFillPageContent() {
               <TransactionCodeSelect value={transactionCode} onChange={setTransactionCode} codes={TRANSACTION_CODES} />
               <ArpNoField arpPrefix={arpPrefix} arpSeq={arpSeq} onArpSeqChange={setArpSeq} />
               {transactionCode && transactionCode !== "DC" && (
-                <PreviousTdBlock
-                  previousTdNo={previousTdNo}
-                  onPreviousTdNoChange={setPreviousTdNo}
-                  previousOwner={previousOwner}
-                  onPreviousOwnerChange={setPreviousOwner}
-                  previousAv={previousAv}
-                  previousMv={previousMv}
-                  previousArea={previousArea}
-                  areaLabel="Prev. Floor Area"
-                />
+                <ErrorBoundary>
+                  <PreviousTdBlock
+                    previousTdNo={previousTdNo}
+                    onPreviousTdNoChange={setPreviousTdNo}
+                    previousOwner={previousOwner}
+                    onPreviousOwnerChange={setPreviousOwner}
+                    previousAv={previousAv}
+                    previousMv={previousMv}
+                    previousArea={previousArea}
+                    areaLabel="Prev. Floor Area"
+                  />
+                </ErrorBoundary>
               )}
               <TitleNoField
                 titleType={titleType}
@@ -422,23 +426,27 @@ function BuildingOtherStructureFillPageContent() {
           </FormSection>
 
           <FormSection title="Owner Information">
-            <OwnerSection
-              ownerName={ownerName}
-              onOwnerNameChange={setOwnerName}
-              ownerLoc={ownerLoc}
-              adminCareOf={adminCareOf}
-              onAdminCareOfChange={setAdminCareOf}
-              adminLoc={adminLoc}
-            />
+            <ErrorBoundary>
+              <OwnerSection
+                ownerName={ownerName}
+                onOwnerNameChange={setOwnerName}
+                ownerLoc={ownerLoc}
+                adminCareOf={adminCareOf}
+                onAdminCareOfChange={setAdminCareOf}
+                adminLoc={adminLoc}
+              />
+            </ErrorBoundary>
           </FormSection>
 
           <FormSection title="Location Property" commentField="location_municipality location_barangay location_province">
-            <PropertyLocationSection
-              propertyStreet={propertyStreet}
-              onPropertyStreetChange={setPropertyStreet}
-              propLoc={propLoc}
-              userMunicipality={userMunicipality}
-            />
+            <ErrorBoundary>
+              <PropertyLocationSection
+                propertyStreet={propertyStreet}
+                onPropertyStreetChange={setPropertyStreet}
+                propLoc={propLoc}
+                userMunicipality={userMunicipality}
+              />
+            </ErrorBoundary>
           </FormSection>
 
           <StepPagination
@@ -448,6 +456,7 @@ function BuildingOtherStructureFillPageContent() {
             onNext={handleNext}
             isNextLoading={isSaving}
             isNextDisabled={isSaving || isSavingDraft || locked || lockChecking}
+            steps={BUILDING_STEPS}
           />
         </form>
       </fieldset>

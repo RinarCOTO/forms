@@ -3,7 +3,9 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect, useMemo, useCallback, Suspense, useRef } from "react";
 import { StepPagination } from "@/components/ui/step-pagination";
+import { BUILDING_STEPS } from "@/app/building-other-structure/fill/constants";
 import { ReviewCommentsFloat } from "@/components/review-comments-float";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 import "@/app/styles/forms-fill.css";
 import { Button } from "@/components/ui/button";
 import { FormFillLayout } from "@/components/ui/form-fill-layout";
@@ -382,7 +384,7 @@ if (loadedData?.additional_flat_rate_areas?.length > 0) {
     <FormFillLayout
       breadcrumbParent={{ label: "Building Your Application", href: "#" }}
       pageTitle="Additional Structure Details"
-      sidePanel={<ReviewCommentsFloat draftId={draftId} stepFields={["selected_deductions","market_value","unit_cost"]} />}
+      sidePanel={<ErrorBoundary><ReviewCommentsFloat draftId={draftId} stepFields={["selected_deductions","market_value","unit_cost"]} /></ErrorBoundary>}
     >
             <header className="rpfaas-fill-header flex items-center justify-between gap-4 mb-6">
               <div>
@@ -467,6 +469,7 @@ if (loadedData?.additional_flat_rate_areas?.length > 0) {
                 onNext={() => form.handleSubmit(handleNext)()}
                 isNextLoading={isSaving}
                 isNextDisabled={isSaving || isSavingDraft || locked || lockChecking}
+                steps={BUILDING_STEPS}
               />
             </form>
             </fieldset>

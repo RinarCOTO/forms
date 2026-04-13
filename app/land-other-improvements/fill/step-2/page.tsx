@@ -4,7 +4,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect, useCallback, Suspense } from "react";
 import { checkIfDataIsApplied } from "@/lib/utils";
 import "@/app/styles/forms-fill.css";
-import { StepPagination, LAND_IMPROVEMENT_STEPS } from "@/components/ui/step-pagination";
+import { StepPagination } from "@/components/ui/step-pagination";
+import { LAND_STEPS } from "@/app/land-other-improvements/fill/constants";
 
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -140,7 +141,7 @@ const LandOtherImprovementFormFillPage2 = () => {
                                 isNextLoading={isSaving}
                                 isNextDisabled={isSaving || locked || lockChecking}
                                 basePath="land-other-improvements"
-                                steps={LAND_IMPROVEMENT_STEPS}
+                                steps={LAND_STEPS}
                                 draftStorageKey="land_draft_id"
                             />
                         </form>

@@ -1,28 +1,43 @@
 "use client"
 
-import { useRouter, useSearchParams } from "next/navigation";
+// React & Next.js
 import { useEffect, useState, useCallback, Suspense, useRef, useMemo } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+
+// Styles
 import "@/app/styles/forms-fill.css";
-import { StepPagination } from "@/components/ui/step-pagination";
-import { ReviewCommentsFloat } from "@/components/review-comments-float";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
+
+// Third-party
+import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
+
+// UI components
 import { Button } from "@/components/ui/button";
 import { FormFillLayout } from "@/components/ui/form-fill-layout";
-import { Loader2 } from "lucide-react";
-import { useFormLock } from "@/hooks/useFormLock";
 import { FormLockBanner } from "@/components/ui/form-lock-banner";
 import { FormSection } from "@/components/ui/form-section";
-import { toast } from "sonner";
-import { PH_PROVINCES, MOUNTAIN_PROVINCE_CODE } from "@/app/components/forms/RPFAAS/constants/philippineLocations";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { PinInput } from "@/components/ui/pin-input";
+import { StepPagination } from "@/components/ui/step-pagination";
+
+// Hooks
+import { useFormLock } from "@/hooks/useFormLock";
 import { useLocationSelect, safeSetLS } from "@/hooks/useLocationSelect";
-import { OwnerSection } from "@/components/rpfaas/owner-section";
-import { PropertyLocationSection } from "@/components/rpfaas/property-location-section";
+
+// RPFAAS components
 import { ArpNoField } from "@/components/rpfaas/arp-no-field";
-import { TitleNoField } from "@/components/rpfaas/title-no-field";
+import { OwnerSection } from "@/components/rpfaas/owner-section";
 import { PreviousTdBlock } from "@/components/rpfaas/previous-td-block";
+import { PropertyLocationSection } from "@/components/rpfaas/property-location-section";
+import { ReviewCommentsFloat } from "@/components/review-comments-float";
+import { TitleNoField } from "@/components/rpfaas/title-no-field";
 import { TransactionCodeSelect, type TransactionCode } from "@/components/rpfaas/transaction-code-select";
+
+// Constants
+import { PH_PROVINCES, MOUNTAIN_PROVINCE_CODE } from "@/app/components/forms/RPFAAS/constants/philippineLocations";
+import { MACHINERY_STEPS } from "@/app/machinery/fill/constants";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 
 const TRANSACTION_CODES: TransactionCode[] = [
   { code: "ND", label: "ND – New Discovery", description: "Used when declaring machinery for the first time. Covers: Newly Installed/Brand New (just affixed to the property); Previously Undeclared/Omitted (older machinery just discovered by the assessor — may trigger back taxes up to 10 years); or Imported (special appraisal using foreign exchange rates, import duties, and freight costs at acquisition)." },
@@ -33,7 +48,6 @@ const TRANSACTION_CODES: TransactionCode[] = [
   { code: "CN", label: "CN – Cancellation", description: "Used to permanently remove machinery from the tax roll. Reasons must be documented: Dismantled/Retired (permanently shut down or sold as scrap); Destroyed (fire, earthquake, typhoon, or accident); or Transferred to Another LGU (machinery physically moved to a different city or municipality — the receiving LGU will tag it as New Discovery)." },
 ];
 
-const FORM_NAME = "machinery_fill";
 
 function collectFormData(
   ownerName: string,
@@ -309,31 +323,22 @@ function MachineryFillPageContent() {
     if (name) safeSetLS("rpfaas_location_barangay", name);
   }, [propLoc.barangayCode, propLoc.barangays]);
 
-  const handleNext = useCallback(async () => {
-    setIsSaving(true);
+  const saveFormData = useCallback(async (): Promise<string | null> => {
+    const formData = collectFormData(ownerName, adminCareOf, propertyStreet, ownerLoc, adminLoc, propLoc, transactionCode, arpNo, titleType, titleNo, pin, surveyNo, lotNo, blk, previousTdNo, previousOwner, previousAv, previousMv, previousArea, landOwner, landPin, landArpNo, landArea, buildingOwner, buildingPin, buildingTdArpNo);
+    const currentDraftId = draftId || localStorage.getItem('draft_id');
+    if (!currentDraftId) formData.status = 'draft';
     try {
-      const formData = collectFormData(ownerName, adminCareOf, propertyStreet, ownerLoc, adminLoc, propLoc, transactionCode, arpNo, titleType, titleNo, pin, surveyNo, lotNo, blk, previousTdNo, previousOwner, previousAv, previousMv, previousArea, landOwner, landPin, landArpNo, landArea, buildingOwner, buildingPin, buildingTdArpNo);
-      const currentDraftId = draftId || localStorage.getItem('draft_id');
-      if (!currentDraftId) formData.status = 'draft';
-      let response;
-      if (currentDraftId) {
-        response = await fetch(`/api/faas/machinery/${currentDraftId}`, {
-          method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(formData),
-        });
-      } else {
-        response = await fetch('/api/faas/machinery', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(formData),
-        });
-      }
+      const response = await fetch(
+        currentDraftId ? `/api/faas/machinery/${currentDraftId}` : '/api/faas/machinery',
+        { method: currentDraftId ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(formData) }
+      );
       if (response.ok) {
         const result = await response.json();
         if (result.data?.id) {
-          setIsDirty(false);
           localStorage.setItem('draft_id', result.data.id.toString());
-          router.push(`/machinery/fill/step-2?id=${result.data.id}`);
-        } else {
-          toast.error('Save completed but no ID returned. Please try again.');
+          return result.data.id.toString();
         }
+        toast.error('Save completed but no ID returned. Please try again.');
       } else {
         try {
           const error = await response.json();
@@ -347,48 +352,29 @@ function MachineryFillPageContent() {
     } catch (error) {
       console.error('Error saving:', error);
       toast.error('Error saving. Please try again.');
-    } finally {
-      setIsSaving(false);
     }
-  }, [ownerName, adminCareOf, propertyStreet, ownerLoc, adminLoc, propLoc, transactionCode, arpNo, titleType, titleNo, pin, surveyNo, lotNo, blk, previousTdNo, previousOwner, previousAv, previousMv, previousArea, draftId, router]);
+    return null;
+  }, [ownerName, adminCareOf, propertyStreet, ownerLoc, adminLoc, propLoc, transactionCode, arpNo, titleType, titleNo, pin, surveyNo, lotNo, blk, previousTdNo, previousOwner, previousAv, previousMv, previousArea, landOwner, landPin, landArpNo, landArea, buildingOwner, buildingPin, buildingTdArpNo, draftId]);
+
+  const handleNext = useCallback(async () => {
+    setIsSaving(true);
+    const id = await saveFormData();
+    if (id) { setIsDirty(false); router.push(`/machinery/fill/step-2?id=${id}`); }
+    setIsSaving(false);
+  }, [saveFormData, router]);
 
   const handleSaveDraft = useCallback(async () => {
     setIsSavingDraft(true);
-    try {
-      const formData = collectFormData(ownerName, adminCareOf, propertyStreet, ownerLoc, adminLoc, propLoc, transactionCode, arpNo, titleType, titleNo, pin, surveyNo, lotNo, blk, previousTdNo, previousOwner, previousAv, previousMv, previousArea, landOwner, landPin, landArpNo, landArea, buildingOwner, buildingPin, buildingTdArpNo);
-      const currentDraftId = draftId || localStorage.getItem('draft_id');
-      if (!currentDraftId) formData.status = 'draft';
-      let response;
-      if (currentDraftId) {
-        response = await fetch(`/api/faas/machinery/${currentDraftId}`, {
-          method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(formData),
-        });
-      } else {
-        response = await fetch('/api/faas/machinery', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(formData),
-        });
-      }
-      if (response.ok) {
-        const result = await response.json();
-        if (result.data?.id) localStorage.setItem('draft_id', result.data.id.toString());
-        setIsDirty(false);
-        toast.success('Draft saved successfully.');
-      } else {
-        const error = await response.json();
-        toast.error('Failed to save draft: ' + (error.message || 'Unknown error'));
-      }
-    } catch {
-      toast.error('Error saving draft.');
-    } finally {
-      setIsSavingDraft(false);
-    }
-  }, [ownerName, adminCareOf, propertyStreet, ownerLoc, adminLoc, propLoc, transactionCode, arpNo, titleType, titleNo, pin, surveyNo, lotNo, blk, previousTdNo, previousOwner, previousAv, previousMv, previousArea, draftId]);
+    const id = await saveFormData();
+    if (id) { setIsDirty(false); toast.success('Draft saved successfully.'); }
+    setIsSavingDraft(false);
+  }, [saveFormData]);
 
   return (
     <FormFillLayout
       breadcrumbParent={{ label: "Machinery", href: "#" }}
       pageTitle="Step 1: Enter Owner and Property Location Details."
-      sidePanel={<ReviewCommentsFloat draftId={draftId} stepFields={["arp_no", "oct_tct_cloa_no", "survey_no", "pin", "lot_no", "owner_name", "owner_address", "admin_care_of", "location_municipality", "location_barangay", "location_province"]} />}
+      sidePanel={<ErrorBoundary><ReviewCommentsFloat draftId={draftId} stepFields={["arp_no", "oct_tct_cloa_no", "survey_no", "pin", "lot_no", "owner_name", "owner_address", "admin_care_of", "location_municipality", "location_barangay", "location_province"]} /></ErrorBoundary>}
     >
       <FormLockBanner locked={locked} lockedBy={lockedBy} />
 
@@ -410,23 +396,25 @@ function MachineryFillPageContent() {
       </header>
 
       <fieldset disabled={locked} className={`border-0 p-0 m-0 min-w-0 block${locked ? ' opacity-60' : ''}${lockChecking ? ' animate-pulse' : ''}`}>
-        <form id={`form_${FORM_NAME}_main`} className="rpfaas-fill-form rpfaas-fill-form-single space-y-6" onChange={markDirty}>
+        <form id="form_machinery_fill_main" className="rpfaas-fill-form rpfaas-fill-form-single space-y-6" onChange={markDirty}>
 
           <FormSection title="Property Identification">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <TransactionCodeSelect value={transactionCode} onChange={setTransactionCode} codes={TRANSACTION_CODES} />
               <ArpNoField arpPrefix={arpPrefix} arpSeq={arpSeq} onArpSeqChange={setArpSeq} />
               {transactionCode && transactionCode !== "DC" && (
-                <PreviousTdBlock
-                  previousTdNo={previousTdNo}
-                  onPreviousTdNoChange={setPreviousTdNo}
-                  previousOwner={previousOwner}
-                  onPreviousOwnerChange={setPreviousOwner}
-                  previousAv={previousAv}
-                  previousMv={previousMv}
-                  previousArea={previousArea}
-                  areaLabel="Prev. Floor Area"
-                />
+                <ErrorBoundary>
+                  <PreviousTdBlock
+                    previousTdNo={previousTdNo}
+                    onPreviousTdNoChange={setPreviousTdNo}
+                    previousOwner={previousOwner}
+                    onPreviousOwnerChange={setPreviousOwner}
+                    previousAv={previousAv}
+                    previousMv={previousMv}
+                    previousArea={previousArea}
+                    areaLabel="Prev. Floor Area"
+                  />
+                </ErrorBoundary>
               )}
               <TitleNoField
                 titleType={titleType}
@@ -457,23 +445,27 @@ function MachineryFillPageContent() {
           </FormSection>
 
           <FormSection title="Owner Information">
-            <OwnerSection
-              ownerName={ownerName}
-              onOwnerNameChange={setOwnerName}
-              ownerLoc={ownerLoc}
-              adminCareOf={adminCareOf}
-              onAdminCareOfChange={setAdminCareOf}
-              adminLoc={adminLoc}
-            />
+            <ErrorBoundary>
+              <OwnerSection
+                ownerName={ownerName}
+                onOwnerNameChange={setOwnerName}
+                ownerLoc={ownerLoc}
+                adminCareOf={adminCareOf}
+                onAdminCareOfChange={setAdminCareOf}
+                adminLoc={adminLoc}
+              />
+            </ErrorBoundary>
           </FormSection>
 
           <FormSection title="Property Location" commentField="location_municipality location_barangay location_province">
-            <PropertyLocationSection
-              propertyStreet={propertyStreet}
-              onPropertyStreetChange={setPropertyStreet}
-              propLoc={propLoc}
-              userMunicipality={userMunicipality}
-            />
+            <ErrorBoundary>
+              <PropertyLocationSection
+                propertyStreet={propertyStreet}
+                onPropertyStreetChange={setPropertyStreet}
+                propLoc={propLoc}
+                userMunicipality={userMunicipality}
+              />
+            </ErrorBoundary>
             <div className="border-t my-4" />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
@@ -518,6 +510,8 @@ function MachineryFillPageContent() {
             onNext={handleNext}
             isNextLoading={isSaving}
             isNextDisabled={isSaving || isSavingDraft || locked || lockChecking}
+            basePath="machinery"
+            steps={MACHINERY_STEPS}
           />
         </form>
       </fieldset>

@@ -15,23 +15,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-export const FORM_STEPS = [
-  { step: 1, label: "Owner & Location" },
-  { step: 2, label: "Building Details" },
-  { step: 3, label: "Materials" },
-  { step: 4, label: "Deductions" },
-  { step: 5, label: "Documents" },
-  { step: 6, label: "Assessment" },
-] as const;
-
-export const LAND_IMPROVEMENT_STEPS = [
-  { step: 1, label: "Owner & Location" },
-  { step: 2, label: "Property Boundaries" },
-  { step: 3, label: "Land Details" },
-  { step: 4, label: "Deductions" },
-  { step: 5, label: "Documents" },
-  { step: 6, label: "Assessment" },
-] as const;
 
 interface StepPaginationProps {
   currentStep: number;
@@ -46,7 +29,7 @@ interface StepPaginationProps {
   /** Base path for step URLs, e.g. "building-other-structure" */
   basePath?: string;
   /** Step definitions to render */
-  steps?: readonly { step: number; label: string }[];
+  steps: readonly { step: number; label: string }[];
   /** localStorage key used to read the draft id (default "draft_id") */
   draftStorageKey?: string;
 }
@@ -60,7 +43,7 @@ export function StepPagination({
   isNextLoading = false,
   isNextDisabled = false,
   basePath = "building-other-structure",
-  steps = FORM_STEPS,
+  steps = [],
   draftStorageKey = "draft_id",
 }: StepPaginationProps) {
   const router = useRouter();

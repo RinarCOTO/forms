@@ -2,8 +2,10 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect, useMemo, useCallback, Suspense, useRef } from "react";
-import { StepPagination, LAND_IMPROVEMENT_STEPS } from "@/components/ui/step-pagination";
+import { StepPagination } from "@/components/ui/step-pagination";
+import { LAND_STEPS } from "@/app/land-other-improvements/fill/constants";
 import { ReviewCommentsFloat } from "@/components/review-comments-float";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 import "@/app/styles/forms-fill.css";
 import { Button } from "@/components/ui/button";
 import { FormFillLayout } from "@/components/ui/form-fill-layout";
@@ -385,7 +387,7 @@ const LandImprovementsFormFillPage4 = () => {
       breadcrumbParent={{ label: "Land & Other Improvements", href: "/land-other-improvements/dashboard" }}
       pageTitle="Other Improvements"
       contentClassName="max-w-4xl mx-auto"
-      sidePanel={<ReviewCommentsFloat draftId={draftId} />}
+      sidePanel={<ErrorBoundary><ReviewCommentsFloat draftId={draftId} /></ErrorBoundary>}
     >
             <header className="flex items-center justify-between gap-4 mb-6">
               <div>
@@ -468,7 +470,7 @@ const LandImprovementsFormFillPage4 = () => {
                 isNextLoading={isSaving}
                 isNextDisabled={isSaving || isSavingDraft || locked || lockChecking}
                 basePath="land-other-improvements"
-                steps={LAND_IMPROVEMENT_STEPS}
+                steps={LAND_STEPS}
                 draftStorageKey="land_draft_id"
               />
             </form>

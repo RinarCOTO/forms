@@ -3,7 +3,9 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect, useCallback, useRef, Suspense } from "react";
 import { StepPagination } from "@/components/ui/step-pagination";
+import { BUILDING_STEPS } from "@/app/building-other-structure/fill/constants";
 import { ReviewCommentsFloat } from "@/components/review-comments-float";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 import "@/app/styles/forms-fill.css";
 import { Button } from "@/components/ui/button";
 import { FormFillLayout } from "@/components/ui/form-fill-layout";
@@ -420,7 +422,7 @@ function BuildingStructureFormFillPage5() {
       breadcrumbParent={{ label: "Building & Other Structures", href: "/building-other-structure" }}
       pageTitle="Supporting Documents"
       sidePanel={<>
-        <ReviewCommentsFloat draftId={draftId} stepFields={["additional_items"]} />
+        <ErrorBoundary><ReviewCommentsFloat draftId={draftId} stepFields={["additional_items"]} /></ErrorBoundary>
         <Dialog open={removeDialogOpen} onOpenChange={setRemoveDialogOpen}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
@@ -511,6 +513,7 @@ function BuildingStructureFormFillPage5() {
               draftId={draftId}
               isDirty={false}
               onNext={() => router.push(`/building-other-structure/fill/step-6${navParams}`)}
+              steps={BUILDING_STEPS}
             />
     </FormFillLayout>
   );

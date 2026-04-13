@@ -3,7 +3,9 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useCallback, Suspense, useRef, useMemo } from "react";
 import "@/app/styles/forms-fill.css";
-import { StepPagination, LAND_IMPROVEMENT_STEPS } from "@/components/ui/step-pagination";
+import { StepPagination } from "@/components/ui/step-pagination";
+import { LAND_STEPS } from "@/app/land-other-improvements/fill/constants";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -324,15 +326,17 @@ function LandOtherImprovementsFillPageContent() {
               <TransactionCodeSelect value={transactionCode} onChange={setTransactionCode} codes={TRANSACTION_CODES} />
               <ArpNoField arpPrefix={arpPrefix} arpSeq={arpSeq} onArpSeqChange={setArpSeq} />
               {transactionCode && transactionCode !== "DC" && (
-                <PreviousTdBlock
-                  previousTdNo={previousTdNo}
-                  onPreviousTdNoChange={setPreviousTdNo}
-                  previousOwner={previousOwner}
-                  onPreviousOwnerChange={setPreviousOwner}
-                  previousAv={previousAv}
-                  previousMv={previousMv}
-                  previousArea={previousArea}
-                />
+                <ErrorBoundary>
+                  <PreviousTdBlock
+                    previousTdNo={previousTdNo}
+                    onPreviousTdNoChange={setPreviousTdNo}
+                    previousOwner={previousOwner}
+                    onPreviousOwnerChange={setPreviousOwner}
+                    previousAv={previousAv}
+                    previousMv={previousMv}
+                    previousArea={previousArea}
+                  />
+                </ErrorBoundary>
               )}
               <TitleNoField
                 titleType={titleType}
@@ -362,23 +366,27 @@ function LandOtherImprovementsFillPageContent() {
           </FormSection>
 
           <FormSection title="Owner Information">
-            <OwnerSection
-              ownerName={ownerName}
-              onOwnerNameChange={setOwnerName}
-              ownerLoc={ownerLoc}
-              adminCareOf={adminCareOf}
-              onAdminCareOfChange={setAdminCareOf}
-              adminLoc={adminLoc}
-            />
+            <ErrorBoundary>
+              <OwnerSection
+                ownerName={ownerName}
+                onOwnerNameChange={setOwnerName}
+                ownerLoc={ownerLoc}
+                adminCareOf={adminCareOf}
+                onAdminCareOfChange={setAdminCareOf}
+                adminLoc={adminLoc}
+              />
+            </ErrorBoundary>
           </FormSection>
 
           <FormSection title="Location Property">
-            <PropertyLocationSection
-              propertyStreet={propertyStreet}
-              onPropertyStreetChange={setPropertyStreet}
-              propLoc={propLoc}
-              userMunicipality={userMunicipality}
-            />
+            <ErrorBoundary>
+              <PropertyLocationSection
+                propertyStreet={propertyStreet}
+                onPropertyStreetChange={setPropertyStreet}
+                propLoc={propLoc}
+                userMunicipality={userMunicipality}
+              />
+            </ErrorBoundary>
           </FormSection>
 
           <StepPagination
@@ -389,7 +397,7 @@ function LandOtherImprovementsFillPageContent() {
             isNextLoading={isSaving}
             isNextDisabled={isSaving || locked || lockChecking}
             basePath="land-other-improvements"
-            steps={LAND_IMPROVEMENT_STEPS}
+            steps={LAND_STEPS}
             draftStorageKey="land_draft_id"
           />
         </form>

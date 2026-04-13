@@ -4,7 +4,9 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, FormEvent, useEffect, useCallback, Suspense, useRef } from "react";
 import { StepPagination } from "@/components/ui/step-pagination";
+import { BUILDING_STEPS } from "@/app/building-other-structure/fill/constants";
 import { ReviewCommentsFloat } from "@/components/review-comments-float";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { useFormData } from "@/hooks/useFormData";
 import { useFormPersistence } from "@/hooks/useFormPersistence";
 import "@/app/styles/forms-fill.css";
@@ -343,7 +345,7 @@ const BuildingStructureFormFillPage3 = () => {
     <FormFillLayout
       breadcrumbParent={{ label: "Building Your Application", href: "#" }}
       pageTitle="Additional Structure Details"
-      sidePanel={<ReviewCommentsFloat draftId={draftId} stepFields={["roofing_material","flooring_material","wall_material"]} />}
+      sidePanel={<ErrorBoundary><ReviewCommentsFloat draftId={draftId} stepFields={["roofing_material","flooring_material","wall_material"]} /></ErrorBoundary>}
     >
             <header className="rpfaas-fill-header flex items-center justify-between gap-4 mb-6">
               <div>
@@ -485,6 +487,7 @@ const BuildingStructureFormFillPage3 = () => {
                 onNext={handleNext}
                 isNextLoading={isSaving}
                 isNextDisabled={isSaving || isSavingDraft || locked || lockChecking}
+                steps={BUILDING_STEPS}
               />
             </form>
             </fieldset>

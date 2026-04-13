@@ -3,7 +3,9 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect, useMemo, useCallback, Suspense } from "react";
 import { StepPagination } from "@/components/ui/step-pagination";
+import { BUILDING_STEPS } from "@/app/building-other-structure/fill/constants";
 import { ReviewCommentsFloat } from "@/components/review-comments-float";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import "@/app/styles/forms-fill.css";
 import { getAssessmentLevel } from "@/config/assessment-level";
@@ -388,7 +390,7 @@ function BuildingStructureFormFillPage6() {
     <FormFillLayout
       breadcrumbParent={{ label: "Building & Other Structures", href: "/building-other-structure" }}
       pageTitle={PAGE_DESCRIPTION}
-      sidePanel={<ReviewCommentsFloat draftId={draftId} stepFields={["actual_use","market_value","assessment_level","assessed_value","amount_in_words","effectivity_of_assessment","appraised_by","memoranda"]} />}
+      sidePanel={<ErrorBoundary><ReviewCommentsFloat draftId={draftId} stepFields={["actual_use","market_value","assessment_level","assessed_value","amount_in_words","effectivity_of_assessment","appraised_by","memoranda"]} /></ErrorBoundary>}
     >
             <header className="rpfaas-fill-header flex items-center justify-between gap-4 mb-6">
               <div>
@@ -570,6 +572,7 @@ function BuildingStructureFormFillPage6() {
                 nextLabel="Preview"
                 isNextLoading={isSaving}
                 isNextDisabled={isSaving || locked || lockChecking}
+                steps={BUILDING_STEPS}
               />
             </form>
             </fieldset>

@@ -4,7 +4,9 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect, useCallback, Suspense, useRef } from "react";
 import { StepPagination } from "@/components/ui/step-pagination";
+import { BUILDING_STEPS } from "@/app/building-other-structure/fill/constants";
 import { ReviewCommentsFloat } from "@/components/review-comments-float";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { generateYears, calculateAge, calculateTotalFloorArea } from "@/utils/form-helpers";
 import { BUILDING_TYPES, STRUCTURAL_TYPES } from "@/config/form-options";
 import { getUnitConstructionCost } from "@/config/unit-construction-cost";
@@ -398,7 +400,7 @@ const handleNext = useCallback(async () => {
     <FormFillLayout
       breadcrumbParent={{ label: "Building Your Application", href: "#" }}
       pageTitle="Building Details"
-      sidePanel={<ReviewCommentsFloat draftId={draftId} stepFields={["type_of_building","structure_type","building_permit_no","cct","completion_issued_on","date_constructed","date_occupied","building_age","unit_cost","number_of_storeys","total_floor_area","land_owner","td_arp_no","land_area"]} />}
+      sidePanel={<ErrorBoundary><ReviewCommentsFloat draftId={draftId} stepFields={["type_of_building","structure_type","building_permit_no","cct","completion_issued_on","date_constructed","date_occupied","building_age","unit_cost","number_of_storeys","total_floor_area","land_owner","td_arp_no","land_area"]} /></ErrorBoundary>}
     >
             <header className="rpfaas-fill-header flex items-center justify-between gap-4 mb-6">
               <div>
@@ -667,6 +669,7 @@ const handleNext = useCallback(async () => {
                 onNext={handleNext}
                 isNextLoading={isSaving}
                 isNextDisabled={isSaving || isSavingDraft || locked || lockChecking}
+                steps={BUILDING_STEPS}
               />
             </form>
             </fieldset>
