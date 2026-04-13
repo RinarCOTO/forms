@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
+import { getCurrentUserContext } from '@/lib/services/user.service';
 
 const getSupabaseAdmin = () =>
   createSupabaseClient(

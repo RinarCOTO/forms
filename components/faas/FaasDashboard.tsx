@@ -73,10 +73,6 @@ interface FormSubmission {
 const PAGE_SIZE = 10;
 const SUBMITTABLE_STATUSES = ['draft', 'returned', 'returned_to_municipal'];
 const EDITABLE_STATUSES = ['draft', 'returned', 'returned_to_municipal'];
-const PRINT_ALLOWED_ROLES = [
-  'provincial_assessor', 'assistant_provincial_assessor', 'super_admin',
-  'municipal_assessor', 'municipal_tax_mapper',
-];
 const EXPORT_PRESETS = [
   { label: 'Last 7 days',   value: '7d'  },
   { label: 'Last 28 days',  value: '28d' },
@@ -90,12 +86,17 @@ export function FaasDashboard({ config }: { config: FaasDashboardConfig }) {
   const router = useRouter();
 
   const [submissions, setSubmissions] = useState<FormSubmission[]>([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedMunicipalities, setSelectedMunicipalities] = useState<string[]>([]);
   const [selectedBarangays, setSelectedBarangays] = useState<string[]>([]);
-  const [search, setSearch] = useState("");
-  const [user, setUser] = useState<{ id: string; role: string } | null>(null);
+  const [searchInput, setSearchInput] = useState(""); // raw input value
+  const [search, setSearch] = useState("");           // debounced — triggers API call
+  const [approvedForExport, setApprovedForExport] = useState<FormSubmission[]>([]);
+  const [allMunicipalities, setAllMunicipalities] = useState<string[]>([]);
+  const [allBarangays, setAllBarangays] = useState<string[]>([]);
+  const [user, setUser] = useState<{ id: string; role: string; permissions: Record<string, boolean> } | null>(null);
   const [municipalAssessors, setMunicipalAssessors] = useState<{ full_name: string; municipality: string }[]>([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [submissionToDelete, setSubmissionToDelete] = useState<number | null>(null);
@@ -111,6 +112,52 @@ export function FaasDashboard({ config }: { config: FaasDashboardConfig }) {
       : (s.municipality ?? ''),
   [config.municipalityField]);
 
+  const fetchSubmissions = useCallback(async (
+    page: number,
+    searchVal: string,
+    municipalities: string[],
+    barangays: string[],
+  ) => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({ page: String(page), limit: String(PAGE_SIZE) });
+      if (searchVal)           params.set('search', searchVal);
+      municipalities.forEach(m => params.append('municipality', m));
+      barangays.forEach(b     => params.append('barangay', b));
+      const res = await fetch(`${config.apiPath}?${params}`);
+      if (res.ok) {
+        const json = await res.json();
+        setSubmissions(json?.data ?? json ?? []);
+        setTotal(json?.total ?? 0);
+      } else {
+        setSubmissions([]); setTotal(0);
+      }
+    } catch { setSubmissions([]); setTotal(0); }
+    finally { setLoading(false); }
+  }, [config.apiPath]);
+
+  const fetchApproved = useCallback(async () => {
+    const params = new URLSearchParams({ status: 'approved', limit: '1000' });
+    try {
+      const res = await fetch(`${config.apiPath}?${params}`);
+      if (res.ok) {
+        const json = await res.json();
+        setApprovedForExport(json?.data ?? []);
+      }
+    } catch { /* non-critical */ }
+  }, [config.apiPath]);
+
+  // Debounce: wait 300 ms after the user stops typing before hitting the API
+  useEffect(() => {
+    const t = setTimeout(() => { setSearch(searchInput); setCurrentPage(1); }, 300);
+    return () => clearTimeout(t);
+  }, [searchInput]);
+
+  // Re-fetch whenever page, search, or filters change
+  useEffect(() => {
+    fetchSubmissions(currentPage, search, selectedMunicipalities, selectedBarangays);
+  }, [currentPage, search, selectedMunicipalities, selectedBarangays, fetchSubmissions]);
+
   useEffect(() => {
     const fetchUser = async () => {
       try {
@@ -119,22 +166,18 @@ export function FaasDashboard({ config }: { config: FaasDashboardConfig }) {
       } catch (e) { console.error('Failed to fetch user:', e); }
     };
 
-    const fetchSubmissions = async () => {
-      setLoading(true);
-      try {
-        const res = await fetch(config.apiPath);
-        if (res.ok) {
-          const data = await res.json();
-          setSubmissions(data?.data ?? data ?? []);
-        } else {
-          setSubmissions([]);
-        }
-      } catch { setSubmissions([]); }
-      finally { setLoading(false); }
-    };
+    // Fetch distinct location values for dropdown options — runs once, in parallel with fetchUser.
+    // This ensures the municipality/barangay dropdowns are always fully populated regardless of
+    // which page of records is currently loaded.
+    fetch(`${config.apiPath}?meta=1`)
+      .then(res => res.ok ? res.json() : null)
+      .then(meta => {
+        if (meta?.municipalities) setAllMunicipalities(meta.municipalities);
+        if (meta?.barangays)      setAllBarangays(meta.barangays);
+      })
+      .catch(() => { /* non-critical — dropdowns fall back to current page values */ });
 
     fetchUser();
-    fetchSubmissions();
 
     if (config.hasMunicipalAssessor) {
       fetch('/api/users/by-role?role=municipal_assessor')
@@ -240,13 +283,23 @@ export function FaasDashboard({ config }: { config: FaasDashboardConfig }) {
     )?.full_name ?? '—';
   };
 
-  const canDelete = (submission: FormSubmission) =>
-    user && (
-      user.role === 'admin' || user.role === 'super_admin' ||
-      (config.canDeleteStatuses.includes(submission.status) && submission.created_by === user.id)
-    );
+  // Derive the permission feature prefix from the config apiPath, e.g.
+  // "/api/faas/building-structures" → "building_structures"
+  // "/api/faas/machinery"           → "machinery"
+  // "/api/faas/land-improvements"   → "land_improvements"
+  const permissionKey = config.apiPath
+    .replace('/api/faas/', '')
+    .replace(/-/g, '_');
 
-  const canPrint = user && PRINT_ALLOWED_ROLES.includes(user.role);
+  const canDelete = (submission: FormSubmission) => {
+    if (!user) return false;
+    if (user.permissions[`${permissionKey}.delete`]) return true;
+    // Even if the role default says false, owners can still delete their own
+    // draft/returned records (the API enforces this too).
+    return config.canDeleteStatuses.includes(submission.status) && submission.created_by === user.id;
+  };
+
+  const canPrint = user && (user.permissions[`${permissionKey}.view`] ?? false);
 
   const handleExportSingle = useCallback(async (submission: FormSubmission) => {
     if (!config.printApiPath) return;
@@ -272,8 +325,7 @@ export function FaasDashboard({ config }: { config: FaasDashboardConfig }) {
     }
   };
 
-  const approvedInRange = submissions.filter(s => {
-    if (s.status !== 'approved') return false;
+  const approvedInRange = approvedForExport.filter(s => {
     const cutoff = getExportCutoff(exportPreset);
     if (!cutoff) return true;
     if (!s.approved_at) return false;
@@ -325,9 +377,15 @@ export function FaasDashboard({ config }: { config: FaasDashboardConfig }) {
     }
   };
 
-  const uniqueMunicipalities = [...new Set(submissions.map(getMunicipality).filter(Boolean))].sort();
+  // Use pre-fetched meta values so dropdowns show all available options, not just the current page.
+  // Fall back to deriving from current page if meta hasn't loaded yet.
+  const uniqueMunicipalities = allMunicipalities.length > 0
+    ? allMunicipalities
+    : [...new Set(submissions.map(getMunicipality).filter(Boolean))].sort();
   const uniqueBarangays = config.hasBarangay
-    ? ([...new Set(submissions.map(s => s.location_barangay).filter(Boolean))].sort() as string[])
+    ? (allBarangays.length > 0
+        ? allBarangays
+        : [...new Set(submissions.map(s => s.location_barangay).filter(Boolean))].sort() as string[])
     : [];
 
   const toggleMunicipality = (muni: string) => {
@@ -340,21 +398,10 @@ export function FaasDashboard({ config }: { config: FaasDashboardConfig }) {
     setCurrentPage(1);
   };
 
-  const q = search.toLowerCase();
-  const filteredSubmissions = submissions.filter(s => {
-    const muni = getMunicipality(s);
-    const barangay = s.location_barangay ?? '';
-    const muniMatch = selectedMunicipalities.length === 0 || selectedMunicipalities.includes(muni);
-    const barangayMatch = selectedBarangays.length === 0 || selectedBarangays.includes(barangay);
-    const searchMatch = q === '' ||
-      String(s.owner_name ?? '').toLowerCase().includes(q) ||
-      muni.toLowerCase().includes(q) ||
-      barangay.toLowerCase().includes(q);
-    return muniMatch && barangayMatch && searchMatch;
-  });
-
-  const totalPages = Math.max(1, Math.ceil(filteredSubmissions.length / PAGE_SIZE));
-  const paginatedSubmissions = filteredSubmissions.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  // Filtering and pagination are now server-driven.
+  // submissions = current page's records; total = full result count from server.
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const paginatedSubmissions = submissions;
 
   return (
     <SidebarProvider>
@@ -396,7 +443,7 @@ export function FaasDashboard({ config }: { config: FaasDashboardConfig }) {
               </Button>
               <div className="flex items-center gap-2">
                 {config.printApiPath && (
-                  <Button variant="outline" onClick={() => setBulkExportOpen(true)}>
+                  <Button variant="outline" onClick={() => { setBulkExportOpen(true); fetchApproved(); }}>
                     <Download className="h-4 w-4 mr-2" /> Bulk Export
                   </Button>
                 )}
@@ -411,8 +458,8 @@ export function FaasDashboard({ config }: { config: FaasDashboardConfig }) {
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search owner, municipality…"
-                  value={search}
-                  onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
+                  value={searchInput}
+                  onChange={(e) => { setSearchInput(e.target.value); }}
                   className="pl-8 w-56 h-9"
                 />
               </div>
@@ -479,11 +526,20 @@ export function FaasDashboard({ config }: { config: FaasDashboardConfig }) {
                 ) : submissions.length === 0 ? (
                   <div className="text-center py-12">
                     <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">No submissions yet</h3>
-                    <p className="text-muted-foreground mb-4">Get started by creating a new submission</p>
-                    <Button onClick={handleNewForm}>
-                      <Plus className="h-4 w-4 mr-2" /> Create First Submission
-                    </Button>
+                    {search || selectedMunicipalities.length > 0 || selectedBarangays.length > 0 ? (
+                      <>
+                        <h3 className="text-lg font-semibold mb-2">No results</h3>
+                        <p className="text-muted-foreground">Try adjusting your search or filters.</p>
+                      </>
+                    ) : (
+                      <>
+                        <h3 className="text-lg font-semibold mb-2">No submissions yet</h3>
+                        <p className="text-muted-foreground mb-4">Get started by creating a new submission</p>
+                        <Button onClick={handleNewForm}>
+                          <Plus className="h-4 w-4 mr-2" /> Create First Submission
+                        </Button>
+                      </>
+                    )}
                   </div>
                 ) : (
                   <>
@@ -575,9 +631,9 @@ export function FaasDashboard({ config }: { config: FaasDashboardConfig }) {
 
                     <div className="flex items-center justify-between px-2 py-4 border-t">
                       <p className="text-sm text-muted-foreground">
-                        {filteredSubmissions.length === 0
+                        {total === 0
                           ? "0 row(s)"
-                          : `${(currentPage - 1) * PAGE_SIZE + 1}–${Math.min(currentPage * PAGE_SIZE, filteredSubmissions.length)} of ${filteredSubmissions.length} row(s)`}
+                          : `${(currentPage - 1) * PAGE_SIZE + 1}–${Math.min(currentPage * PAGE_SIZE, total)} of ${total} row(s)`}
                       </p>
                       <div className="flex items-center gap-1">
                         <Button
