@@ -75,6 +75,9 @@ const BuildingStructureForm = ({ serverData }: { serverData?: Record<string, any
         amountInWords,
         effectivityOfAssessment,
         appraisedById,
+        submittedAt,
+        municipalSignedAt,
+        provincialSignedAt,
         municipalReviewerId,
         provincialReviewerId,
         memoranda,
@@ -288,7 +291,11 @@ const BuildingStructureForm = ({ serverData }: { serverData?: Record<string, any
                             <div className="rpfaas-inner-grid grid grid-cols-3 divide-x divide-black items-stretch h-full">
                                 <div className="rpfaas-field-value self-stretch">{typeOfBuilding ? typeOfBuilding.split(" - ")[0] : ''}</div>
                                 <div className="flex items-center self-stretch font-medium floor-area-print whitespace-nowrap">Bldg. Age:</div>
-                                <div className="flex items-center self-stretch font-bold rpfaas-print-small whitespace-nowrap">{buildingAge ? `${buildingAge} years` : ''}</div>
+                                <div className="flex items-center self-stretch font-bold rpfaas-print-small whitespace-nowrap">
+                                  {buildingAge
+                                    ? (Number(buildingAge) <= 1 ? 'New' : `${buildingAge} years`)
+                                    : ''}
+                                </div>
                             </div>
                         </td>
                         <td className="land-reference">
@@ -479,12 +486,12 @@ const BuildingStructureForm = ({ serverData }: { serverData?: Record<string, any
                 </tbody>
             </table>
             {/* Deductions Table */}
-            <table>
+            <table style={{ tableLayout: 'fixed' }}>
                 <colgroup>
                     <col style={{ width: '35%' }} />
-                    <col style={{ width: '10%' }} />
-                    <col style={{ width: '35%' }} />
-                    <col style={{ width: '20%' }} />
+                    <col style={{ width: '22%' }} />
+                    <col style={{ width: '22%' }} />
+                    <col style={{ width: '21%' }} />
                 </colgroup>
                 <tbody>
                     <SectionHeader colSpan={4} data-field="selected_deductions">Deductions: (Use additional sheet if necessary)</SectionHeader>
@@ -509,7 +516,6 @@ const BuildingStructureForm = ({ serverData }: { serverData?: Record<string, any
                                     <td className="text-right">{formatCurrency(deduction.calculatedValue)}</td>
                                 </tr>
                             ))}
-                            {/* Total row — full 4 cells, not consumed by rowSpan */}
                             <tr className="font-bold">
                                 <td>TOTAL</td>
                                 <td className="text-center">
@@ -585,9 +591,9 @@ const BuildingStructureForm = ({ serverData }: { serverData?: Record<string, any
                             <td>No additional items selected</td>
                             <td>
                                 <div className="rpfaas-inner-grid grid grid-cols-4 divide-x divide-black items-stretch h-full">
-                                    <div className="col-span-1 self-stretch flex items-center">—</div>
-                                    <div className="col-span-1 self-stretch flex items-center">—</div>
-                                    <div className="col-span-1 self-stretch flex items-center">—</div>
+                                    <div className="col-span-1 self-stretch flex items-center"></div>
+                                    <div className="col-span-1 self-stretch flex items-center"></div>
+                                    <div className="col-span-1 self-stretch flex items-center"></div>
                                     <div className="col-span-1 self-stretch flex items-center">₱0.00</div>
                                 </div>
                             </td>
@@ -613,16 +619,31 @@ const BuildingStructureForm = ({ serverData }: { serverData?: Record<string, any
                             </div>
                         </td>
                     </tr>
+                </tbody>
+            </table>
+            {/* Depreciation + Market Value Summary */}
+            <table style={{ tableLayout: 'fixed' }}>
+                <colgroup>
+                    <col style={{ width: '35%' }} />
+                    <col style={{ width: '22%' }} />
+                    <col style={{ width: '22%' }} />
+                    <col style={{ width: '21%' }} />
+                </colgroup>
+                <tbody>
                     <tr>
                         <td>Depreciation</td>
-                        <td>
-                            <div className="rpfaas-inner-grid grid grid-cols-4 divide-x divide-black items-stretch h-full">
-                                <div className="col-span-1 self-stretch flex items-center">—</div>
-                                <div className="col-span-1 self-stretch flex items-center">—</div>
-                                <div className="col-span-1 self-stretch flex items-center">{physicalDepreciationPct > 0 ? `${physicalDepreciationPct}%` : '—'}</div>
-                                <div className="col-span-1 self-stretch flex items-center">{depreciationAmount > 0 ? `- ₱${formatCurrency(depreciationAmount)}` : '—'}</div>
-                            </div>
+                        <td className="text-center">
+                            {Number(buildingAge) <= 1 && Number(buildingAge) > 0
+                                ? 'New'
+                                : physicalDepreciationPct > 0 ? `${physicalDepreciationPct}%` : ''}
                         </td>
+                        <td colSpan={2} className="text-right">
+                            {depreciationAmount > 0 ? `- ₱${formatCurrency(depreciationAmount)}` : ''}
+                        </td>
+                    </tr>
+                    <tr className="border-t-2 font-bold">
+                        <td>MARKET VALUE</td>
+                        <td colSpan={3} className="text-right">₱{formatCurrency(netUnitCost)}</td>
                     </tr>
                 </tbody>
             </table>
@@ -640,14 +661,14 @@ const BuildingStructureForm = ({ serverData }: { serverData?: Record<string, any
 
                     <tr data-field="actual_use market_value assessment_level assessed_value text-center">
                         <td className="font-bold capitalize text-center">{actualUse || ''}</td>
-                        <td className="font-bold text-center">₱{formatCurrency(marketValue)}</td>
+                        <td className="font-bold text-center">₱{formatCurrency(netUnitCost)}</td>
                         <td className="font-bold text-center">{assessmentLevel}</td>
                         <td className="font-bold text-center">₱{formatCurrency(assessedValue)}</td>
                     </tr>
                 </tbody>
             </table>
 
-            <FaasFooter amountInWords={amountInWords} taxStatus={taxStatus} locationMunicipality={locationMunicipality} effectivityOfAssessment={effectivityOfAssessment} appraisedById={appraisedById} municipalReviewerId={municipalReviewerId} provincialReviewerId={provincialReviewerId} memoranda={memoranda} previousTdNo={previousTdNo} previousOwner={previousOwner} previousAv={previousAv} previousMv={previousMv} previousArea={previousArea} className="mt-auto" />
+            <FaasFooter amountInWords={amountInWords} taxStatus={taxStatus} locationMunicipality={locationMunicipality} effectivityOfAssessment={effectivityOfAssessment} appraisedById={appraisedById} submittedAt={submittedAt} municipalSignedAt={municipalSignedAt} provincialSignedAt={provincialSignedAt} municipalReviewerId={municipalReviewerId} provincialReviewerId={provincialReviewerId} memoranda={memoranda} previousTdNo={previousTdNo} previousOwner={previousOwner} previousAv={previousAv} previousMv={previousMv} previousArea={previousArea} className="mt-auto" />
         </div>
     );
 };

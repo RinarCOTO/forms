@@ -70,16 +70,16 @@ export const BUILDING_TYPES = [
 ];
 
 export const STRUCTURAL_TYPES = [
-  "Type V-A",
+  "Type V-C",
   "Type V-B",
-  "Type IV-A",
+  "Type V-A",
   "Type IV-B",
-  "Type IV-C",
-  "Type III-A",
-  "Type III-B",
-  "Type III-C",
-  "Type II-A",
+  "Type IV-A",
+  "Type III-E",
+  "Type III-CD",
+  "Type III-AB",
   "Type II-B",
+  "Type II-A",
   "Type I",
 ];
 

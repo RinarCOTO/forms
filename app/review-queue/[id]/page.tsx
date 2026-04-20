@@ -20,6 +20,7 @@ import {
   MessageSquare, Send, User, Clock, UserCheck,
 } from "lucide-react";
 import ReviewFormInline from "./ReviewFormInline";
+import ReviewFaasOverlay from "./ReviewFaasOverlay";
 import { toast } from "sonner";
 
 // ---------------------------------------------------------------------------
@@ -157,6 +158,7 @@ function ReviewDetailInner({ id }: { id: string }) {
   const [submittingComment, setSubmittingComment] = useState(false);
   const [showFieldPicker, setShowFieldPicker] = useState(false);
   const [activeCommentId, setActiveCommentId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"form" | "faas">("form");
   const commentPanelRef = useRef<HTMLDivElement>(null);
   const commentTextareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -487,13 +489,48 @@ function ReviewDetailInner({ id }: { id: string }) {
             )}
           </div>
 
-          {/* Main: form iframe + comments sidebar */}
+          {/* Tab bar */}
+          <div className="flex gap-1 px-6 pt-2 border-b bg-background shrink-0">
+            <button
+              onClick={() => setActiveTab("form")}
+              className={`px-4 py-2 text-sm font-medium rounded-t-md border-b-2 transition-colors ${
+                activeTab === "form"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Field View
+            </button>
+            <button
+              onClick={() => setActiveTab("faas")}
+              className={`px-4 py-2 text-sm font-medium rounded-t-md border-b-2 transition-colors ${
+                activeTab === "faas"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              FAAS Form View
+            </button>
+          </div>
+
+          {/* Main: form + comments sidebar */}
           <div className="flex flex-1 overflow-hidden">
 
-            {/* Inline form view */}
+            {/* Form view (tabs) */}
             <div className="flex-1 overflow-auto bg-[#f3f4f6]">
-              {record && (
+              {record && activeTab === "form" && (
                 <ReviewFormInline
+                  serverData={record as Record<string, any>}
+                  comments={comments.filter(c => {
+                    if (!currentUser) return true;
+                    if (LAOO_TIER.has(currentUser.role) && c.author_role && MUNICIPAL_AUTHOR_ROLES.has(c.author_role)) return false;
+                    return true;
+                  })}
+                  onCommentSection={onCommentSection}
+                />
+              )}
+              {record && activeTab === "faas" && (
+                <ReviewFaasOverlay
                   serverData={record as Record<string, any>}
                   comments={comments.filter(c => {
                     if (!currentUser) return true;

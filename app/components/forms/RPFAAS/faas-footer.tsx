@@ -24,6 +24,9 @@ type Props = {
   memoranda?: string;
   className?: string;
   appraisedById?: string;
+  submittedAt?: string;
+  municipalSignedAt?: string;
+  provincialSignedAt?: string;
   municipalReviewerId?: string;
   provincialReviewerId?: string;
   previousTdNo?: string;
@@ -39,6 +42,9 @@ const FaasFooter = ({
   locationMunicipality,
   effectivityOfAssessment,
   appraisedById,
+  submittedAt,
+  municipalSignedAt,
+  provincialSignedAt,
   memoranda,
   className,
   municipalReviewerId,
@@ -48,6 +54,11 @@ const FaasFooter = ({
   previousMv,
   previousArea,
 }: Props) => {
+  const fmtDate = (iso?: string) => {
+    if (!iso) return '';
+    const d = new Date(iso);
+    return isNaN(d.getTime()) ? '' : d.toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' });
+  };
   const fmtMoney = (v: string | number | undefined) => {
     if (v == null || v === '') return '';
     const n = typeof v === 'string' ? parseFloat(v) : v;
@@ -216,6 +227,11 @@ const FaasFooter = ({
         <div>{appraisedByRole ? ROLE_LABELS[appraisedByRole] ?? appraisedByRole : ''}</div>
         <div>Municipal Assessor</div>
         <div>Provincial Assessor</div>
+      </div>
+      <div className="grid grid-cols-3 text-center text-sm mt-1">
+        <div>{fmtDate(submittedAt)}</div>
+        <div>{fmtDate(municipalSignedAt)}</div>
+        <div>{fmtDate(provincialSignedAt)}</div>
       </div>
 
       <div className="mt-8 print:mt-1">

@@ -140,7 +140,7 @@ export default function TotalDeductionTable({
   };
 
   return (
-    <section className="bg-card rounded-lg border p-6 shadow-sm mt-8 border-l-4 border-l-primary">
+    <section className="bg-card rounded-lg border p-6 shadow-sm mt-8">
       <h3 className="text-lg font-bold mb-4">{label}</h3>
 
       {/* Deductions Table */}

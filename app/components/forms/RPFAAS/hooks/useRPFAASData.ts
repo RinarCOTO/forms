@@ -84,6 +84,9 @@ export const useRPFAASData = (serverData?: Record<string, any>) => {
         amountInWords: "",
         effectivityOfAssessment: "",
         appraisedById: "",
+        submittedAt: "",
+        municipalSignedAt: "",
+        provincialSignedAt: "",
         municipalReviewerId: "",
         provincialReviewerId: "",
         memoranda: "",
@@ -168,8 +171,11 @@ export const useRPFAASData = (serverData?: Record<string, any>) => {
             const standardDeductionTotal = selectedDeductions.reduce((acc: number, id: string) => {
                 const stored = deductionAmounts[id];
                 if (stored !== undefined) return acc + stored;
-                const opt = DEDUCTION_CHOICES.find(c => c.id === id);
-                return opt ? acc + (baseCost * opt.percentage) / 100 : acc;
+                const opt = DEDUCTION_CHOICES.find(c => c.id === id) as any;
+                if (!opt) return acc;
+                if (opt.percentage) return acc + (baseCost * opt.percentage) / 100;
+                if (opt.pricePerSqm) return acc + opt.pricePerSqm * totalFloorAreaNum;
+                return acc;
             }, 0);
 
             // Use nullish coalescing so assessment_level = 0 (meaning "0%") is not treated as missing
@@ -235,9 +241,12 @@ export const useRPFAASData = (serverData?: Record<string, any>) => {
                 assessedValue:       parseFloat(String(d.estimated_value || 0)),
                 amountInWords:       d.amount_in_words || "",
                 effectivityOfAssessment: d.effectivity_of_assessment || "",
-                appraisedById:       d.appraised_by || "",
-                municipalReviewerId: d.municipal_reviewer_id || "",
-                provincialReviewerId:d.provincial_reviewer_id || "",
+                appraisedById:        d.appraised_by || "",
+                submittedAt:          d.submitted_at || "",
+                municipalSignedAt:    d.municipal_signed_at || "",
+                provincialSignedAt:   d.provincial_signed_at || "",
+                municipalReviewerId:  d.municipal_reviewer_id || "",
+                provincialReviewerId: d.provincial_reviewer_id || "",
                 memoranda:           d.memoranda || "",
             });
             setIsLoaded(true);
@@ -465,7 +474,7 @@ export const useRPFAASData = (serverData?: Record<string, any>) => {
             // Calculate financial summary similar to step-4 (correct formula)
             const unitCostNum = parseFloat(unitCostFromStorage || "0");
             const floorAreaNum = parseFloat(step2Data.total_floor_area || "0");
-            const mainCost = unitCostNum && floorAreaNum ? unitCostNum * floorAreaNum : 0;
+            const mainCost = floorAreaNum > 0 ? unitCostNum * floorAreaNum : unitCostNum;
 
             // Additions using original unit cost
             const addPctIds: string[] = (additionalPercentageChoice || "").split(",").filter(Boolean);
@@ -500,9 +509,10 @@ export const useRPFAASData = (serverData?: Record<string, any>) => {
 
             // Depreciation on total reproduction cost — derive from building age + structural type
             const buildingAgeNum = parseFloat(buildingAge) || 0;
-            const depreciationPctFromStorage = (buildingAgeNum && structuralType)
-                ? (getBuildingDepreciationRate(buildingAgeNum, structuralType) ?? 0)
-                : 0;
+            const depreciationResultFromStorage = (buildingAgeNum && structuralType)
+                ? getBuildingDepreciationRate(buildingAgeNum, structuralType)
+                : null;
+            const depreciationPctFromStorage = depreciationResultFromStorage?.rate ?? 0;
             const depreciationAmountFromStorage = baseCost * depreciationPctFromStorage / 100;
 
             const netUnitCost = baseCost - standardDeductionTotal - depreciationAmountFromStorage;

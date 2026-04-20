@@ -118,8 +118,8 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rpfaas-fill-section shadow-sm">
-      <h2 className="rpfaas-fill-section-title text-sm uppercase tracking-wide text-muted-foreground mb-2">
+    <section className="rpfaas-fill-section shadow-sm p-5">
+      <h2 className="rpfaas-fill-section-title text-sm uppercase tracking-wide text-muted-foreground mb-3">
         {title}
       </h2>
       {children}

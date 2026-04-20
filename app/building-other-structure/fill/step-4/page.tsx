@@ -30,7 +30,7 @@ import {
   ADDITIONAL_PERCENT_CHOICES,
   ADDITIONAL_FLAT_RATE_CHOICES,
 } from "@/config/form-options";
-import { getBuildingDepreciationRate } from "@/config/depreciation-table";
+import { getBuildingDepreciationRate, type DepreciationResult } from "@/config/depreciation-table";
 import { useFormData } from "@/hooks/useFormData";
 
 const FormSchema = z.object({
@@ -65,7 +65,8 @@ const BuildingStructureFormFillPage4 = () => {
   // Physical depreciation
   const [buildingAge, setBuildingAge] = useState<number>(0);
   const [structuralType, setStructuralType] = useState<string>("");
-  const [depreciationPct, setDepreciationPct] = useState<number | "">("");
+  const [depreciationResult, setDepreciationResult] = useState<DepreciationResult | null>(null);
+
 
   const { data: loadedData } = useFormData<any>("faas/building-structures", draftId || "");
 
@@ -110,11 +111,15 @@ const BuildingStructureFormFillPage4 = () => {
     if (age) setBuildingAge(age);
     if (sType) setStructuralType(sType);
 
-    // Always auto-compute from the schedule table using building age + structural type
-    if (age && sType) {
-      const auto = getBuildingDepreciationRate(age, sType);
-      if (auto !== null) setDepreciationPct(auto);
+    // Auto-compute depreciation from band schedule using building age from step 2
+    // Buildings 0–1 years old are considered new — no depreciation applied
+    if (age > 1 && sType) {
+      const result = getBuildingDepreciationRate(age, sType);
+      if (result !== null) setDepreciationResult(result);
+    } else {
+      setDepreciationResult(null);
     }
+
 
     // Load Selections
     const dbDeductions = loadedData?.selected_deductions || loadedData?.deductions;
@@ -185,7 +190,7 @@ if (loadedData?.additional_flat_rate_areas?.length > 0) {
   // Track unsaved changes after initialization
   useEffect(() => {
     if (isInitializedRef.current) setIsDirty(true);
-  }, [selections, comments, additionalPercentSelections, additionalPercentAreas, additionalFlatRateSelections, additionalFlatRateAreas, depreciationPct]);
+  }, [selections, comments, additionalPercentSelections, additionalPercentAreas, additionalFlatRateSelections, additionalFlatRateAreas]);
 
   const handleSelectionChange = useCallback((newValues: (string | number | null)[]) => {
     setSelections([...newValues]);
@@ -241,14 +246,16 @@ if (loadedData?.additional_flat_rate_areas?.length > 0) {
       return acc + amount;
     }, 0);
 
-    // Step 5: Depreciation applied to totalReproductionCost
-    const depreciationAmount = totalReproductionCost * (Number(depreciationPct) || 0) / 100;
+    // Step 5: Physical depreciation (band-based)
+    const physicalPct = depreciationResult?.rate ?? 0;
+    const depreciationAmount = totalReproductionCost * physicalPct / 100;
 
     // Step 6: Market Value
     const netMarketValue = totalReproductionCost - standardDeductionTotal - depreciationAmount;
 
     return {
       depreciationAmount,
+      physicalPct,
       mainCost,
       totalReproductionCost,
       standardDeductionTotal,
@@ -265,7 +272,7 @@ if (loadedData?.additional_flat_rate_areas?.length > 0) {
     additionalPercentAreas,
     additionalFlatRateSelections,
     additionalFlatRateAreas,
-    depreciationPct,
+    depreciationResult,
   ]);
 
   // ---------------------------------------------------------
@@ -311,7 +318,7 @@ if (loadedData?.additional_flat_rate_areas?.length > 0) {
         overall_comments: comments,
 
         // Physical depreciation
-        physical_depreciation_pct: depreciationPct === "" ? null : Number(depreciationPct),
+        physical_depreciation_pct: depreciationResult?.rate ?? null,
 
         // Saving the financial summary directly
         additional_percentage_choice: additionalPercentSelections.filter(Boolean).join(","),
@@ -385,7 +392,7 @@ if (loadedData?.additional_flat_rate_areas?.length > 0) {
         selected_deductions: selections.filter(Boolean),
         deduction_amounts: deductionAmountsDraft,
         overall_comments: comments,
-        physical_depreciation_pct: depreciationPct === "" ? null : Number(depreciationPct),
+        physical_depreciation_pct: depreciationResult?.rate ?? null,
         additional_percentage_choice: additionalPercentSelections.filter(Boolean).join(','),
         additional_percentage_value: financialSummary.totalAdditions,
         additional_percentage_areas: additionalPercentAreas,
@@ -457,25 +464,43 @@ if (loadedData?.additional_flat_rate_areas?.length > 0) {
               </div>
 
               {/* ── Physical Depreciation ── */}
-              <section className="bg-card rounded-lg border p-6 shadow-sm">
+              <section className="bg-card rounded-lg border p-6 shadow-sm space-y-4">
+                <h3 className="font-semibold text-base">Physical Depreciation</h3>
+
+                {/* Info row */}
                 <div className="overflow-hidden rounded-lg border border-border">
                   <table className="w-full border-collapse text-sm">
                     <thead className="bg-chart-2">
                       <tr>
-                        <th className="border-b px-4 py-2 text-left font-medium text-chart-5">Physical Depreciation</th>
+                        <th className="border-b px-4 py-2 text-left font-medium text-chart-5">Years Used</th>
                         <th className="border-b px-4 py-2 text-left font-medium text-chart-5">Structural Type</th>
                         <th className="border-b px-4 py-2 text-center font-medium text-chart-5">Rate</th>
+                        <th className="border-b px-4 py-2 text-center font-medium text-chart-5">Residual Floor</th>
                         <th className="border-b px-4 py-2 text-right font-medium text-chart-5">Depreciation Amount</th>
                       </tr>
                     </thead>
                     <tbody>
                       <tr className="hover:bg-muted/20 transition-colors">
                         <td className="px-4 py-3 font-medium">
-                          {buildingAge ? `${buildingAge} year${buildingAge !== 1 ? "s" : ""}` : "—"}
+                          {buildingAge <= 1 && buildingAge > 0
+                            ? <span className="text-emerald-600 font-medium">New</span>
+                            : buildingAge > 1
+                              ? `${buildingAge} yr${buildingAge !== 1 ? "s" : ""}`
+                              : "—"}
                         </td>
                         <td className="px-4 py-3">{structuralType || "—"}</td>
                         <td className="px-4 py-3 text-center">
-                          {depreciationPct !== "" ? `${depreciationPct}%` : "—"}
+                          {buildingAge <= 1 && buildingAge > 0
+                            ? <span className="text-emerald-600 font-medium">0% (New)</span>
+                            : depreciationResult !== null
+                              ? <span className={depreciationResult.capped ? "text-amber-600 font-medium" : ""}>
+                                  {depreciationResult.rate.toFixed(2)}%
+                                  {depreciationResult.capped && " (capped)"}
+                                </span>
+                              : "—"}
+                        </td>
+                        <td className="px-4 py-3 text-center text-muted-foreground">
+                          {depreciationResult !== null ? `${depreciationResult.residual}%` : "—"}
                         </td>
                         <td className="px-4 py-3 text-right font-medium text-destructive">
                           {financialSummary.depreciationAmount > 0
@@ -486,6 +511,7 @@ if (loadedData?.additional_flat_rate_areas?.length > 0) {
                     </tbody>
                   </table>
                 </div>
+
               </section>
 
               <AdditionalTable
