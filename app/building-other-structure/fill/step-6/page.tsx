@@ -30,9 +30,10 @@ function collectFormData(
   const data: any = {};
 
   if (actualUse) data.actual_use = actualUse;
-  if (assessedValue) data.estimated_value = assessedValue.toString();
+  // Always save even when 0 so the preview can read back exact saved values
+  data.estimated_value = assessedValue;
   if (amountInWords) data.amount_in_words = amountInWords;
-  // Strip "%" and save as a number (e.g. "5%" → 5)
+  // Strip "%" and save as a number (e.g. "5%" → 5); save even when 0 (means "0% assessment level")
   if (assessmentLevel) data.assessment_level = parseFloat(assessmentLevel);
 
   return data;
@@ -116,24 +117,31 @@ function BuildingStructureFormFillPage6() {
   const [taxMappersLoading, setTaxMappersLoading] = useState(false);
   const [currentUser, setCurrentUser] = useState<{ id: string; full_name: string; role: string } | null>(null);
   const [locationMunicipalitySlug, setLocationMunicipalitySlug] = useState<string>("");
+  // Fallback values loaded from DB when the formula can't compute (e.g. market value not yet saved)
+  const [dbAssessmentLevel, setDbAssessmentLevel] = useState<string>("");
+  const [dbAssessedValue, setDbAssessedValue] = useState<number>(0);
+  const [dbAmountInWords, setDbAmountInWords] = useState<string>("");
 
-  const assessmentLevel = useMemo(
+  const computedAssessmentLevel = useMemo(
     () => getAssessmentLevel(typeOfBuildingLabel, actualUse, marketValue) ?? "",
     [typeOfBuildingLabel, actualUse, marketValue]
   );
+  // Use computed value when available; fall back to what was last saved in DB
+  const assessmentLevel = computedAssessmentLevel || dbAssessmentLevel;
 
   // Auto-compute assessed value: Market Value × Assessment Level, rounded to nearest 10
-  const assessedValue = useMemo(() => {
-    if (!marketValue || !assessmentLevel) return 0;
-    const levelPercent = parseFloat(assessmentLevel) / 100;
+  const computedAssessedValue = useMemo(() => {
+    if (!marketValue || !computedAssessmentLevel) return 0;
+    const levelPercent = parseFloat(computedAssessmentLevel) / 100;
     const raw = marketValue * levelPercent;
     return Math.round(raw / 10) * 10;
-  }, [marketValue, assessmentLevel]);
+  }, [marketValue, computedAssessmentLevel]);
+  const assessedValue = computedAssessedValue > 0 ? computedAssessedValue : dbAssessedValue;
 
   // Auto-derive amount in words from assessedValue
   const amountInWords = useMemo(() => {
-    return assessedValue > 0 ? numberToWords(assessedValue) : "";
-  }, [assessedValue]);
+    return assessedValue > 0 ? numberToWords(assessedValue) : dbAmountInWords;
+  }, [assessedValue, dbAmountInWords]);
 
   // Fetch current user role + name
   useEffect(() => {
@@ -165,6 +173,13 @@ function BuildingStructureFormFillPage6() {
   };
   const DISPLAY_TO_SLUG: Record<string, string> = { paracelis: "paracellis" };
 
+  // Extracts the category label for actual_use: "Commercial - Apt" → "Commercial", "Residential" → "Residential"
+  function toBuildingCategory(typeOfBuilding: string): string {
+    if (!typeOfBuilding) return "Residential";
+    const dashIdx = typeOfBuilding.indexOf(" - ");
+    return dashIdx !== -1 ? typeOfBuilding.slice(0, dashIdx) : typeOfBuilding;
+  }
+
   function toSlug(name: string, code: string): string {
     if (code && PSGC_TO_SLUG[code]) return PSGC_TO_SLUG[code];
     if (name) return DISPLAY_TO_SLUG[name.toLowerCase()] ?? name.toLowerCase();
@@ -177,8 +192,7 @@ function BuildingStructureFormFillPage6() {
       const typeOfBuilding = localStorage.getItem("type_of_building_p2") || "";
       if (typeOfBuilding) {
         setTypeOfBuildingLabel(typeOfBuilding);
-        const formatted = typeOfBuilding.charAt(0).toUpperCase() + typeOfBuilding.slice(1);
-        setActualUse(formatted || "Residential");
+        setActualUse(toBuildingCategory(typeOfBuilding) || "Residential");
       }
 
       const savedMarketValue = parseFloat(localStorage.getItem("market_value_p4") || "0");
@@ -243,11 +257,17 @@ function BuildingStructureFormFillPage6() {
         if (data.market_value != null) setMarketValue(parseFloat(String(data.market_value)));
         if (data.type_of_building) {
           setTypeOfBuildingLabel(data.type_of_building);
-          if (!data.actual_use) {
-            const formatted = data.type_of_building.charAt(0).toUpperCase() + data.type_of_building.slice(1);
-            setActualUse(formatted);
-          }
+          // Always derive actual_use from the category prefix, not the full label
+          setActualUse(toBuildingCategory(data.type_of_building));
         }
+
+        // DB fallbacks: show previously-saved computed values when live formula can't produce them
+        if (data.assessment_level != null) {
+          const raw = String(data.assessment_level);
+          setDbAssessmentLevel(raw.includes('%') ? raw : `${raw}%`);
+        }
+        if (data.estimated_value != null) setDbAssessedValue(parseFloat(String(data.estimated_value)));
+        if (data.amount_in_words) setDbAmountInWords(data.amount_in_words);
 
         // Resolve municipality slug so the tax-mapper fetch fires with the correct filter
         const slug = toSlug(data.location_municipality || "", data.property_municipality_code || "");

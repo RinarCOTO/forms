@@ -162,10 +162,10 @@ const FaasFooter = ({
     <div className={className}>
       <div className="w-full flex gap-4">
         <div>Amount in Words:</div>
-        <div className="uppercase" style={{ minWidth: "75%" }}>{amountInWords ? `${amountInWords} Pesos Only` : '—'}</div>
+        <div className="uppercase underline" style={{ minWidth: "75%" }}>{amountInWords ? `${amountInWords} Pesos Only` : '—'}</div>
       </div>
 
-      <div className="grid grid-cols-4 items-center mt-4 print:mt-1">
+      <div className="grid grid-cols-4 items-center mt-4 print:mt-0">
         <label className="flex items-center justify-center gap-2">
           <span className="inline-flex items-center justify-center w-4 h-4 border border-black">
             {taxStatus !== 'exempt' ? 'x' : ''}
@@ -182,27 +182,27 @@ const FaasFooter = ({
         <div className="font-bold text-center">{effectivityOfAssessment ? String(effectivityOfAssessment).substring(0, 4) : ''}</div>
       </div>
 
-      <div className="grid grid-cols-3 mt-6 print:mt-2">
+      <div className="grid grid-cols-3 mt-6 print:mt-1">
         <div>Assessed/Appraised by:</div>
         <div>Recommending Approval:</div>
         <div>Approved by:</div>
       </div>
 
       {/* Signature images — hidden, preserved for future use */}
-      <div className="grid grid-cols-3 text-center mt-2 print:mt-2">
+      <div className="grid grid-cols-3 text-center mt-2 print:mt-1">
         <div className="flex flex-col items-center">
           {/* <Image src={taxMapperSignatureUrl} alt="Tax Mapper signature" width={160} height={48} className="object-contain max-h-12 mb-0.5 print:max-h-10" /> */}
-          <div className="h-12" />
+          <div className="h-12 print:h-6" />
           <span className="inline-block border-b border-black w-3/4 mx-auto font-bold capitalize">{appraisedByName || ''}</span>
         </div>
         <div className="flex flex-col items-center">
           {/* <Image src={municipalSignatureUrl} alt="Municipal Assessor signature" width={160} height={48} className="object-contain max-h-12 mb-0.5 print:max-h-10" /> */}
-          <div className="h-12" />
+          <div className="h-12 print:h-6" />
           <span className="inline-block border-b border-black w-3/4 mx-auto font-bold capitalize">{municipalAssessorName || 'Name of Municipal Assessor'}</span>
         </div>
         <div className="flex flex-col items-center">
           {/* <Image src={provincialSignatureUrl} alt="Provincial Assessor signature" width={160} height={48} className="object-contain max-h-12 mb-0.5 print:max-h-10" /> */}
-          <div className="h-12" />
+          <div className="h-12 print:h-6" />
           <span className="inline-block border-b border-black w-3/4 mx-auto font-bold capitalize">{provincialAssessorName || 'Name of Provincial Assessor'}</span>
         </div>
       </div>
@@ -218,7 +218,7 @@ const FaasFooter = ({
         <div>Provincial Assessor</div>
       </div>
 
-      <div className="mt-8 print:mt-2">
+      <div className="mt-8 print:mt-1">
         <table style={{ tableLayout: 'fixed', width: '100%' }}>
           <colgroup>
             <col style={{ width: '16.66%' }} />

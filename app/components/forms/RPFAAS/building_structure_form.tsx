@@ -62,6 +62,8 @@ const BuildingStructureForm = ({ serverData }: { serverData?: Record<string, any
         additionalFlatRateValue,
         additionalFlatRateAreas,
         unitCost,
+        physicalDepreciationPct,
+        depreciationAmount,
         baseCost,
         standardDeductionTotal,
         netUnitCost,
@@ -336,7 +338,7 @@ const BuildingStructureForm = ({ serverData }: { serverData?: Record<string, any
                         <td>
                             <div className="rpfaas-inner-grid grid grid-cols-3 divide-x divide-black items-stretch h-full">
                                 <div className="rpfaas-field-value self-stretch">{cct || ''}</div>
-                                <div className="flex items-center self-stretch font-medium floor-area-print whitespace-nowrap">2<sup>{ordSuffix(2)}</sup> Floor Area:</div>
+                                <div className="flex items-center self-stretch font-medium floor-area-print whitespace-nowrap">{storeys >= 2 ? <>2<sup>{ordSuffix(2)}</sup> Floor Area:</> : null}</div>
                                 <div className="flex items-center self-stretch font-bold rpfaas-print-small whitespace-nowrap">{storeys >= 2 ? floorAreas[1] || '' : ''}</div>
                             </div>
                         </td>
@@ -348,7 +350,7 @@ const BuildingStructureForm = ({ serverData }: { serverData?: Record<string, any
                         <td>
                             <div className="rpfaas-inner-grid grid grid-cols-3 divide-x divide-black items-stretch h-full">
                                 <div className="rpfaas-field-value self-stretch">{completionIssuedOn ? completionIssuedOn.slice(0, 4) : ''}</div>
-                                <div className="flex items-center self-stretch font-medium floor-area-print whitespace-nowrap">3<sup>{ordSuffix(3)}</sup> Floor Area:</div>
+                                <div className="flex items-center self-stretch font-medium floor-area-print whitespace-nowrap">{storeys >= 3 ? <>3<sup>{ordSuffix(3)}</sup> Floor Area:</> : null}</div>
                                 <div className="flex items-center self-stretch font-bold rpfaas-print-small whitespace-nowrap">{storeys >= 3 ? floorAreas[2] || '' : ''}</div>
                             </div>
                         </td>
@@ -617,8 +619,8 @@ const BuildingStructureForm = ({ serverData }: { serverData?: Record<string, any
                             <div className="rpfaas-inner-grid grid grid-cols-4 divide-x divide-black items-stretch h-full">
                                 <div className="col-span-1 self-stretch flex items-center">—</div>
                                 <div className="col-span-1 self-stretch flex items-center">—</div>
-                                <div className="col-span-1 self-stretch flex items-center">—</div>
-                                <div className="col-span-1 self-stretch flex items-center">—</div>
+                                <div className="col-span-1 self-stretch flex items-center">{physicalDepreciationPct > 0 ? `${physicalDepreciationPct}%` : '—'}</div>
+                                <div className="col-span-1 self-stretch flex items-center">{depreciationAmount > 0 ? `- ₱${formatCurrency(depreciationAmount)}` : '—'}</div>
                             </div>
                         </td>
                     </tr>

@@ -65,13 +65,13 @@ export function DynamicSelectGroup({
     <div className="w-full space-y-4">
       <div className="overflow-hidden rounded-lg border border-border">
         <table className="w-full border-collapse text-sm">
-          <thead className="bg-muted/50">
+          <thead className="bg-chart-2">
             <tr>
-              <th className="border-b px-4 py-2 text-left font-medium text-muted-foreground">{columnLabel}</th>
-              <th className="border-b px-4 py-2 text-center font-medium text-muted-foreground w-48">
+              <th className="border-b px-4 py-2 text-left font-medium text-foreground">{columnLabel}</th>
+              <th className="border-b px-4 py-2 text-center font-medium text-foreground w-48">
                 {valueColumnLabel}
               </th>
-              <th className="border-b px-4 py-2 text-center font-medium text-muted-foreground w-16">Action</th>
+              <th className="border-b px-4 py-2 text-center font-medium text-foreground w-16">Action</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">

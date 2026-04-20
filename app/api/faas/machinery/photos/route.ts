@@ -15,16 +15,18 @@ function getAdminClient() {
   return createAdminClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { autoRefreshToken: false, persistSession: false } }
+    { auth: { autoRefreshToken: false, persistSession: false }, db: { schema: 'public' } }
   );
 }
 
 // POST /api/faas/machinery/photos
 export async function POST(req: NextRequest) {
+  console.log('=== POST /api/faas/machinery/photos ===');
   try {
     // Authenticate
     const supabase = await createClient();
     const { data: { user }, error: userError } = await supabase.auth.getUser();
+    console.log('[POST photos] user:', user?.id, '| userError:', userError?.message);
     if (userError || !user) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
@@ -34,6 +36,7 @@ export async function POST(req: NextRequest) {
     const file = formData.get('file') as File | null;
     const machineryId = formData.get('machineryId') as string | null;
     const photoType = formData.get('photoType') as string | null;
+    console.log('[POST photos] file:', file?.name, file?.type, file?.size, '| machineryId:', machineryId, '| photoType:', photoType);
 
     if (!file || !machineryId || !photoType) {
       return NextResponse.json(
@@ -55,6 +58,7 @@ export async function POST(req: NextRequest) {
     const ext = (file.name.split('.').pop() ?? 'jpg').toLowerCase();
     const photoId = crypto.randomUUID();
     const storagePath = `${user.id}/${machineryId}/${photoType}/${photoId}.${ext}`;
+    console.log('[POST photos] storagePath:', storagePath);
 
     // Upload to private Storage bucket
     const arrayBuffer = await file.arrayBuffer();
@@ -65,6 +69,7 @@ export async function POST(req: NextRequest) {
         upsert: false,
       });
 
+    console.log('[POST photos] uploadError:', uploadError ? JSON.stringify(uploadError) : 'none');
     if (uploadError) {
       return NextResponse.json({ success: false, error: uploadError.message }, { status: 500 });
     }
@@ -77,7 +82,8 @@ export async function POST(req: NextRequest) {
       .eq('photo_type', photoType)
       .maybeSingle();
 
-    if (existingErr) console.warn('[machinery photos POST] existing photo lookup error:', existingErr);
+    console.log('[POST photos] existingPhoto:', existingPhoto?.id, '| existingErr:', existingErr?.message);
+    if (existingErr) console.warn('[POST photos] existing photo lookup error:', existingErr);
 
     if (existingPhoto) {
       await admin.storage.from(BUCKET).remove([existingPhoto.storage_path]);
@@ -97,22 +103,27 @@ export async function POST(req: NextRequest) {
       .select()
       .single();
 
+    console.log('[POST photos] dbError:', dbError ? JSON.stringify(dbError) : 'none');
     if (dbError) {
       await admin.storage.from(BUCKET).remove([storagePath]);
       return NextResponse.json({ success: false, error: dbError.message }, { status: 500 });
     }
 
+    console.log('[POST photos] success, photoRecord id:', photoRecord?.id);
     return NextResponse.json({ success: true, data: photoRecord });
   } catch (error) {
+    console.error('[POST photos] caught exception:', error);
     return NextResponse.json({ success: false, error: String(error) }, { status: 500 });
   }
 }
 
 // GET /api/faas/machinery/photos?machineryId={id}
 export async function GET(req: NextRequest) {
+  console.log('=== GET /api/faas/machinery/photos ===');
   try {
     const { searchParams } = new URL(req.url);
     const machineryId = searchParams.get('machineryId');
+    console.log('[GET photos] machineryId:', machineryId);
 
     if (!machineryId) {
       return NextResponse.json(
@@ -129,6 +140,9 @@ export async function GET(req: NextRequest) {
       .eq('machinery_id', parseInt(machineryId, 10))
       .order('created_at', { ascending: true });
 
+    console.log('[GET photos] dbError:', dbError ? JSON.stringify(dbError) : 'none');
+    console.log('[GET photos] photos found:', photos?.length ?? 0);
+
     if (dbError) {
       return NextResponse.json({ success: false, error: dbError.message }, { status: 500 });
     }
@@ -139,6 +153,7 @@ export async function GET(req: NextRequest) {
         const { data: signed, error: signErr } = await admin.storage
           .from(BUCKET)
           .createSignedUrl(photo.storage_path, 3600);
+        if (signErr) console.warn('[GET photos] signedUrl error for', photo.id, ':', signErr.message);
         return {
           ...photo,
           signedUrl: signErr ? null : (signed?.signedUrl ?? null),
@@ -146,8 +161,10 @@ export async function GET(req: NextRequest) {
       })
     );
 
+    console.log('[GET photos] success, returning', photosWithUrls.length, 'photos');
     return NextResponse.json({ success: true, data: photosWithUrls });
   } catch (error) {
+    console.error('[GET photos] caught exception:', error);
     return NextResponse.json({ success: false, error: String(error) }, { status: 500 });
   }
 }

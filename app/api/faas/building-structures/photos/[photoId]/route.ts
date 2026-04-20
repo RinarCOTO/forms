@@ -12,6 +12,70 @@ function getAdminClient() {
   );
 }
 
+// PATCH /api/faas/building-structures/photos/[photoId]
+// Updates the note field for a photo record.
+export async function PATCH(
+  req: NextRequest,
+  context: { params: Promise<{ photoId: string }> | { photoId: string } }
+) {
+  try {
+    const supabase = await createClient();
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const params = await Promise.resolve(context.params);
+    const { photoId } = params;
+
+    if (!photoId) {
+      return NextResponse.json({ success: false, error: 'Missing photoId' }, { status: 400 });
+    }
+
+    const body = await req.json();
+    const { note } = body;
+
+    const admin = getAdminClient();
+
+    const { data: photo, error: fetchError } = await admin
+      .from('building_structure_photos')
+      .select('id, uploaded_by')
+      .eq('id', photoId)
+      .maybeSingle();
+
+    if (fetchError || !photo) {
+      return NextResponse.json({ success: false, error: 'Photo not found' }, { status: 404 });
+    }
+
+    if (photo.uploaded_by !== user.id) {
+      const { data: userProfile } = await admin
+        .from('users')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+
+      if (!userProfile || !['admin', 'super_admin'].includes(userProfile.role)) {
+        return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
+      }
+    }
+
+    const { data: updated, error: updateError } = await admin
+      .from('building_structure_photos')
+      .update({ note: note ?? null })
+      .eq('id', photoId)
+      .select()
+      .single();
+
+    if (updateError) {
+      return NextResponse.json({ success: false, error: updateError.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, data: updated });
+  } catch (error) {
+    return NextResponse.json({ success: false, error: String(error) }, { status: 500 });
+  }
+}
+
 // DELETE /api/building-other-structure/photos/[photoId]
 // Removes the Storage object and the DB pointer record.
 // Only the uploader or an admin/super_admin may delete.

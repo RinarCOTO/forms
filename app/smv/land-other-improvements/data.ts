@@ -24,6 +24,7 @@ export interface MunicipalityData {
   commercial: SmvRow[];
   residential: SmvRow[];
   agricultural: AgriculturalLandRow[];
+  industrial: SmvRow[];
   agriculturalImprovementRow?: agriculturalImprovementRow[];
 }
 
@@ -32,6 +33,7 @@ export const municipalityData: Record<string, MunicipalityData> = {
     commercial: [],
     residential: [],
     agricultural: [],
+    industrial: [],
     agriculturalImprovementRow: [],
   },
   bauko: {
@@ -47,6 +49,7 @@ export const municipalityData: Record<string, MunicipalityData> = {
   { landType: "Pasture Land", first: "₱ 10,880.00", second: "-", third: "-", fourth: "-" },
   { landType: "Cogon Land", first: "₱ 8,030.00", second: "-", third: "-", fourth: "-" }
     ],
+    industrial: [],
     agriculturalImprovementRow: [],
   },
   besao: {
@@ -94,6 +97,7 @@ export const municipalityData: Record<string, MunicipalityData> = {
       { landType: "Cogon Land", first: "₱ 8,030.00", second: "-", third: "-", fourth: "-" },
       { landType: "Pinetree Land", first: "₱ 14,080.00", second: "-", third: "-", fourth: "-" },
     ],
+    industrial: [],
     agriculturalImprovementRow: [
       { type: "Avocado", first: "₱ 820.00", second: "₱ 580.00", third: "₱ 340.00" },
       { type: "Banana", first: "₱ 190.00", second: "₱ 130.00", third: "₱ 80.00" },
@@ -137,6 +141,7 @@ export const municipalityData: Record<string, MunicipalityData> = {
       { landType: "Pasture Land", first: "₱ 10,880.00", second: "-", third: "-", fourth: "-" },
       { landType: "Cogon Land", first: "₱ 8,030.00", second: "-", third: "-", fourth: "-" }
     ],
+    industrial: [],
     agriculturalImprovementRow: [
       { type: "Avocado", first: "₱ 820.00", second: "₱ 580.00", third: "₱ 340.00" },
       { type: "Banana", first: "₱ 190.00", second: "₱ 130.00", third: "₱ 80.00" },
@@ -190,6 +195,7 @@ export const municipalityData: Record<string, MunicipalityData> = {
       { landType: "Pasture Land", first: "₱ 10,880.00", second: "-", third: "-", fourth: "-" },
       { landType: "Cogon Land", first: "₱ 8,030.00", second: "-", third: "-", fourth: "-" }
     ],
+    industrial: [],
     agriculturalImprovementRow: [
       { type: "Avocado", first: "₱ 820.00", second: "₱ 580.00", third: "₱ 340.00" },
       { type: "Banana", first: "₱ 190.00", second: "₱ 130.00", third: "₱ 80.00" },
@@ -239,6 +245,7 @@ export const municipalityData: Record<string, MunicipalityData> = {
       { landType: "Pasture Land", first: "10,880.00", second: "-", third: "-", fourth: "-" },
       { landType: "Cogon Land", first: "8,030.00", second: "-", third: "-", fourth: "-" }
     ],
+    industrial: [],
     agriculturalImprovementRow: [
       { type: "Avocado", first: "₱ 820.00", second: "₱ 580.00", third: "₱ 340.00" },
       { type: "Banana", first: "190.00", second: "130.00", third: "80.00" },
@@ -262,6 +269,7 @@ export const municipalityData: Record<string, MunicipalityData> = {
       { landType: "Pasture Land", first: "10,880.00", second: "-", third: "-", fourth: "-" },
       { landType: "Cogon Land", first: "8,030.00", second: "-", third: "-", fourth: "-" }
     ],
+    industrial: [],
     agriculturalImprovementRow: [
       { type: "Avocado", first: "₱ 820.00", second: "₱ 580.00", third: "₱ 340.00" },
       { type: "Banana", first: "190.00", second: "130.00", third: "80.00" },
@@ -305,6 +313,7 @@ export const municipalityData: Record<string, MunicipalityData> = {
       { landType: "Pasture Land", first: "10,880.00", second: "-", third: "-", fourth: "-" },
       { landType: "Cogon Land", first: "8,030.00", second: "-", third: "-", fourth: "-" }
     ],
+    industrial: [],
     agriculturalImprovementRow: [
       { type: "Avocado", first: "₱ 820.00", second: "₱ 580.00", third: "₱ 340.00" },
       { type: "Banana", first: "190.00", second: "130.00", third: "80.00" },
@@ -348,6 +357,7 @@ export const municipalityData: Record<string, MunicipalityData> = {
       { landType: "Pasture Land", first: "10,880.00", second: "-", third: "-", fourth: "-" },
       { landType: "Cogon Land", first: "8,030.00", second: "-", third: "-", fourth: "-" }
     ],
+    industrial: [],
     agriculturalImprovementRow: [
       { type: "Avocado", first: "₱ 820.00", second: "₱ 580.00", third: "₱ 340.00" },
       { type: "Banana", first: "190.00", second: "130.00", third: "80.00" },
@@ -403,6 +413,7 @@ export const municipalityData: Record<string, MunicipalityData> = {
       { landType: "Pasture Land", first: "10,880.00", second: "-", third: "-", fourth: "-" },
       { landType: "Cogon Land", first: "8,030.00", second: "-", third: "-", fourth: "-" }
     ],
+    industrial: [],
     agriculturalImprovementRow: [
       { type: "Avocado", first: "₱ 820.00", second: "₱ 580.00", third: "₱ 340.00" },
       { type: "Banana", first: "190.00", second: "130.00", third: "80.00" },

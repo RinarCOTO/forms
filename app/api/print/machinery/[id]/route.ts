@@ -3,7 +3,7 @@ import { getCurrentUserContext } from '@/lib/services/user.service';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
 import { getBrowser } from '@/lib/puppeteer-browser';
 
-export const maxDuration = 60; // seconds — requires Vercel Pro; on Hobby falls back to 10s
+export const maxDuration = 60;
 
 function getAdminClient() {
   return createAdminClient(
@@ -27,11 +27,11 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // 2. Verify the record exists and belongs to this user's municipality
+    // 2. Verify the record exists
     const admin = getAdminClient();
     const { data: record, error } = await admin
-      .from('building_structures')
-      .select('id, municipality, owner_name, arp_no')
+      .from('machinery')
+      .select('id, location_municipality')
       .eq('id', id)
       .single();
 
@@ -40,16 +40,16 @@ export async function GET(
     }
 
     if (!userCtx.isAdmin && userCtx.municipality &&
-        record.municipality?.toLowerCase() !== userCtx.municipality.toLowerCase()) {
+        record.location_municipality?.toLowerCase() !== userCtx.municipality.toLowerCase()) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    // 3. Get all request cookies to pass to Puppeteer for auth
+    // 3. Pass cookies for auth
     const cookieHeader = request.headers.get('cookie') || '';
 
-    // 4. Derive the base URL from the incoming request
+    // 4. Build print URL
     const { origin } = new URL(request.url);
-    const printUrl = `${origin}/building-other-structure/print-only?id=${id}`;
+    const printUrl = `${origin}/machinery/print-only?id=${id}`;
 
     // 5. Get shared browser instance
     const browser = await getBrowser();
@@ -57,7 +57,6 @@ export async function GET(
 
     try {
 
-      // Pass auth cookies so the print page can fetch from the DB
       if (cookieHeader) {
         const cookies = cookieHeader.split(';').map((c) => {
           const [name, ...rest] = c.trim().split('=');
@@ -67,15 +66,12 @@ export async function GET(
       }
 
       await page.goto(printUrl, { waitUntil: 'networkidle2', timeout: 30000 });
-
-      // Wait until the form + all photo images have finished rendering
-      await page.waitForSelector('[data-all-ready="true"]', { timeout: 25000 });
-      await new Promise((r) => setTimeout(r, 300));
+      await page.waitForSelector('[data-print-ready="true"]', { timeout: 15000 });
+      await new Promise((r) => setTimeout(r, 500));
 
       await page.addStyleTag({
         content: `@media print { .min-h-screen { background: white !important; min-height: 0 !important; } }`,
       });
-
 
       const pdf = await page.pdf({
         format: 'A4',
@@ -86,7 +82,7 @@ export async function GET(
       return new NextResponse(pdf, {
         headers: {
           'Content-Type': 'application/pdf',
-          'Content-Disposition': `inline; filename="RPFAAS-Building_${record.owner_name ?? 'Unknown'}_${record.arp_no ?? 'Unknown'}_${new Date().toISOString().slice(0, 10)}.pdf"`,
+          'Content-Disposition': `inline; filename="RPFAAS-Machinery-${id}.pdf"`,
         },
       });
     } finally {

@@ -46,7 +46,7 @@ const LandOtherImprovementFormFillPage3 = () => {
 
     // Derive which categories have SMV data for this municipality
     const munKey = municipality.toLowerCase();
-    const SMV_CATEGORIES = ["commercial", "residential", "agricultural"] as const;
+    const SMV_CATEGORIES = ["commercial", "residential", "agricultural", "industrial"] as const;
     const availableCategories = SMV_CATEGORIES.filter(
         (cat) => (municipalityData[munKey]?.[cat]?.length ?? 0) > 0
     );
@@ -58,7 +58,7 @@ const LandOtherImprovementFormFillPage3 = () => {
     const subClassificationOptions = classification
         ? classification === "agricultural"
             ? (municipalityData[munKey]?.agricultural ?? []).map((row) => row.landType)
-            : (municipalityData[munKey]?.[classification as "commercial" | "residential"] ?? []).map((row) => row.subClassification)
+            : (municipalityData[munKey]?.[classification as "commercial" | "residential" | "industrial"] ?? []).map((row) => row.subClassification)
         : [];
     // Build land class options (1, 2, 3, 4) from the selected agricultural row.
     // Only include entries where the price is not "-" (e.g. Cogon Land only has "first").
@@ -82,7 +82,7 @@ const LandOtherImprovementFormFillPage3 = () => {
             const row = (municipalityData[munKey]?.agricultural ?? []).find((r) => r.landType === subClassification);
             return landClass ? (row?.[landClass as typeof classKeys[number]] ?? "") : "";
         }
-        const row = (municipalityData[munKey]?.[classification as "commercial" | "residential"] ?? []).find((r) => r.subClassification === subClassification);
+        const row = (municipalityData[munKey]?.[classification as "commercial" | "residential" | "industrial"] ?? []).find((r) => r.subClassification === subClassification);
         return row?.year2012 ?? "";
     })();
 

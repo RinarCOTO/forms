@@ -68,10 +68,36 @@
       "Bash(npx next:*)",
       "Bash(find . -type f \\\\\\( -name \"*.ts\" -o -name \"*.tsx\" -o -name \"*.sql\" -o -name \"*.prisma\" -o -name \"*.md\" \\\\\\) ! -path \"./.next/*\" ! -path \"./services/.next/*\" ! -path \"./node_modules/*\" -exec sed -i '' 's/municipal_tax_mapper/municipal_assessor/g' {} +)",
       "Bash(find . -type f \\\\\\( -name \"*.ts\" -o -name \"*.tsx\" -o -name \"*.sql\" -o -name \"*.prisma\" -o -name \"*.md\" \\\\\\) ! -path \"./.next/*\" ! -path \"./services/.next/*\" ! -path \"./node_modules/*\" -exec sed -i '' 's/tax_mapper/municipal_tax_mapper/g' {} +)",
-      "Bash(grep -n \"municipal_tax_mapper\\\\|municipal_assessor\\\\|tax_mapper\" services/users/app/api/users/permissions/route.ts services/users/app/api/users/update-role/route.ts services/faas/app/api/building-structures/[id]/submit/route.ts)"
+      "Bash(grep -n \"municipal_tax_mapper\\\\|municipal_assessor\\\\|tax_mapper\" services/users/app/api/users/permissions/route.ts services/users/app/api/users/update-role/route.ts services/faas/app/api/building-structures/[id]/submit/route.ts)",
+      "Bash(ls /Users/rinar/Documents/forms/app/api/faas/machinery/[id]/)",
+      "Bash(git checkout:*)",
+      "Bash(perl -ne 'print unpack\\(\"H*\", $_\\), \"\\\\n\"' /Users/rinar/Documents/forms/app/api/faas/building-structures/route.ts)",
+      "Bash(python3)",
+      "Bash(head -12 app/api/faas/building-structures/[id]/review/route.ts)",
+      "Bash(grep -n \"await fetch.*realtime.*broadcast\" app/api/faas/building-structures/[id]/review/route.ts app/api/faas/building-structures/[id]/submit/route.ts)",
+      "Bash(lsof -iTCP -sTCP:LISTEN -n -P)",
+      "WebFetch(domain:localhost)",
+      "Bash(git diff *)",
+      "Bash(grep -r \"getAssessmentLevel\\\\|assessment.level\\\\|assessmentLevel\" /Users/rinar/Documents/forms/app/land* /Users/rinar/Documents/forms/app/smv/land*)",
+      "Bash(ls /Users/rinar/Documents/forms/app/land*)",
+      "Bash(grep -r \"dynamicSelectButton\\\\|DynamicSelectButton\" /Users/rinar/Documents/forms/app/land*)",
+      "Bash(grep -rn \"assessment-level\\\\|getAssessmentLevel\" /Users/rinar/Documents/forms/app/land* /Users/rinar/Documents/forms/app/smv/land*)",
+      "Bash(grep -rn \"import.*from.*config/\" /Users/rinar/Documents/forms/app/land* /Users/rinar/Documents/forms/app/land-other-improvements/)",
+      "Bash(brew install *)",
+      "Bash(pdftoppm -v)",
+      "Bash(/opt/homebrew/bin/pdftotext /Users/rinar/Downloads/ManualRPAandAO.pdf /tmp/ManualRPAandAO.txt)",
+      "Read(//private/tmp/**)",
+      "Bash(/opt/homebrew/bin/pdftoppm -r 150 -png -f 1 -l 5 /Users/rinar/Downloads/ManualRPAandAO.pdf /tmp/manual_page)",
+      "Bash(ls /tmp/manual_page*)",
+      "Read(//tmp/**)",
+      "Bash(/opt/homebrew/bin/pdfinfo /Users/rinar/Downloads/ManualRPAandAO.pdf)",
+      "Bash(/opt/homebrew/bin/pdftoppm -r 200 -png -f 10 -l 15 /Users/rinar/Downloads/ManualRPAandAO.pdf /tmp/manual_p)",
+      "Bash(ls /tmp/manual_p*)"
     ],
     "additionalDirectories": [
-      "/Users/rinar"
+      "/Users/rinar",
+      "/Users/rinar/Documents/forms/app/api/faas/machinery/photos",
+      "/Users/rinar/Documents/forms/app/api/print/machinery"
     ]
   }
 }

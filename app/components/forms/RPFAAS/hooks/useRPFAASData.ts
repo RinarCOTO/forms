@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import type { RPFAASFormData, RoofMaterials } from "@/app/types/rpfaas";
 import { getLocationName } from "../utils/locationHelpers";
 import { DUMMY_PROVINCES, DUMMY_MUNICIPALITIES, DUMMY_BARANGAYS } from "../constants/locations";
-import { DEDUCTION_CHOICES } from "@/config/form-options";
+import { DEDUCTION_CHOICES, ADDITIONAL_PERCENT_CHOICES, ADDITIONAL_FLAT_RATE_CHOICES } from "@/config/form-options";
+import { getBuildingDepreciationRate } from "@/config/depreciation-table";
 
 export const useRPFAASData = (serverData?: Record<string, any>) => {
     const [isLoaded, setIsLoaded] = useState(false);
@@ -68,6 +69,8 @@ export const useRPFAASData = (serverData?: Record<string, any>) => {
         additionalFlatRateAreas: [],
         // Financial calculations
         unitCost: 0,
+        physicalDepreciationPct: 0,
+        depreciationAmount: 0,
         baseCost: 0,
         standardDeductionTotal: 0,
         netUnitCost: 0,
@@ -128,8 +131,37 @@ export const useRPFAASData = (serverData?: Record<string, any>) => {
             };
 
             const unitCost   = parseFloat(String(d.cost_of_construction || 0));
+            const physicalDepreciationPct = parseFloat(String(d.physical_depreciation_pct ?? 0));
+            const totalFloorAreaNum = parseFloat(String(d.total_floor_area || 0));
             const totalFloorArea = String(d.total_floor_area || "");
-            const baseCost   = unitCost && totalFloorArea ? unitCost * parseFloat(totalFloorArea) : 0;
+
+            // Main cost = unit cost × floor area (no depreciation on unit cost)
+            const mainCost = totalFloorAreaNum > 0 ? unitCost * totalFloorAreaNum : unitCost || 0;
+
+            // Additions use original unit cost
+            const addPctIds: string[] = (d.additional_percentage_choice || "").split(",").filter(Boolean);
+            const addPctAreas: number[] = d.additional_percentage_areas || [];
+            let additionalPercentTotal = 0;
+            addPctIds.forEach((id: string, idx: number) => {
+                const opt = ADDITIONAL_PERCENT_CHOICES.find((c: any) => String(c.id) === id);
+                const area = addPctAreas[idx] || 0;
+                if (opt && opt.percentage) additionalPercentTotal += ((unitCost * opt.percentage) / 100) * area;
+            });
+
+            const addFlatIds: string[] = (d.additional_flat_rate_choice || "").split(",").filter(Boolean);
+            const addFlatAreas: number[] = d.additional_flat_rate_areas || [];
+            let additionalFlatTotal = 0;
+            addFlatIds.forEach((id: string, idx: number) => {
+                const opt = ADDITIONAL_FLAT_RATE_CHOICES.find((c: any) => String(c.id) === id);
+                const area = addFlatAreas[idx] || 0;
+                if (opt && opt.pricePerSqm) additionalFlatTotal += opt.pricePerSqm * area;
+            });
+
+            // Total Reproduction Cost = main + all additions
+            const baseCost = mainCost + additionalPercentTotal + additionalFlatTotal;
+
+            // Depreciation applied to total reproduction cost
+            const depreciationAmount = baseCost * physicalDepreciationPct / 100;
 
             const selectedDeductions: string[] = d.selected_deductions || [];
             const deductionAmounts: Record<string, number> = d.deduction_amounts || {};
@@ -140,7 +172,8 @@ export const useRPFAASData = (serverData?: Record<string, any>) => {
                 return opt ? acc + (baseCost * opt.percentage) / 100 : acc;
             }, 0);
 
-            const assessmentLevelRaw = String(d.assessment_level || '20');
+            // Use nullish coalescing so assessment_level = 0 (meaning "0%") is not treated as missing
+            const assessmentLevelRaw = d.assessment_level != null ? String(d.assessment_level) : '20';
             const assessmentLevel = assessmentLevelRaw.includes('%') ? assessmentLevelRaw : `${assessmentLevelRaw}%`;
 
             setFormData({
@@ -190,9 +223,11 @@ export const useRPFAASData = (serverData?: Record<string, any>) => {
                 additionalFlatRateValue:    0,
                 additionalFlatRateAreas:    d.additional_flat_rate_areas || [],
                 unitCost,
+                physicalDepreciationPct,
+                depreciationAmount,
                 baseCost,
                 standardDeductionTotal,
-                netUnitCost: baseCost - standardDeductionTotal,
+                netUnitCost: baseCost - standardDeductionTotal - depreciationAmount,
                 marketValue:         parseFloat(String(d.market_value || 0)),
                 actualUse:           d.actual_use || "",
                 taxStatus:           d.tax_status || "taxable",
@@ -427,12 +462,32 @@ export const useRPFAASData = (serverData?: Record<string, any>) => {
             const provincialReviewerId = localStorage.getItem("provincial_reviewer_id_p5") || "";
             const memoranda = localStorage.getItem("memoranda_p5") || "";
             
-            // Calculate financial summary similar to step-4
-            const baseCost = unitCostFromStorage && step2Data.total_floor_area 
-                ? parseFloat(unitCostFromStorage) * parseFloat(step2Data.total_floor_area) 
-                : 0;
+            // Calculate financial summary similar to step-4 (correct formula)
+            const unitCostNum = parseFloat(unitCostFromStorage || "0");
+            const floorAreaNum = parseFloat(step2Data.total_floor_area || "0");
+            const mainCost = unitCostNum && floorAreaNum ? unitCostNum * floorAreaNum : 0;
 
-            // Calculate deduction total — prefer stored amounts (same logic as individual rows in the form)
+            // Additions using original unit cost
+            const addPctIds: string[] = (additionalPercentageChoice || "").split(",").filter(Boolean);
+            let additionalPercentTotal = 0;
+            addPctIds.forEach((id: string, idx: number) => {
+                const opt = ADDITIONAL_PERCENT_CHOICES.find((c: any) => String(c.id) === id);
+                const area = additionalPercentageAreas[idx] || 0;
+                if (opt && opt.percentage) additionalPercentTotal += ((unitCostNum * opt.percentage) / 100) * area;
+            });
+
+            const addFlatIds: string[] = (additionalFlatRateChoice || "").split(",").filter(Boolean);
+            let additionalFlatTotal = 0;
+            addFlatIds.forEach((id: string, idx: number) => {
+                const opt = ADDITIONAL_FLAT_RATE_CHOICES.find((c: any) => String(c.id) === id);
+                const area = additionalFlatRateAreas[idx] || 0;
+                if (opt && opt.pricePerSqm) additionalFlatTotal += opt.pricePerSqm * area;
+            });
+
+            // Total Reproduction Cost = main + additions
+            const baseCost = mainCost + additionalPercentTotal + additionalFlatTotal;
+
+            // Calculate deduction total — prefer stored amounts, fallback to percentage of totalReproductionCost
             const standardDeductionTotal = selectedDeductions.reduce((acc: number, deductionId: string) => {
                 const storedAmount = deductionAmounts[deductionId];
                 if (storedAmount !== undefined) return acc + storedAmount;
@@ -443,7 +498,14 @@ export const useRPFAASData = (serverData?: Record<string, any>) => {
                 return acc;
             }, 0);
 
-            const netUnitCost = baseCost - standardDeductionTotal;
+            // Depreciation on total reproduction cost — derive from building age + structural type
+            const buildingAgeNum = parseFloat(buildingAge) || 0;
+            const depreciationPctFromStorage = (buildingAgeNum && structuralType)
+                ? (getBuildingDepreciationRate(buildingAgeNum, structuralType) ?? 0)
+                : 0;
+            const depreciationAmountFromStorage = baseCost * depreciationPctFromStorage / 100;
+
+            const netUnitCost = baseCost - standardDeductionTotal - depreciationAmountFromStorage;
 
             setFormData({
                 transactionCode,
@@ -499,7 +561,9 @@ export const useRPFAASData = (serverData?: Record<string, any>) => {
                 additionalFlatRateValue,
                 additionalFlatRateAreas,
                 // Financial calculations
-                unitCost: parseFloat(unitCostFromStorage || "0"),
+                unitCost: unitCostNum,
+                physicalDepreciationPct: depreciationPctFromStorage,
+                depreciationAmount: depreciationAmountFromStorage,
                 baseCost,
                 standardDeductionTotal,
                 netUnitCost,

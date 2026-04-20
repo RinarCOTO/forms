@@ -74,12 +74,12 @@ export function AdditionalTable({
     <div className="w-full space-y-4">
       <div className="overflow-hidden rounded-lg border border-border">
         <table className="w-full border-collapse text-sm">
-          <thead className="bg-muted/50">
+          <thead className="bg-chart-2">
             <tr>
-              <th className="border-b px-4 py-2 text-left font-medium text-muted-foreground">{label}</th>
-              <th className="border-b px-4 py-2 text-left font-medium text-muted-foreground">Area (sqm)</th>
-              <th className="border-b px-4 py-2 text-center font-medium text-muted-foreground w-48">Unit Value</th>
-              <th className="border-b px-4 py-2 text-center font-medium text-muted-foreground w-16">Action</th>
+              <th className="border-b px-4 py-2 text-left font-medium text-chart-5">{label}</th>
+              <th className="border-b px-4 py-2 text-left font-medium text-chart-5">Area (sqm)</th>
+              <th className="border-b px-4 py-2 text-center font-medium text-chart-5 w-48">Unit Value</th>
+              <th className="border-b px-4 py-2 text-center font-medium text-chart-5 w-16">Action</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">

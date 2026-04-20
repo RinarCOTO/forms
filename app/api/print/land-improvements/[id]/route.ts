@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserContext } from '@/lib/services/user.service';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
+import { getBrowser } from '@/lib/puppeteer-browser';
 
 export const maxDuration = 60;
 
@@ -50,37 +51,11 @@ export async function GET(
     const { origin } = new URL(request.url);
     const printUrl = `${origin}/land-other-improvements/print-only?id=${id}`;
 
-    // 5. Launch Puppeteer
-    let chromium: any;
-    let puppeteer: any;
-
-    if (process.env.NODE_ENV === 'production') {
-      chromium = (await import('@sparticuz/chromium-min')).default;
-      puppeteer = (await import('puppeteer-core')).default;
-      chromium.setHeadlessMode = true;
-      chromium.setGraphicsMode = false;
-    } else {
-      puppeteer = (await import('puppeteer-core')).default;
-      chromium = null;
-    }
-
-    const browser = await (chromium
-      ? puppeteer.launch({
-          args: chromium.args,
-          defaultViewport: chromium.defaultViewport,
-          executablePath: await chromium.executablePath(
-            `https://github.com/Sparticuz/chromium/releases/download/v131.0.1/chromium-v131.0.1-pack.tar`
-          ),
-          headless: chromium.headless,
-        })
-      : puppeteer.launch({
-          channel: 'chrome',
-          headless: true,
-          args: ['--no-sandbox', '--disable-setuid-sandbox'],
-        }));
+    // 5. Get shared browser instance
+    const browser = await getBrowser();
+    const page = await browser.newPage();
 
     try {
-      const page = await browser.newPage();
 
       if (cookieHeader) {
         const cookies = cookieHeader.split(';').map((c) => {
@@ -90,7 +65,7 @@ export async function GET(
         await page.setCookie(...cookies);
       }
 
-      await page.goto(printUrl, { waitUntil: 'networkidle0', timeout: 30000 });
+      await page.goto(printUrl, { waitUntil: 'networkidle2', timeout: 30000 });
       await page.waitForSelector('[data-print-ready="true"]', { timeout: 15000 });
       await new Promise((r) => setTimeout(r, 500));
 
@@ -118,7 +93,7 @@ export async function GET(
         },
       });
     } finally {
-      await browser.close();
+      await page.close();
     }
   } catch (err: any) {
     console.error('PDF generation error:', err);

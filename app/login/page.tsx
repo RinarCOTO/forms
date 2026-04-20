@@ -57,7 +57,7 @@ export default function LoginPage() {
             Welcome Back
           </CardTitle>
           <CardDescription className="text-center">
-            Sign in to your RPFAAS Forms account
+            Sign in to your account
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
@@ -97,7 +97,7 @@ export default function LoginPage() {
               />
             </div>
           </CardContent>
-          <CardFooter>
+          <CardFooter className="pt-4">
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? "Signing in..." : "Sign In"}
             </Button>

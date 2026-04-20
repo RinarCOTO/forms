@@ -34,6 +34,7 @@ import { useFormLock } from "@/hooks/useFormLock";
 
 // RPFAAS components
 import { ReviewCommentsFloat } from "@/components/review-comments-float";
+import { ACTUAL_USE_OPTIONS } from "@/app/machinery/components/machinery-item-card";
 
 // Constants
 import { MACHINERY_STEPS } from "@/app/machinery/fill/constants";
@@ -44,18 +45,20 @@ import { MACHINERY_STEPS } from "@/app/machinery/fill/constants";
 
 /**
  * Assessment levels for machinery per RA 7160, Section 218.
- * Returns the level as a string like "40%" or "" if unknown.
+ * Keyed by actual use code (AA, AR, AC, AI, ASC, ASS, ASH, ASLWD, SG).
  */
-function getMachineryAssessmentLevel(kindOfMachinery: string): string {
-  switch (kindOfMachinery) {
-    case "agricultural":            return "40%";
-    case "residential":             return "20%";
-    case "commercial_industrial":   return "80%";
-    case "special_hospital":        return "15%";
-    case "special_water_district":  return "10%";
-    case "special_gocc":            return "10%";
-    case "special_pollution_control": return "10%";
-    default:                        return "";
+function getMachineryAssessmentLevel(actualUseCode: string): string {
+  switch (actualUseCode) {
+    case "AA":    return "40%";
+    case "AR":    return "50%";
+    case "AC":    return "80%";
+    case "AI":    return "80%";
+    case "ASC":   return "15%";
+    case "ASS":   return "15%";
+    case "ASH":   return "15%";
+    case "ASLWD": return "10%";
+    case "SG":    return "10%";
+    default:      return "";
   }
 }
 
@@ -90,18 +93,6 @@ function formatWithCommas(num: number): string {
   return num.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-const KIND_LABELS: Record<string, string> = {
-  agricultural:             "Agricultural Machinery",
-  residential:              "Residential Machinery",
-  commercial_industrial:    "Commercial and Industrial Machinery",
-  special_hospital:         "Special Classes – Hospital",
-  special_water_district:   "Special Classes – Local Water District",
-  special_gocc:             "Special Classes – GOCC / Power Generation",
-  special_pollution_control: "Special Classes – Pollution Control / Environmental",
-};
-
-const MACHINERY_KIND_OPTIONS = Object.entries(KIND_LABELS).map(([value, label]) => ({ value, label }));
-
 // ---------------------------------------------------------------------------
 // Page component
 // ---------------------------------------------------------------------------
@@ -116,7 +107,7 @@ function MachineryStep4Content() {
   const [isSaving, setIsSaving] = useState(false);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
 
-  const [kindOfMachinery, setKindOfMachinery] = useState("");
+  const [actualUse, setActualUse] = useState(""); // derived from first item's actual_use
   const [marketValue, setMarketValue] = useState<number>(0);
   const [taxStatus, setTaxStatus] = useState<"taxable" | "exempt">("taxable");
   const [effectivityYear, setEffectivityYear] = useState(String(new Date().getFullYear() + 1));
@@ -128,10 +119,12 @@ function MachineryStep4Content() {
   const [currentUser, setCurrentUser] = useState<{ id: string; full_name: string; role: string } | null>(null);
   const [propertyMunicipality, setPropertyMunicipality] = useState("");
 
+  const actualUseLabel = ACTUAL_USE_OPTIONS.find(u => u.code === actualUse)?.label ?? "";
+
   // Derived values
   const assessmentLevel = useMemo(
-    () => getMachineryAssessmentLevel(kindOfMachinery),
-    [kindOfMachinery]
+    () => getMachineryAssessmentLevel(actualUse),
+    [actualUse]
   );
 
   const assessedValue = useMemo(() => {
@@ -161,13 +154,12 @@ function MachineryStep4Content() {
     }).catch(() => {});
   }, []);
 
-  // Auto-select self for non-mapper roles
+  // Auto-select current user for all roles (unless a value was already loaded from the draft)
   useEffect(() => {
-    if (!currentUser) return;
-    if (currentUser.role !== "municipal_tax_mapper" && !appraisedBy) {
-      setAppraisedBy(currentUser.id);
-    }
-  }, [currentUser, appraisedBy]);
+    if (!currentUser || appraisedBy) return;
+    setAppraisedBy(currentUser.id);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser]);
 
   // ── Fetch tax mappers when municipality is known ──
   useEffect(() => {
@@ -192,27 +184,23 @@ function MachineryStep4Content() {
         if (!result.success || !result.data) return;
         const data = result.data;
 
-        if (data.kind_of_machinery) setKindOfMachinery(data.kind_of_machinery);
-        if (data.market_value != null) setMarketValue(parseFloat(String(data.market_value)));
         if (data.tax_status === "taxable" || data.tax_status === "exempt") setTaxStatus(data.tax_status);
         if (data.effectivity_of_assessment) setEffectivityYear(String(data.effectivity_of_assessment));
         if (data.appraised_by) setAppraisedBy(String(data.appraised_by));
         if (data.memoranda) setMemoranda(data.memoranda);
         if (data.location_municipality) setPropertyMunicipality(data.location_municipality.toLowerCase());
 
-        // Derive market value from appraisal items if not explicitly saved
-        if (!data.market_value && Array.isArray(data.appraisal_items) && data.appraisal_items.length > 0) {
+        // actual_use is a form-level field set in step-1
+        if (data.actual_use) setActualUse(data.actual_use);
+
+        // Market value = sum of items' depreciated values
+        if (Array.isArray(data.appraisal_items) && data.appraisal_items.length > 0) {
           const total = data.appraisal_items.reduce(
             (sum: number, item: { depreciated_value?: string }) =>
               sum + (parseFloat(item.depreciated_value || "0") || 0),
             0
           );
           if (total > 0) setMarketValue(total);
-        }
-
-        // Derive kind from first item if not explicitly saved
-        if (!data.kind_of_machinery && Array.isArray(data.appraisal_items) && data.appraisal_items[0]?.kind_of_machinery) {
-          setKindOfMachinery(data.appraisal_items[0].kind_of_machinery);
         }
       } catch {
         // ignore
@@ -229,7 +217,7 @@ function MachineryStep4Content() {
       return false;
     }
     const payload: Record<string, unknown> = {
-      kind_of_machinery: kindOfMachinery,
+      actual_use: actualUse,
       market_value: marketValue,
       assessment_level: assessmentLevel ? parseFloat(assessmentLevel) : null,
       assessed_value: assessedValue,
@@ -253,7 +241,7 @@ function MachineryStep4Content() {
       toast.error("Error saving. Please try again.");
     }
     return false;
-  }, [draftId, kindOfMachinery, marketValue, assessmentLevel, assessedValue, amountInWords, taxStatus, effectivityYear, appraisedBy, memoranda]);
+  }, [draftId, actualUse, marketValue, assessmentLevel, assessedValue, amountInWords, taxStatus, effectivityYear, appraisedBy, memoranda]);
 
   const handleSaveDraft = useCallback(async () => {
     setIsSavingDraft(true);
@@ -280,7 +268,7 @@ function MachineryStep4Content() {
         <ErrorBoundary>
           <ReviewCommentsFloat
             draftId={draftId}
-            stepFields={["kind_of_machinery", "market_value", "assessment_level", "assessed_value", "amount_in_words", "effectivity_of_assessment", "appraised_by", "memoranda"]}
+            stepFields={["actual_use", "market_value", "assessment_level", "assessed_value", "amount_in_words", "effectivity_of_assessment", "appraised_by", "memoranda"]}
           />
         </ErrorBoundary>
       }
@@ -311,23 +299,20 @@ function MachineryStep4Content() {
         <form className="rpfaas-fill-form rpfaas-fill-form-single space-y-6">
 
           <FormSection title="Property Assessment">
-            {/* Kind of Machinery */}
-            <div className="space-y-1" data-comment-field="kind_of_machinery">
-              <Label className="rpfaas-fill-label">Kind of Machinery</Label>
-              <select
-                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm"
-                value={kindOfMachinery}
-                onChange={(e) => setKindOfMachinery(e.target.value)}
-              >
-                <option value="">Select kind of machinery</option>
-                {MACHINERY_KIND_OPTIONS.map(o => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
-                ))}
-              </select>
+            {/* Actual Use — read-only, set in step 1 */}
+            <div className="space-y-1" data-comment-field="actual_use">
+              <Label className="rpfaas-fill-label">Actual Use</Label>
+              <Input
+                value={actualUseLabel || "—"}
+                readOnly
+                disabled
+                aria-disabled="true"
+                className="rpfaas-fill-input bg-white text-black disabled:opacity-100"
+              />
             </div>
 
             {/* Tax Status */}
-            <div className="space-y-2 mt-4">
+            <div className="space-y-2">
               <Label className="rpfaas-fill-label">Tax Status</Label>
               <div className="flex gap-6">
                 <label className="flex items-center gap-2 cursor-pointer">
@@ -341,20 +326,19 @@ function MachineryStep4Content() {
               </div>
             </div>
 
-            {/* Market Value */}
-            <div className="space-y-1 mt-4" data-comment-field="market_value">
+            {/* Market Value — auto-computed from sum of items' depreciated values */}
+            <div className="space-y-1" data-comment-field="market_value">
               <Label className="rpfaas-fill-label">Market Value</Label>
-              <Input
-                type="number"
-                className="rpfaas-fill-input"
-                placeholder="0.00"
-                value={marketValue || ""}
-                onChange={(e) => setMarketValue(parseFloat(e.target.value) || 0)}
-              />
+              <div className="h-9 rounded-md border border-input bg-muted/40 px-3 flex items-center text-sm">
+                {marketValue > 0
+                  ? `₱${marketValue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                  : <span className="text-muted-foreground text-xs">—</span>
+                }
+              </div>
             </div>
 
             {/* Assessment Level (computed) */}
-            <div className="space-y-1 mt-4" data-comment-field="assessment_level">
+            <div className="space-y-1" data-comment-field="assessment_level">
               <Label className="rpfaas-fill-label">Assessment Level</Label>
               <Input
                 value={assessmentLevel || "—"}
@@ -365,7 +349,7 @@ function MachineryStep4Content() {
             </div>
 
             {/* Assessed Value (computed) */}
-            <div className="space-y-1 mt-4" data-comment-field="assessed_value">
+            <div className="space-y-1" data-comment-field="assessed_value">
               <Label className="rpfaas-fill-label">Assessed Value</Label>
               <Input
                 value={assessedValue > 0 ? `₱${formatWithCommas(assessedValue)}` : ""}
@@ -376,7 +360,7 @@ function MachineryStep4Content() {
             </div>
 
             {/* Amount in Words (computed) */}
-            <div className="space-y-1 mt-4" data-comment-field="amount_in_words">
+            <div className="space-y-1" data-comment-field="amount_in_words">
               <Label className="rpfaas-fill-label">Amount in Words</Label>
               <Input
                 value={amountInWords ? `${amountInWords} Pesos Only` : ""}
@@ -387,7 +371,7 @@ function MachineryStep4Content() {
             </div>
 
             {/* Effectivity of Assessment */}
-            <div className="space-y-1 mt-4" data-comment-field="effectivity_of_assessment">
+            <div className="space-y-1" data-comment-field="effectivity_of_assessment">
               <Label className="rpfaas-fill-label">Effectivity of Assessment</Label>
               <Select value={effectivityYear} onValueChange={setEffectivityYear}>
                 <SelectTrigger className="rpfaas-fill-input">
@@ -402,10 +386,8 @@ function MachineryStep4Content() {
             </div>
           </FormSection>
 
-          <FormSection>
-            {/* Appraised By */}
+          <FormSection title="Assessed / Appraised By">
             <div className="space-y-1" data-comment-field="appraised_by">
-              <Label className="rpfaas-fill-label">Assessed / Appraised by</Label>
               {currentUser && currentUser.role !== "municipal_tax_mapper" ? (
                 <Input
                   value={currentUser.full_name}
@@ -431,7 +413,7 @@ function MachineryStep4Content() {
             </div>
 
             {/* Memoranda */}
-            <div className="space-y-1 mt-4" data-comment-field="memoranda">
+            <div className="space-y-1" data-comment-field="memoranda">
               <Label className="rpfaas-fill-label">Memoranda</Label>
               <Textarea
                 value={memoranda}

@@ -54,6 +54,7 @@ function MachineryStep2Content() {
   const [isDirty, setIsDirty] = useState(false);
   const isInitializedRef = useRef(false);
 
+  const [actualUse, setActualUse] = useState("");
   const [items, setItems] = useState<ItemWithKey[]>([
     { _key: 1, ...createEmptyItem() },
   ]);
@@ -66,10 +67,13 @@ function MachineryStep2Content() {
         const res = await fetch(`/api/faas/machinery/${draftId}`);
         if (!res.ok) return;
         const result = await res.json();
-        if (result.success && result.data?.appraisal_items) {
-          const loaded = result.data.appraisal_items as MachineryItemData[];
-          if (loaded.length > 0) {
-            setItems(loaded.map((item, i) => ({ _key: i + 1, ...item })));
+        if (result.success && result.data) {
+          if (result.data.actual_use) setActualUse(result.data.actual_use);
+          if (result.data.appraisal_items) {
+            const loaded = result.data.appraisal_items as MachineryItemData[];
+            if (loaded.length > 0) {
+              setItems(loaded.map((item, i) => ({ _key: i + 1, ...item })));
+            }
           }
         }
       } catch {
@@ -179,6 +183,7 @@ function MachineryStep2Content() {
                 <MachineryItemCard
                   index={index}
                   item={item}
+                  actualUse={actualUse}
                   onChange={(field, value) => handleItemChange(index, field, value)}
                   onRemove={() => removeItem(item._key)}
                 />
@@ -189,7 +194,7 @@ function MachineryStep2Content() {
             type="button"
             variant="outline"
             size="sm"
-            className="mt-4"
+            className="mt-4 border-primary/40 text-primary hover:bg-primary/10 hover:text-primary"
             onClick={addItem}
             disabled={locked || lockChecking}
           >

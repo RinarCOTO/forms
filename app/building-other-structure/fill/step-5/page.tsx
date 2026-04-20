@@ -38,6 +38,7 @@ interface PhotoRecord {
   storage_path: string;
   original_name: string;
   signedUrl: string | null;
+  note?: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -82,8 +83,10 @@ interface PhotoUploadCardProps {
   photo?: PhotoRecord;
   isUploading: boolean;
   isRemoving: boolean;
+  isSavingNote: boolean;
   onFileSelect: (file: File) => void;
   onRemove: () => void;
+  onNoteSave: (note: string) => void;
   inputRef: (el: HTMLInputElement | null) => void;
   disabled: boolean;
 }
@@ -94,12 +97,20 @@ function PhotoUploadCard({
   photo,
   isUploading,
   isRemoving,
+  isSavingNote,
   onFileSelect,
   onRemove,
+  onNoteSave,
   inputRef,
   disabled,
 }: PhotoUploadCardProps) {
   const localRef = useRef<HTMLInputElement | null>(null);
+  const [localNote, setLocalNote] = useState(photo?.note ?? '');
+
+  // Sync local note when photo changes (e.g. after replace/load)
+  useEffect(() => {
+    setLocalNote(photo?.note ?? '');
+  }, [photo?.id, photo?.note]);
 
   const handleInputRef = (el: HTMLInputElement | null) => {
     localRef.current = el;
@@ -130,6 +141,23 @@ function PhotoUploadCard({
               className="w-full max-h-56 object-contain"
             />
           </div>
+          {/* Notes field */}
+          <div>
+            <label className="text-xs text-muted-foreground block mb-1">
+              Notes
+              {isSavingNote && <span className="ml-2 text-xs text-muted-foreground italic">Saving…</span>}
+            </label>
+            <textarea
+              className="w-full text-sm border rounded-md p-2 resize-none bg-background focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
+              rows={2}
+              placeholder="Add notes or caption for this image (optional)…"
+              value={localNote}
+              onChange={(e) => setLocalNote(e.target.value)}
+              onBlur={(e) => onNoteSave(e.target.value)}
+              disabled={disabled || isSavingNote}
+            />
+          </div>
+
           <div className="flex items-center justify-between gap-2">
             <span className="text-xs text-muted-foreground truncate max-w-[60%]">
               {photo.original_name}
@@ -263,6 +291,7 @@ function BuildingStructureFormFillPage5() {
   >({});
   const [isLoading, setIsLoading] = useState(true);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
+  const [savingNotes, setSavingNotes] = useState<Partial<Record<PhotoType, boolean>>>({});
   const [removeDialogOpen, setRemoveDialogOpen] = useState(false);
   const [photoToRemove, setPhotoToRemove] = useState<PhotoType | null>(null);
 
@@ -391,6 +420,31 @@ function BuildingStructureFormFillPage5() {
     }
   }, [photoToRemove, photos]);
 
+  const handleNoteSave = useCallback(async (photoType: PhotoType, note: string) => {
+    const photo = photos[photoType];
+    if (!photo) return;
+    // No-op if note hasn't changed
+    if ((photo.note ?? '') === note) return;
+    setSavingNotes((prev) => ({ ...prev, [photoType]: true }));
+    try {
+      const res = await fetch(`/api/faas/building-structures/photos/${photo.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ note }),
+      });
+      const result = await res.json();
+      if (result.success) {
+        setPhotos((prev) => ({ ...prev, [photoType]: { ...prev[photoType]!, note } }));
+      } else {
+        toast.error('Failed to save note.');
+      }
+    } catch {
+      toast.error('Error saving note.');
+    } finally {
+      setSavingNotes((prev) => ({ ...prev, [photoType]: false }));
+    }
+  }, [photos]);
+
   const handleSaveDraft = useCallback(async () => {
     if (!draftId) {
       toast.error('No draft found. Go back and save a previous step first.');
@@ -496,8 +550,10 @@ function BuildingStructureFormFillPage5() {
                     photo={photos[type]}
                     isUploading={!!uploading[type]}
                     isRemoving={!!removing[type]}
+                    isSavingNote={!!savingNotes[type]}
                     onFileSelect={(file) => handleFileSelect(type, file)}
                     onRemove={() => handleRemove(type)}
+                    onNoteSave={(note) => handleNoteSave(type, note)}
                     inputRef={(el) => {
                       fileInputRefs.current[type] = el;
                     }}

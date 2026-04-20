@@ -94,6 +94,8 @@ export interface RPFAASFormData {
     
     // Financial calculations from Step 4
     unitCost: number;
+    physicalDepreciationPct: number;
+    depreciationAmount: number;
     baseCost: number;
     standardDeductionTotal: number;
     netUnitCost: number;

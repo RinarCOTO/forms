@@ -268,7 +268,7 @@
 
   .rpfaas-print td, .rpfaas-print th {
     border: 1px solid #000 !important;
-    padding: 2px 4px !important;
+    padding: 1px 4px !important;
     vertical-align: middle;
   }
   
@@ -297,6 +297,8 @@
   .rpfaas-inner-grid > * {
     padding-left: 3px;
     padding-right: 3px;
+    padding-top: 1px;
+    padding-bottom: 1px;
   }
 
   /* Allow applying no-border to any element */
@@ -327,10 +329,12 @@
     padding: 2px 4px !important;
   }
 
-  /* Override excessive Tailwind padding classes in print */
-  .py-4, .py-auto, .my-auto {
-    padding-top: 2px !important;
-    padding-bottom: 2px !important;
+  /* Override all Tailwind vertical padding/margin classes in print for uniform cell height */
+  .py-0\.5, .py-1, .py-1\.5, .py-2, .py-2\.5, .py-3, .py-4, .py-5, .py-6, .py-8, .py-auto,
+  .pt-1, .pt-2, .pt-3, .pt-4, .pb-1, .pb-2, .pb-3, .pb-4,
+  .my-auto, .my-1, .my-2, .my-3, .my-4 {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
     margin-top: 0 !important;
     margin-bottom: 0 !important;
   }

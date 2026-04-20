@@ -32,7 +32,16 @@
       "Bash(grep -h \"floor_areas\\\\|building_age\\\\|cct\\\\b\\\\|completion_issued_on\\\\|land_owner\\\\|td_arp_no\\\\|land_area\\\\|cost_of_construction\\\\|location_municipality\\\\|location_barangay\\\\|location_province\\\\|owner_address_\\\\|submitted_at\\\\|laoo_reviewer\\\\|laoo_approved\\\\|municipality\\\\|roofing_material\\\\|flooring_material\\\\|wall_material\\\\|ceiling_material\\\\|admin_care_of\\\\|amount_in_words\\\\|assessed_value\\\\|market_value\\\\|assessment_level\\\\|actual_use\" \\\\\n  /Users/rinar/Documents/forms/app/building-other-structure/fill/step-*/page.tsx \\\\\n  /Users/rinar/Documents/forms/app/building-other-structure/fill/page.tsx \\\\\n  /Users/rinar/Documents/forms/app/building-other-structure/fill/preview-form/page.tsx 2>/dev/null \\\\\n  | grep -oP \"'[a-z_]+'\" | sort -u)",
       "Bash(git checkout app/land-other-improvements/fill/step-3/page.tsx)",
       "Bash(git checkout app/land-other-improvements/fill/step-4/page.tsx)",
-      "mcp__ide__getDiagnostics"
+      "mcp__ide__getDiagnostics",
+      "Bash(curl -s \"http://localhost:3001/api/faas/building-structures/97\")",
+      "Bash(python3 -m json.tool)",
+      "Bash(grep -r \"SUPABASE_URL\\\\|SUPABASE_SERVICE_ROLE\\\\|DATABASE_URL\" /Users/rinar/Documents/forms/.env*)",
+      "Bash(psql \"postgresql://postgres.weckxacnhzuzuvjvdyvj:sh%40kn%21Rinar%21%21@aws-1-ap-south-1.pooler.supabase.com:5432/postgres\" -c \"SELECT id, type_of_building, actual_use, market_value, assessment_level, estimated_value, amount_in_words, physical_depreciation_pct, cost_of_construction, total_floor_area, building_age, structure_type FROM building_structures WHERE id = 97;\")",
+      "Bash(git -C /Users/rinar/Documents/forms log --oneline -10)",
+      "Bash(git -C /Users/rinar/Documents/forms show 5ba6ded --stat)",
+      "Bash(git -C /Users/rinar/Documents/forms show af5f38e --stat)",
+      "Bash(psql \"postgresql://postgres.weckxacnhzuzuvjvdyvj:sh%40kn%21Rinar%21%21@aws-1-ap-south-1.pooler.supabase.com:5432/postgres\" -c \"\\\\d building_structures\")",
+      "Bash(node -e ' *)"
     ]
   }
 }

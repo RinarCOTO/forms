@@ -30,6 +30,7 @@ import {
   ADDITIONAL_PERCENT_CHOICES,
   ADDITIONAL_FLAT_RATE_CHOICES,
 } from "@/config/form-options";
+import { getBuildingDepreciationRate } from "@/config/depreciation-table";
 import { useFormData } from "@/hooks/useFormData";
 
 const FormSchema = z.object({
@@ -61,6 +62,11 @@ const BuildingStructureFormFillPage4 = () => {
   const [unitCost, setUnitCost] = useState<number>(0);
   const [totalFloorArea, setTotalFloorArea] = useState<number>(0);
 
+  // Physical depreciation
+  const [buildingAge, setBuildingAge] = useState<number>(0);
+  const [structuralType, setStructuralType] = useState<string>("");
+  const [depreciationPct, setDepreciationPct] = useState<number | "">("");
+
   const { data: loadedData } = useFormData<any>("faas/building-structures", draftId || "");
 
   const form = useForm({
@@ -75,17 +81,40 @@ const BuildingStructureFormFillPage4 = () => {
     // Load Unit Cost
     const savedCost = localStorage.getItem("unit_cost_p2");
     const dbCost = loadedData?.cost_of_construction;
-    if (savedCost) setUnitCost(parseFloat(savedCost));
+    const parsedSavedCost = savedCost ? parseFloat(savedCost) : NaN;
+    if (!isNaN(parsedSavedCost) && parsedSavedCost > 0) setUnitCost(parsedSavedCost);
     else if (dbCost) setUnitCost(parseFloat(dbCost));
 
     // Load Total Floor Area
     const savedFloorArea = localStorage.getItem("total_floor_area_p2");
     const dbFloorArea = loadedData?.total_floor_area;
-    if (savedFloorArea) setTotalFloorArea(parseFloat(savedFloorArea));
-    else if (dbFloorArea) setTotalFloorArea(parseFloat(dbFloorArea));
+    const parsedSavedFloorArea = savedFloorArea ? parseFloat(savedFloorArea) : NaN;
+    if (!isNaN(parsedSavedFloorArea) && parsedSavedFloorArea > 0) {
+      setTotalFloorArea(parsedSavedFloorArea);
+    } else if (dbFloorArea && parseFloat(String(dbFloorArea)) > 0) {
+      setTotalFloorArea(parseFloat(String(dbFloorArea)));
+    } else if (loadedData?.floor_areas) {
+      const areas = Array.isArray(loadedData.floor_areas)
+        ? loadedData.floor_areas
+        : (typeof loadedData.floor_areas === 'string' ? JSON.parse(loadedData.floor_areas) : []);
+      const computed = areas.reduce((sum: number, a: any) => sum + (parseFloat(a) || 0), 0);
+      if (computed > 0) setTotalFloorArea(computed);
+    }
 
     // Load Comments
     if (loadedData?.overall_comments) setComments(loadedData.overall_comments);
+
+    // Load building info for depreciation
+    const age = parseFloat(loadedData?.building_age) || 0;
+    const sType = loadedData?.structure_type || "";
+    if (age) setBuildingAge(age);
+    if (sType) setStructuralType(sType);
+
+    // Always auto-compute from the schedule table using building age + structural type
+    if (age && sType) {
+      const auto = getBuildingDepreciationRate(age, sType);
+      if (auto !== null) setDepreciationPct(auto);
+    }
 
     // Load Selections
     const dbDeductions = loadedData?.selected_deductions || loadedData?.deductions;
@@ -156,7 +185,7 @@ if (loadedData?.additional_flat_rate_areas?.length > 0) {
   // Track unsaved changes after initialization
   useEffect(() => {
     if (isInitializedRef.current) setIsDirty(true);
-  }, [selections, comments, additionalPercentSelections, additionalPercentAreas, additionalFlatRateSelections, additionalFlatRateAreas]);
+  }, [selections, comments, additionalPercentSelections, additionalPercentAreas, additionalFlatRateSelections, additionalFlatRateAreas, depreciationPct]);
 
   const handleSelectionChange = useCallback((newValues: (string | number | null)[]) => {
     setSelections([...newValues]);
@@ -171,69 +200,72 @@ if (loadedData?.additional_flat_rate_areas?.length > 0) {
   // This updates live whenever any input changes.
   // ---------------------------------------------------------
   const financialSummary = useMemo(() => {
-    const baseCost = unitCost * totalFloorArea;
+    // Step 1: Main cost = unit cost × floor area (no depreciation yet)
+    const mainCost = totalFloorArea > 0 ? unitCost * totalFloorArea : unitCost;
 
-    // A. Calculate Standard Deductions (SUBTRACTION)
+    // Step 2: Additions — use original unit cost (not depreciated)
+    let additionalPercentTotal = 0;
+    additionalPercentSelections.forEach((id, idx) => {
+      if (!id) return;
+      const opt = ADDITIONAL_PERCENT_CHOICES.find(o => String(o.id) === String(id));
+      const area = additionalPercentAreas[idx] || 0;
+      if (opt && opt.percentage) {
+        additionalPercentTotal += ((unitCost * opt.percentage) / 100) * area;
+      }
+    });
+
+    let additionalFlatTotal = 0;
+    additionalFlatRateSelections.forEach((id, idx) => {
+      if (!id) return;
+      const opt = ADDITIONAL_FLAT_RATE_CHOICES.find(o => String(o.id) === String(id));
+      const area = additionalFlatRateAreas[idx] || 0;
+      if (opt && opt.pricePerSqm) {
+        additionalFlatTotal += opt.pricePerSqm * area;
+      }
+    });
+
+    // Step 3: Total Reproduction Cost = main + all additions (before deductions and depreciation)
+    const totalReproductionCost = mainCost + additionalPercentTotal + additionalFlatTotal;
+
+    // Step 4: Standard Deductions applied to totalReproductionCost
     const standardDeductionTotal = selections.reduce<number>((acc, curr) => {
       if (!curr) return acc;
       const opt = DEDUCTION_CHOICES.find((c) => String(c.id) === String(curr)) as any;
       if (!opt) return acc;
-
       let amount = 0;
       if (opt.percentage) {
-        amount = (baseCost * opt.percentage) / 100;
+        amount = (totalReproductionCost * opt.percentage) / 100;
       } else if (opt.pricePerSqm) {
         amount = opt.pricePerSqm * totalFloorArea;
       }
       return acc + amount;
     }, 0);
 
-    // B. Calculate Additional Percent (ADDITION)
-    let additionalPercentTotal = 0;
-    additionalPercentSelections.forEach((id, idx) => {
-       if(!id) return;
-       const opt = ADDITIONAL_PERCENT_CHOICES.find(o => String(o.id) === String(id));
-       const area = additionalPercentAreas[idx] || 0;
-       if(opt && opt.percentage) {
-          // Formula: (Unit Cost * % / 100) * Area
-          additionalPercentTotal += ((unitCost * opt.percentage) / 100) * area;
-       }
-    });
+    // Step 5: Depreciation applied to totalReproductionCost
+    const depreciationAmount = totalReproductionCost * (Number(depreciationPct) || 0) / 100;
 
-    // C. Calculate Additional Flat Rate (ADDITION)
-    let additionalFlatTotal = 0;
-    additionalFlatRateSelections.forEach((id, idx) => {
-       if(!id) return;
-       const opt = ADDITIONAL_FLAT_RATE_CHOICES.find(o => String(o.id) === String(id));
-       const area = additionalFlatRateAreas[idx] || 0;
-       if(opt && opt.pricePerSqm) {
-          // Formula: Price/sqm * Area
-          additionalFlatTotal += opt.pricePerSqm * area;
-       }
-    });
-
-    // D. Final Net Calculation
-    const totalAdditions = additionalPercentTotal + additionalFlatTotal;
-    const netUnitCost = baseCost - standardDeductionTotal;
-    // Market Value = Base - Deductions + Additions
-    const netMarketValue = netUnitCost + totalAdditions;
+    // Step 6: Market Value
+    const netMarketValue = totalReproductionCost - standardDeductionTotal - depreciationAmount;
 
     return {
+      depreciationAmount,
+      mainCost,
+      totalReproductionCost,
       standardDeductionTotal,
-      totalAdditions,
-      netUnitCost,
+      totalAdditions: additionalPercentTotal + additionalFlatTotal,
       netMarketValue,
       additionalPercentTotal,
-      additionalFlatTotal
+      additionalFlatTotal,
     };
   }, [
-    unitCost, 
-    totalFloorArea, 
-    selections, 
-    additionalPercentSelections, 
-    additionalPercentAreas, 
-    additionalFlatRateSelections, 
-    additionalFlatRateAreas
+    unitCost,
+    totalFloorArea,
+    selections,
+    additionalPercentSelections,
+    additionalPercentAreas,
+    additionalFlatRateSelections,
+    additionalFlatRateAreas,
+    depreciationPct,
   ]);
 
   // ---------------------------------------------------------
@@ -250,8 +282,8 @@ if (loadedData?.additional_flat_rate_areas?.length > 0) {
         localStorage.setItem("market_value_p4", netMarketValue.toString());
       }
 
-      // Build per-deduction amount map for display-only rendering
-      const baseCostForAmounts = unitCost * totalFloorArea;
+      // Build per-deduction amount map — applied on total reproduction cost
+      const { totalReproductionCost: baseCostForAmounts } = financialSummary;
       const deductionAmounts: Record<string, number> = {};
       selections.filter((id): id is string => Boolean(id)).forEach((id) => {
         const opt = DEDUCTION_CHOICES.find((c) => String(c.id) === String(id)) as any;
@@ -278,6 +310,9 @@ if (loadedData?.additional_flat_rate_areas?.length > 0) {
         deduction_amounts: deductionAmounts,
         overall_comments: comments,
 
+        // Physical depreciation
+        physical_depreciation_pct: depreciationPct === "" ? null : Number(depreciationPct),
+
         // Saving the financial summary directly
         additional_percentage_choice: additionalPercentSelections.filter(Boolean).join(","),
         additional_percentage_value: financialSummary.totalAdditions,
@@ -288,7 +323,7 @@ if (loadedData?.additional_flat_rate_areas?.length > 0) {
         additional_flat_rate_value: additionalFlatRateAreas.reduce((a, b) => a + b, 0),
         additional_flat_rate_areas: additionalFlatRateAreas,
 
-        //Market Value
+        // Market Value
         market_value: financialSummary.netMarketValue,
       };
 
@@ -327,7 +362,7 @@ if (loadedData?.additional_flat_rate_areas?.length > 0) {
       if (netMarketValue !== undefined && netMarketValue !== null) {
         localStorage.setItem('market_value_p4', netMarketValue.toString());
       }
-      const baseCostDraft = unitCost * totalFloorArea;
+      const { totalReproductionCost: baseCostDraft } = financialSummary;
       const deductionAmountsDraft: Record<string, number> = {};
       selections.filter((id): id is string => Boolean(id)).forEach((id) => {
         const opt = DEDUCTION_CHOICES.find((c) => String(c.id) === String(id)) as any;
@@ -350,6 +385,7 @@ if (loadedData?.additional_flat_rate_areas?.length > 0) {
         selected_deductions: selections.filter(Boolean),
         deduction_amounts: deductionAmountsDraft,
         overall_comments: comments,
+        physical_depreciation_pct: depreciationPct === "" ? null : Number(depreciationPct),
         additional_percentage_choice: additionalPercentSelections.filter(Boolean).join(','),
         additional_percentage_value: financialSummary.totalAdditions,
         additional_percentage_areas: additionalPercentAreas,
@@ -410,6 +446,7 @@ if (loadedData?.additional_flat_rate_areas?.length > 0) {
                 <DeductionsTable
                   unitCost={unitCost}
                   totalFloorArea={totalFloorArea}
+                  depreciatedUnitCost={financialSummary.totalReproductionCost}
                   selections={selections}
                   onSelectionChange={handleSelectionChange}
                   deductionChoices={DEDUCTION_CHOICES}
@@ -418,6 +455,38 @@ if (loadedData?.additional_flat_rate_areas?.length > 0) {
                   error={form.formState.errors.deductions?.message as string}
                 />
               </div>
+
+              {/* ── Physical Depreciation ── */}
+              <section className="bg-card rounded-lg border p-6 shadow-sm">
+                <div className="overflow-hidden rounded-lg border border-border">
+                  <table className="w-full border-collapse text-sm">
+                    <thead className="bg-chart-2">
+                      <tr>
+                        <th className="border-b px-4 py-2 text-left font-medium text-chart-5">Physical Depreciation</th>
+                        <th className="border-b px-4 py-2 text-left font-medium text-chart-5">Structural Type</th>
+                        <th className="border-b px-4 py-2 text-center font-medium text-chart-5">Rate</th>
+                        <th className="border-b px-4 py-2 text-right font-medium text-chart-5">Depreciation Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr className="hover:bg-muted/20 transition-colors">
+                        <td className="px-4 py-3 font-medium">
+                          {buildingAge ? `${buildingAge} year${buildingAge !== 1 ? "s" : ""}` : "—"}
+                        </td>
+                        <td className="px-4 py-3">{structuralType || "—"}</td>
+                        <td className="px-4 py-3 text-center">
+                          {depreciationPct !== "" ? `${depreciationPct}%` : "—"}
+                        </td>
+                        <td className="px-4 py-3 text-right font-medium text-destructive">
+                          {financialSummary.depreciationAmount > 0
+                            ? `- ₱${financialSummary.depreciationAmount.toLocaleString("en-PH", { minimumFractionDigits: 2 })}`
+                            : "₱0.00"}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </section>
 
               <AdditionalTable
                 label="Additional Percent Deviations (Additions)"
@@ -444,7 +513,8 @@ if (loadedData?.additional_flat_rate_areas?.length > 0) {
                   label="Market Value Summary"
                   unitCost={unitCost}
                   totalFloorArea={totalFloorArea}
-                  netUnitCost={financialSummary.netUnitCost}
+                  depreciationAmount={financialSummary.depreciationAmount}
+                  depreciatedUnitCost={financialSummary.totalReproductionCost}
 
                   // Standard
                   deductionSelections={selections}

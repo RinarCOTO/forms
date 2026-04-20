@@ -117,97 +117,102 @@ function PhotoUploadCard({
   };
 
   return (
-    <div className="border rounded-lg p-4 space-y-3">
-      <div>
-        <h3 className="font-medium text-sm">{label}</h3>
+    <div className="border border-border rounded-lg overflow-hidden bg-card shadow-sm">
+      {/* Header */}
+      <div className="px-4 py-3 bg-primary/8 border-b border-primary/20">
+        <h3 className="font-semibold text-sm text-foreground">{label}</h3>
         <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
       </div>
 
-      {photo?.signedUrl ? (
-        /* ── Uploaded state ── */
-        <div className="space-y-2">
-          <div className="border rounded-md overflow-hidden bg-muted/30">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={photo.signedUrl} alt={label} className="w-full max-h-56 object-contain" />
-          </div>
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-xs text-muted-foreground truncate max-w-[60%]">
-              {photo.original_name}
-            </span>
-            <div className="flex gap-2">
-              <input
-                type="file"
-                accept="image/*,.pdf"
-                className="hidden"
-                ref={handleInputRef}
-                disabled={disabled || isUploading}
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) onFileSelect(file);
-                }}
-              />
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={triggerInput}
-                disabled={disabled || isUploading || isRemoving}
-              >
-                {isUploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
-                <span className="ml-1">Replace</span>
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={onRemove}
-                disabled={disabled || isUploading || isRemoving}
-              >
-                {isRemoving ? <Loader2 className="h-3 w-3 animate-spin" /> : <X className="h-3 w-3" />}
-                <span className="ml-1">Remove</span>
-              </Button>
+      <div className="p-4">
+        {photo?.signedUrl ? (
+          /* ── Uploaded state ── */
+          <div className="space-y-2">
+            <div className="border border-border rounded-md overflow-hidden bg-muted/30">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={photo.signedUrl} alt={label} className="w-full max-h-56 object-contain" />
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs text-muted-foreground truncate max-w-[60%]">
+                {photo.original_name}
+              </span>
+              <div className="flex gap-2">
+                <input
+                  type="file"
+                  accept="image/*,.pdf"
+                  className="hidden"
+                  ref={handleInputRef}
+                  disabled={disabled || isUploading}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) onFileSelect(file);
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={triggerInput}
+                  disabled={disabled || isUploading || isRemoving}
+                  className="border-primary/40 text-primary hover:bg-primary/10 hover:text-primary"
+                >
+                  {isUploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
+                  <span className="ml-1">Replace</span>
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={onRemove}
+                  disabled={disabled || isUploading || isRemoving}
+                >
+                  {isRemoving ? <Loader2 className="h-3 w-3 animate-spin" /> : <X className="h-3 w-3" />}
+                  <span className="ml-1">Remove</span>
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
-      ) : (
-        /* ── Empty state ── */
-        <div
-          onClick={triggerInput}
-          className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
-            disabled || isUploading
-              ? "opacity-50 cursor-not-allowed border-border"
-              : "cursor-pointer border-border hover:border-primary hover:bg-muted/20"
-          }`}
-        >
-          <ImageIcon className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-          <p className="text-sm text-muted-foreground mb-3">No file uploaded</p>
-          <input
-            type="file"
-            accept="image/*,.pdf"
-            className="hidden"
-            ref={handleInputRef}
-            disabled={disabled || isUploading}
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) onFileSelect(file);
-            }}
-          />
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={disabled || isUploading}
-            onClick={(e) => { e.stopPropagation(); triggerInput(); }}
+        ) : (
+          /* ── Empty state ── */
+          <div
+            onClick={triggerInput}
+            className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+              disabled || isUploading
+                ? "opacity-50 cursor-not-allowed border-border"
+                : "cursor-pointer border-primary/30 hover:border-primary hover:bg-primary/5"
+            }`}
           >
-            {isUploading ? (
-              <><Loader2 className="h-4 w-4 animate-spin mr-2" />Uploading…</>
-            ) : (
-              <><Upload className="h-4 w-4 mr-2" />Choose File</>
-            )}
-          </Button>
-          <p className="text-xs text-muted-foreground mt-2">JPG, PNG, WebP, or PDF — max 10 MB</p>
-        </div>
-      )}
+            <ImageIcon className="h-8 w-8 mx-auto text-primary/50 mb-2" />
+            <p className="text-sm text-muted-foreground mb-3">No file uploaded</p>
+            <input
+              type="file"
+              accept="image/*,.pdf"
+              className="hidden"
+              ref={handleInputRef}
+              disabled={disabled || isUploading}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) onFileSelect(file);
+              }}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={disabled || isUploading}
+              onClick={(e) => { e.stopPropagation(); triggerInput(); }}
+              className="border-primary/40 text-primary hover:bg-primary/10 hover:text-primary"
+            >
+              {isUploading ? (
+                <><Loader2 className="h-4 w-4 animate-spin mr-2" />Uploading…</>
+              ) : (
+                <><Upload className="h-4 w-4 mr-2" />Choose File</>
+              )}
+            </Button>
+            <p className="text-xs text-muted-foreground mt-2">JPG, PNG, WebP, or PDF — max 10 MB</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

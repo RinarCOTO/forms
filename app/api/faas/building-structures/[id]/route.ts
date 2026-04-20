@@ -119,6 +119,7 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
       'number_of_storeys', 'total_floor_area', 'building_age',
       'land_area', 'market_value', 'assessment_level', 'estimated_value',
       'cost_of_construction', 'previous_av', 'previous_mv', 'previous_area',
+      'physical_depreciation_pct',
     ]);
     const data = Object.fromEntries(
       Object.entries(raw).filter(([, v]) => v !== '' && v !== undefined).map(([k, v]) => {

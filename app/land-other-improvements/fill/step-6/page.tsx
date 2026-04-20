@@ -28,6 +28,7 @@ function getLandAssessmentLevel(classification: string): string {
     case "industrial":    return "50%";
     case "mineral":       return "50%";
     case "timberland":    return "20%";
+    case "special":       return "15%";
     default:              return "";
   }
 }

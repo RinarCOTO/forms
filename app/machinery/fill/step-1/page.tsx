@@ -38,6 +38,7 @@ import { TransactionCodeSelect, type TransactionCode } from "@/components/rpfaas
 import { PH_PROVINCES, MOUNTAIN_PROVINCE_CODE } from "@/app/components/forms/RPFAAS/constants/philippineLocations";
 import { MACHINERY_STEPS } from "@/app/machinery/fill/constants";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
+import { ACTUAL_USE_OPTIONS } from "@/app/machinery/components/machinery-item-card";
 
 const TRANSACTION_CODES: TransactionCode[] = [
   { code: "ND", label: "ND – New Discovery", description: "Used when declaring machinery for the first time. Covers: Newly Installed/Brand New (just affixed to the property); Previously Undeclared/Omitted (older machinery just discovered by the assessor — may trigger back taxes up to 10 years); or Imported (special appraisal using foreign exchange rates, import duties, and freight costs at acquisition)." },
@@ -76,8 +77,10 @@ function collectFormData(
   buildingOwner: string,
   buildingPin: string,
   buildingTdArpNo: string,
+  actualUse: string,
 ) {
   const data: any = {
+    actual_use: actualUse || null,
     owner_name: ownerName,
     admin_care_of: adminCareOf,
     property_address: propertyStreet,
@@ -175,6 +178,7 @@ function MachineryFillPageContent() {
   const [buildingOwner, setBuildingOwner] = useState("");
   const [buildingPin, setBuildingPin] = useState("");
   const [buildingTdArpNo, setBuildingTdArpNo] = useState("");
+  const [actualUse, setActualUse] = useState("");
 
   const ownerLoc = useLocationSelect("rpfaas_owner_address");
   const adminLoc = useLocationSelect("rpfaas_admin");
@@ -253,6 +257,7 @@ function MachineryFillPageContent() {
             if (data.building_owner) setBuildingOwner(data.building_owner);
             if (data.building_pin) setBuildingPin(data.building_pin);
             if (data.building_td_arp_no) setBuildingTdArpNo(data.building_td_arp_no);
+            if (data.actual_use) setActualUse(data.actual_use);
             ownerLoc.loadLocation(data.owner_province_code || "", data.owner_municipality_code || "", data.owner_barangay_code || "");
             adminLoc.loadLocation(data.admin_province_code || "", data.admin_municipality_code || "", data.admin_barangay_code || "");
             propLoc.loadLocation(MOUNTAIN_PROVINCE_CODE, data.property_municipality_code || "", data.property_barangay_code || "");
@@ -324,7 +329,7 @@ function MachineryFillPageContent() {
   }, [propLoc.barangayCode, propLoc.barangays]);
 
   const saveFormData = useCallback(async (): Promise<string | null> => {
-    const formData = collectFormData(ownerName, adminCareOf, propertyStreet, ownerLoc, adminLoc, propLoc, transactionCode, arpNo, titleType, titleNo, pin, surveyNo, lotNo, blk, previousTdNo, previousOwner, previousAv, previousMv, previousArea, landOwner, landPin, landArpNo, landArea, buildingOwner, buildingPin, buildingTdArpNo);
+    const formData = collectFormData(ownerName, adminCareOf, propertyStreet, ownerLoc, adminLoc, propLoc, transactionCode, arpNo, titleType, titleNo, pin, surveyNo, lotNo, blk, previousTdNo, previousOwner, previousAv, previousMv, previousArea, landOwner, landPin, landArpNo, landArea, buildingOwner, buildingPin, buildingTdArpNo, actualUse);
     const currentDraftId = draftId || localStorage.getItem('draft_id');
     if (!currentDraftId) formData.status = 'draft';
     try {
@@ -354,7 +359,7 @@ function MachineryFillPageContent() {
       toast.error('Error saving. Please try again.');
     }
     return null;
-  }, [ownerName, adminCareOf, propertyStreet, ownerLoc, adminLoc, propLoc, transactionCode, arpNo, titleType, titleNo, pin, surveyNo, lotNo, blk, previousTdNo, previousOwner, previousAv, previousMv, previousArea, landOwner, landPin, landArpNo, landArea, buildingOwner, buildingPin, buildingTdArpNo, draftId]);
+  }, [ownerName, adminCareOf, propertyStreet, ownerLoc, adminLoc, propLoc, transactionCode, arpNo, titleType, titleNo, pin, surveyNo, lotNo, blk, previousTdNo, previousOwner, previousAv, previousMv, previousArea, landOwner, landPin, landArpNo, landArea, buildingOwner, buildingPin, buildingTdArpNo, actualUse, draftId]);
 
   const handleNext = useCallback(async () => {
     setIsSaving(true);
@@ -374,7 +379,7 @@ function MachineryFillPageContent() {
     <FormFillLayout
       breadcrumbParent={{ label: "Machinery", href: "#" }}
       pageTitle="Step 1: Enter Owner and Property Location Details."
-      sidePanel={<ErrorBoundary><ReviewCommentsFloat draftId={draftId} stepFields={["arp_no", "oct_tct_cloa_no", "survey_no", "pin", "lot_no", "owner_name", "owner_address", "admin_care_of", "location_municipality", "location_barangay", "location_province"]} /></ErrorBoundary>}
+      sidePanel={<ErrorBoundary><ReviewCommentsFloat draftId={draftId} stepFields={["actual_use", "arp_no", "oct_tct_cloa_no", "survey_no", "pin", "lot_no", "owner_name", "owner_address", "admin_care_of", "location_municipality", "location_barangay", "location_province"]} /></ErrorBoundary>}
     >
       <FormLockBanner locked={locked} lockedBy={lockedBy} />
 
@@ -440,6 +445,29 @@ function MachineryFillPageContent() {
                   <Label className="rpfaas-fill-label">BLK</Label>
                   <Input type="number" value={blk} onChange={(e) => setBlk(e.target.value)} className="rpfaas-fill-input" />
                 </div>
+              </div>
+            </div>
+          </FormSection>
+
+          <FormSection title="Classification">
+            <div className="space-y-1" data-comment-field="actual_use">
+              <Label className="rpfaas-fill-label">Actual Use</Label>
+              <div className="relative">
+                <select
+                  value={actualUse}
+                  onChange={(e) => setActualUse(e.target.value)}
+                  className="rpfaas-fill-input appearance-none w-full"
+                >
+                  <option value="">Select actual use</option>
+                  {ACTUAL_USE_OPTIONS.map(u => (
+                    <option key={u.code} value={u.code}>
+                      {u.label} — {u.assessmentLevel}% assessment level
+                    </option>
+                  ))}
+                </select>
+                <svg className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M6 9l6 6 6-6" />
+                </svg>
               </div>
             </div>
           </FormSection>
