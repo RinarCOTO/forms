@@ -134,6 +134,8 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
       })
     );
 
+    delete data.submitted_at;
+
     const { data: updatedRecord, error } = await supabase
       .from('building_structures')
       .update(data)

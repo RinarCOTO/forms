@@ -14,8 +14,9 @@ import { Input } from "@/components/ui/input";
 import { FormFillLayout } from "@/components/ui/form-fill-layout";
 import { toast } from "sonner";
 import { TextArea } from "react-aria-components";
-import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { SaveDraftButton } from "@/components/SaveDraftButton";
+import { useSaveDraftShortcut } from "@/hooks/useSaveDraftShortcut";
 import { FormLockBanner } from "@/components/ui/form-lock-banner";
 import { FormSection } from "@/components/ui/form-section";
 import { useFormLock } from "@/hooks/useFormLock";
@@ -337,6 +338,8 @@ function BuildingStructureFormFillPage6() {
     }
   }, [actualUse, assessedValue, amountInWords, assessmentLevel, draftId, effectivityYear, appraisedBy, memoranda, taxStatus]);
 
+  useSaveDraftShortcut(handleSaveDraft, isSavingDraft || locked);
+
   const handlePreview = useCallback(async () => {
     setIsSaving(true);
     try {
@@ -417,16 +420,11 @@ function BuildingStructureFormFillPage6() {
                 <h1 className="rpfaas-fill-title">Fill-up Form: Property Assessment</h1>
                 <p className="text-sm text-muted-foreground">{PAGE_DESCRIPTION}</p>
               </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
+              <SaveDraftButton
                 onClick={handleSaveDraft}
-                disabled={isSavingDraft || isSaving || locked || lockChecking}
-                className="shrink-0"
-              >
-                {isSavingDraft ? <><Loader2 className="h-4 w-4 animate-spin mr-1" />Saving...</> : 'Save Draft'}
-              </Button>
+                isSaving={isSavingDraft}
+                disabled={isSaving || locked || lockChecking}
+              />
             </header>
             <FormLockBanner locked={locked} lockedBy={lockedBy} />
             <fieldset disabled={locked} className={`border-0 p-0 m-0 min-w-0 block${locked ? ' opacity-60' : ''}${lockChecking ? ' animate-pulse' : ''}`}>

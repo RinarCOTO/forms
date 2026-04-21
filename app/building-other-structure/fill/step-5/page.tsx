@@ -10,6 +10,8 @@ import "@/app/styles/forms-fill.css";
 import { Button } from "@/components/ui/button";
 import { FormFillLayout } from "@/components/ui/form-fill-layout";
 import { Loader2, Upload, X, ImageIcon, AlertTriangle } from "lucide-react";
+import { SaveDraftButton } from "@/components/SaveDraftButton";
+import { useSaveDraftShortcut } from "@/hooks/useSaveDraftShortcut";
 import { toast } from "sonner";
 import { useFormLock } from "@/hooks/useFormLock";
 import { FormLockBanner } from "@/components/ui/form-lock-banner";
@@ -469,6 +471,8 @@ function BuildingStructureFormFillPage5() {
     }
   }, [draftId]);
 
+  useSaveDraftShortcut(handleSaveDraft, isSavingDraft || locked);
+
   const navParams = draftId ? `?id=${draftId}` : "";
 
   return (
@@ -509,16 +513,11 @@ function BuildingStructureFormFillPage5() {
                   the preview and print.
                 </p>
               </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
+              <SaveDraftButton
                 onClick={handleSaveDraft}
-                disabled={isSavingDraft || !draftId || locked || lockChecking}
-                className="shrink-0"
-              >
-                {isSavingDraft ? <><Loader2 className="h-4 w-4 animate-spin mr-1" />Saving...</> : 'Save Draft'}
-              </Button>
+                isSaving={isSavingDraft}
+                disabled={!draftId || locked || lockChecking}
+              />
             </header>
 
             <FormLockBanner locked={locked} lockedBy={lockedBy} />

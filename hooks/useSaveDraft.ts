@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { toast } from "sonner";
 
 interface UseSaveDraftOptions {
@@ -81,6 +81,22 @@ export function useSaveDraft({
       setIsSaving(false);
     }
   }, [getFormData, draftId, apiEndpoint, onSaved]);
+
+  const handleSaveRef = useRef(handleSave);
+  handleSaveRef.current = handleSave;
+  const isSavingRef = useRef(isSaving);
+  isSavingRef.current = isSaving;
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "s" && (e.ctrlKey || e.metaKey) && !isSavingRef.current) {
+        e.preventDefault();
+        handleSaveRef.current();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
 
   return { handleSave, isSaving, lastSaved, saveError };
 }

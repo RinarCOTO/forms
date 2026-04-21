@@ -77,7 +77,7 @@ export async function POST(
 
     const { data: record, error: fetchError } = await admin
       .from('land_improvements')
-      .select('id, status, previous_td_no')
+      .select('id, status, previous_td_no, appraised_by')
       .eq('id', id)
       .single();
 
@@ -124,6 +124,9 @@ export async function POST(
       updated_at: now,
       submitted_signature_path: profile.signature_path ?? null,
     };
+    if (!record.appraised_by) {
+      updatePayload.appraised_by = authUser.id;
+    }
 
     // Stamp reviewer fields for bypassed stages
     if (targetStatus === 'municipal_signed' || targetStatus === 'laoo_approved' || targetStatus === 'approved') {

@@ -17,11 +17,13 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Loader2, ArrowLeft, CheckCircle, RotateCcw,
-  MessageSquare, Send, User, Clock, UserCheck,
+  MessageSquare, Send, User, Clock, UserCheck, Trash2,
 } from "lucide-react";
 import ReviewFormInline from "./ReviewFormInline";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import ReviewFaasOverlay from "./ReviewFaasOverlay";
 import { toast } from "sonner";
+import { useSubmitOnEnter, useSubmitOnEnterSingleLine } from "@/hooks/useSubmitOnEnter";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -140,7 +142,7 @@ function ReviewDetailInner({ id }: { id: string }) {
   const searchParams = useSearchParams();
   const formType = (searchParams.get("type") ?? "building") as "building" | "land";
 
-  const [currentUser, setCurrentUser] = useState<{ id: string; role: string; municipality?: string } | null>(null);
+  const [currentUser, setCurrentUser] = useState<{ id: string; role: string; full_name?: string; municipality?: string } | null>(null);
   const [record, setRecord] = useState<FormRecord | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -169,7 +171,7 @@ function ReviewDetailInner({ id }: { id: string }) {
       .then(data => {
         const allowed = ["municipal_tax_mapper", "municipal_assessor", "laoo", "assistant_provincial_assessor", "provincial_assessor", "admin", "super_admin"];
         if (!data?.role || !allowed.includes(data.role)) router.replace("/dashboard");
-        else setCurrentUser({ id: data.id ?? "", role: data.role, municipality: data.municipality ?? undefined });
+        else setCurrentUser({ id: data.id ?? "", role: data.role, full_name: data.full_name ?? undefined, municipality: data.municipality ?? undefined });
       })
       .catch(() => router.replace("/dashboard"));
   }, [router]);
@@ -246,6 +248,7 @@ function ReviewDetailInner({ id }: { id: string }) {
 
   const [returnDialogOpen, setReturnDialogOpen] = useState(false);
   const [returnNote, setReturnNote] = useState("");
+  const [deleteCommentId, setDeleteCommentId] = useState<string | null>(null);
 
   const doAction = useCallback(async (action: ReviewAction) => {
     setActionLoading(true);
@@ -301,30 +304,76 @@ function ReviewDetailInner({ id }: { id: string }) {
 
   // ── Submit comment ──────────────────────────────────────────────────────────
   const submitComment = useCallback(async () => {
-    if (!commentText.trim()) return;
+    if (!commentText.trim() || !currentUser) return;
+    const tempId = `temp-${Date.now()}`;
+    const optimistic: Comment = {
+      id: tempId,
+      field_name: selectedFields.length > 0 ? selectedFields.join(",") : null,
+      comment_text: commentText.trim(),
+      suggested_value: suggestedValue.trim() || null,
+      author_id: currentUser.id,
+      author_name: currentUser.full_name ?? currentUser.id,
+      author_role: currentUser.role,
+      parent_id: null,
+      is_resolved: false,
+      created_at: new Date().toISOString(),
+    };
+    setComments(prev => [...prev, optimistic]);
+    setCommentText("");
+    setSuggestedValue("");
+    setSelectedFields([]);
     setSubmittingComment(true);
     try {
       const res = await fetch(`${apiBase}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          field_name: selectedFields.length > 0 ? selectedFields.join(",") : null,
-          comment_text: commentText.trim(),
-          suggested_value: suggestedValue.trim() || null,
+          field_name: optimistic.field_name,
+          comment_text: optimistic.comment_text,
+          suggested_value: optimistic.suggested_value,
         }),
       });
-      if (!res.ok) throw new Error();
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error ?? "Error posting comment.");
+      }
+      const { data: saved } = await res.json();
+      setComments(prev => prev.map(c => c.id === tempId ? { ...saved, author_name: currentUser.full_name ?? saved.author_name } : c));
       toast.success("Comment posted.");
-      setCommentText("");
-      setSuggestedValue("");
-      setSelectedFields([]);
-      await loadData();
-    } catch {
-      toast.error("Error posting comment.");
+    } catch (err) {
+      setComments(prev => prev.filter(c => c.id !== tempId));
+      const msg = err instanceof Error ? err.message : "Error posting comment.";
+      toast.error(msg);
     } finally {
       setSubmittingComment(false);
     }
-  }, [apiBase, selectedFields, commentText, suggestedValue, loadData]);
+  }, [apiBase, selectedFields, commentText, suggestedValue, currentUser]);
+
+  const onCommentKeyDown = useSubmitOnEnter(submitComment, submittingComment || !commentText.trim());
+  const onSuggestedKeyDown = useSubmitOnEnterSingleLine(submitComment, submittingComment || !commentText.trim());
+
+  const confirmDeleteComment = useCallback(async () => {
+    if (!deleteCommentId) return;
+    const removed = comments.find(c => c.id === deleteCommentId);
+    setComments(prev => prev.filter(c => c.id !== deleteCommentId));
+    setDeleteCommentId(null);
+    try {
+      const res = await fetch(`${apiBase}/comments`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ comment_id: deleteCommentId }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error ?? "Error deleting comment.");
+      }
+      toast.success("Comment deleted.");
+    } catch (err) {
+      if (removed) setComments(prev => [...prev, removed]);
+      const msg = err instanceof Error ? err.message : "Error deleting comment.";
+      toast.error(msg);
+    }
+  }, [apiBase, deleteCommentId, comments]);
 
   // Called when a section's comment button is clicked in ReviewFormInline
   const onCommentSection = useCallback((fields: string[]) => {
@@ -339,16 +388,23 @@ function ReviewDetailInner({ id }: { id: string }) {
 
   // Click a comment in the sidebar → highlight the matching field in the inline form
   const focusField = useCallback((comment: Comment) => {
-    setActiveCommentId(comment.id);
-    const fields = comment.field_name
-      ? comment.field_name.split(",").map(s => s.trim()).filter(Boolean)
-      : [];
-    if (!fields.length) return;
-    const el = document.querySelector(`[data-comment-field="${fields[0]}"]`);
-    if (!el) return;
-    el.scrollIntoView({ behavior: "smooth", block: "center" });
-    el.classList.add("laoo-field-focused");
-    setTimeout(() => el.classList.remove("laoo-field-focused"), 2000);
+    // Clear any previously highlighted field
+    document.querySelectorAll(".laoo-field-focused").forEach(el => el.classList.remove("laoo-field-focused"));
+    setActiveCommentId(prev => {
+      // Clicking the same card again deselects it
+      if (prev === comment.id) return null;
+      const fields = comment.field_name
+        ? comment.field_name.split(",").map(s => s.trim()).filter(Boolean)
+        : [];
+      if (fields.length) {
+        const el = document.querySelector(`[data-comment-field="${fields[0]}"]`);
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "center" });
+          el.classList.add("laoo-field-focused");
+        }
+      }
+      return comment.id;
+    });
   }, []);
 
   if (!currentUser || loading) {
@@ -530,15 +586,7 @@ function ReviewDetailInner({ id }: { id: string }) {
                 />
               )}
               {record && activeTab === "faas" && (
-                <ReviewFaasOverlay
-                  serverData={record as Record<string, any>}
-                  comments={comments.filter(c => {
-                    if (!currentUser) return true;
-                    if (LAOO_TIER.has(currentUser.role) && c.author_role && MUNICIPAL_AUTHOR_ROLES.has(c.author_role)) return false;
-                    return true;
-                  })}
-                  onCommentSection={onCommentSection}
-                />
+                <ReviewFaasOverlay serverData={record as Record<string, any>} />
               )}
             </div>
 
@@ -603,10 +651,10 @@ function ReviewDetailInner({ id }: { id: string }) {
                                     <div
                                       key={c.id}
                                       onClick={() => focusField(c)}
-                                      className={`rounded-lg border p-3 text-sm space-y-1 cursor-pointer transition-colors
-                                        ${isActive ? "border-amber-400 bg-amber-50" : "bg-muted/40 hover:bg-muted/70"}`}
+                                      className={`rounded-lg border border-border/40 border-t-[3px] p-3 text-sm space-y-1.5 cursor-pointer transition-colors shadow-sm
+                                        ${isActive ? "border-t-amber-500 bg-amber-50/60" : "border-t-amber-400 bg-white hover:bg-stone-50"}`}
                                     >
-                                      {fields.length > 0 && (
+                                      <div className="flex items-start justify-between gap-1 -mt-0.5">
                                         <div className="flex flex-wrap gap-1">
                                           {fields.map(f => (
                                             <span key={f} className="text-xs font-semibold text-primary bg-primary/10 rounded px-1.5 py-0.5">
@@ -614,17 +662,29 @@ function ReviewDetailInner({ id }: { id: string }) {
                                             </span>
                                           ))}
                                         </div>
-                                      )}
+                                        {c.author_id === currentUser.id && !['municipal_signed', 'laoo_approved', 'returned', 'returned_to_municipal', 'approved'].includes(record.status) && (
+                                          <button
+                                            type="button"
+                                            title="Delete comment"
+                                            onClick={e => { e.stopPropagation(); setDeleteCommentId(c.id); }}
+                                            className="p-1 rounded text-muted-foreground hover:text-red-600 hover:bg-red-50 transition-colors shrink-0"
+                                          >
+                                            <Trash2 className="h-3.5 w-3.5" />
+                                          </button>
+                                        )}
+                                      </div>
                                       <p>{c.comment_text}</p>
                                       {c.suggested_value && (
                                         <p className="text-xs text-green-700 bg-green-50 rounded px-2 py-1">
                                           Suggested: {c.suggested_value}
                                         </p>
                                       )}
-                                      <div className="flex items-center gap-2 text-xs text-muted-foreground pt-1">
-                                        <User className="h-3 w-3" />
+                                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground pt-0.5">
+                                        <User className="h-3 w-3 shrink-0" />
                                         <span>{c.author_name}</span>
-                                        <Clock className="h-3 w-3 ml-1" />
+                                      </div>
+                                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                        <Clock className="h-3 w-3 shrink-0" />
                                         <span>{fmtDate(c.created_at)}</span>
                                       </div>
                                       {responses.map(r => (
@@ -711,6 +771,7 @@ function ReviewDetailInner({ id }: { id: string }) {
                           placeholder="Describe the issue or correction needed…"
                           value={commentText}
                           onChange={e => setCommentText(e.target.value)}
+                          onKeyDown={onCommentKeyDown}
                         />
                       </div>
                       <div>
@@ -719,6 +780,7 @@ function ReviewDetailInner({ id }: { id: string }) {
                           placeholder="What it should be…"
                           value={suggestedValue}
                           onChange={e => setSuggestedValue(e.target.value)}
+                          onKeyDown={onSuggestedKeyDown}
                         />
                       </div>
                       <Button className="w-full" size="sm" onClick={submitComment} disabled={submittingComment || !commentText.trim()}>
@@ -733,6 +795,17 @@ function ReviewDetailInner({ id }: { id: string }) {
             </div>
           </div>
         </div>
+
+        {/* Delete comment confirmation */}
+        <ConfirmDialog
+          open={!!deleteCommentId}
+          title="Delete Comment"
+          description="Are you sure you want to delete this comment? This cannot be undone."
+          confirmLabel="Delete"
+          destructive
+          onConfirm={confirmDeleteComment}
+          onCancel={() => setDeleteCommentId(null)}
+        />
 
         {/* Return dialog */}
         {returnDialogOpen && (

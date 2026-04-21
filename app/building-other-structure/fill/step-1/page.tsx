@@ -9,9 +9,9 @@ import { ErrorBoundary } from "@/components/ui/error-boundary";
 import "@/app/styles/forms-fill.css";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { FormFillLayout } from "@/components/ui/form-fill-layout";
-import { Loader2 } from "lucide-react";
+import { SaveDraftButton } from "@/components/SaveDraftButton";
+import { useSaveDraftShortcut } from "@/hooks/useSaveDraftShortcut";
 import { useFormLock } from "@/hooks/useFormLock";
 import { FormLockBanner } from "@/components/ui/form-lock-banner";
 import { FormSection } from "@/components/ui/form-section";
@@ -351,6 +351,8 @@ function BuildingOtherStructureFillPageContent() {
     }
   }, [ownerName, adminCareOf, propertyStreet, ownerLoc, adminLoc, propLoc, transactionCode, arpNo, titleType, titleNo, pin, surveyNo, lotNo, blk, previousTdNo, previousOwner, previousAv, previousMv, previousArea, draftId]);
 
+  useSaveDraftShortcut(handleSaveDraft, isSavingDraft || locked);
+
   return (
     <FormFillLayout
       breadcrumbParent={{ label: "Building Your Application", href: "#" }}
@@ -364,16 +366,11 @@ function BuildingOtherStructureFillPageContent() {
           <h1 className="rpfaas-fill-title">Fill-up Form: RPFAAS - Building &amp; Other Structures</h1>
           <p className="text-sm text-muted-foreground">Enter the details below. You can generate the printable version afterwards.</p>
         </div>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
+        <SaveDraftButton
           onClick={handleSaveDraft}
-          disabled={isSavingDraft || isSaving || locked || lockChecking}
-          className="shrink-0"
-        >
-          {isSavingDraft ? <><Loader2 className="h-4 w-4 animate-spin mr-1" />Saving...</> : 'Save Draft'}
-        </Button>
+          isSaving={isSavingDraft}
+          disabled={isSaving || locked || lockChecking}
+        />
       </header>
 
       <fieldset disabled={locked} className={`border-0 p-0 m-0 min-w-0 block${locked ? ' opacity-60' : ''}${lockChecking ? ' animate-pulse' : ''}`}>

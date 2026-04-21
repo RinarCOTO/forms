@@ -1,8 +1,3 @@
-/**
- * SaveButton Component
- * Reusable button for saving form drafts with status indicators
- */
-
 import { Button } from "@/components/ui/button";
 import { formatLastSaved } from "@/lib/formStorage";
 import { Loader2, Save, Check } from "lucide-react";
@@ -46,10 +41,20 @@ export function SaveButton({
         )}
       </Button>
       
-      {showLastSaved && lastSaved && !isSaving && (
+      {showLastSaved && lastSaved && !isSaving ? (
         <span className="text-xs text-muted-foreground flex items-center gap-1">
           <Check className="h-3 w-3 text-green-600" />
           Saved {formatLastSaved(lastSaved)}
+        </span>
+      ) : (
+        <span className="text-xs text-muted-foreground">
+          <kbd className="inline-flex items-center rounded border border-border bg-muted px-1 py-0.5 font-mono text-[10px] text-muted-foreground">
+            {typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform) ? "⌘" : "Ctrl"}
+          </kbd>
+          {" + "}
+          <kbd className="inline-flex items-center rounded border border-border bg-muted px-1 py-0.5 font-mono text-[10px] text-muted-foreground">
+            S
+          </kbd>
         </span>
       )}
     </div>

@@ -5,7 +5,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation";
 import "./sidebar-active.css";
 import { UserProfile } from "@/components/user-profile"
-import { ChevronRight, ChevronDown, ClipboardList, ListChecks, Calculator, Users, ShieldCheck, StickyNote, Settings, ScrollText } from "lucide-react"
+import { ChevronRight, ChevronDown, ClipboardList, ListChecks, Calculator, Users, ShieldCheck, StickyNote, Settings, ScrollText, BookOpen } from "lucide-react"
 import { usePermissions } from "@/app/contexts/permissions-context"
 
 import {
@@ -29,6 +29,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
   const [rpfaasOpen, setRpfaasOpen] = React.useState(true);
   const [smvOpen, setSmvOpen] = React.useState(true);
+  const [sourcesBuildingOpen, setSourcesBuildingOpen] = React.useState(false);
+  const [sourcesLandOpen, setSourcesLandOpen] = React.useState(false);
+  const [sourcesMachineryOpen, setSourcesMachineryOpen] = React.useState(false);
   const { role, permissions: perms, loading: isLoading } = usePermissions();
 
   const can = (feature: string) => perms[feature] === true;
@@ -142,6 +145,84 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>
                       )}
+                    </SidebarMenuSub>
+                  )}
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
+        {/* Sources — reference tables */}
+        {!isLoading && showLandAssessor && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Sources</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {/* Building */}
+                <SidebarMenuItem>
+                  <SidebarMenuButton onClick={(e) => { e.preventDefault(); setSourcesBuildingOpen((v) => !v); }}>
+                    <div className="flex items-center w-full">
+                      <BookOpen className="mr-2 w-4 h-4 shrink-0" />
+                      <span className="flex-1 text-left">Building</span>
+                      {sourcesBuildingOpen ? <ChevronDown className="ml-2 w-4 h-4" /> : <ChevronRight className="ml-2 w-4 h-4" />}
+                    </div>
+                  </SidebarMenuButton>
+                  {sourcesBuildingOpen && (
+                    <SidebarMenuSub>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton asChild>
+                          <Link href="/sources/building/building-types" className={pathname.startsWith("/sources/building/building-types") ? "sidebar-active" : ""}>Building Types</Link>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton asChild>
+                          <Link href="/sources/building/depreciation-table" className={pathname.startsWith("/sources/building/depreciation-table") ? "sidebar-active" : ""}>Depreciation Table</Link>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton asChild>
+                          <Link href="/sources/building/deductions" className={pathname.startsWith("/sources/building/deductions") ? "sidebar-active" : ""}>Deductions &amp; Additionals</Link>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                    </SidebarMenuSub>
+                  )}
+                </SidebarMenuItem>
+                {/* Land */}
+                <SidebarMenuItem>
+                  <SidebarMenuButton onClick={(e) => { e.preventDefault(); setSourcesLandOpen((v) => !v); }}>
+                    <div className="flex items-center w-full">
+                      <BookOpen className="mr-2 w-4 h-4 shrink-0" />
+                      <span className="flex-1 text-left">Land</span>
+                      {sourcesLandOpen ? <ChevronDown className="ml-2 w-4 h-4" /> : <ChevronRight className="ml-2 w-4 h-4" />}
+                    </div>
+                  </SidebarMenuButton>
+                  {sourcesLandOpen && (
+                    <SidebarMenuSub>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton asChild>
+                          <Link href="/sources/land" className={pathname.startsWith("/sources/land") ? "sidebar-active" : ""}>Coming soon</Link>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                    </SidebarMenuSub>
+                  )}
+                </SidebarMenuItem>
+                {/* Machinery */}
+                <SidebarMenuItem>
+                  <SidebarMenuButton onClick={(e) => { e.preventDefault(); setSourcesMachineryOpen((v) => !v); }}>
+                    <div className="flex items-center w-full">
+                      <BookOpen className="mr-2 w-4 h-4 shrink-0" />
+                      <span className="flex-1 text-left">Machinery</span>
+                      {sourcesMachineryOpen ? <ChevronDown className="ml-2 w-4 h-4" /> : <ChevronRight className="ml-2 w-4 h-4" />}
+                    </div>
+                  </SidebarMenuButton>
+                  {sourcesMachineryOpen && (
+                    <SidebarMenuSub>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton asChild>
+                          <Link href="/sources/machinery" className={pathname.startsWith("/sources/machinery") ? "sidebar-active" : ""}>Coming soon</Link>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
                     </SidebarMenuSub>
                   )}
                 </SidebarMenuItem>

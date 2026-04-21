@@ -9,6 +9,8 @@ import { ErrorBoundary } from "@/components/ui/error-boundary";
 import "@/app/styles/forms-fill.css";
 import { Button } from "@/components/ui/button";
 import { FormFillLayout } from "@/components/ui/form-fill-layout";
+import { SaveDraftButton } from "@/components/SaveDraftButton";
+import { useSaveDraftShortcut } from "@/hooks/useSaveDraftShortcut";
 
 import { DeductionsTable } from "./deductionsTable";
 import { AdditionalTable } from "./additionalTable";
@@ -423,6 +425,8 @@ if (loadedData?.additional_flat_rate_areas?.length > 0) {
     }
   }, [financialSummary, selections, comments, additionalPercentSelections, additionalPercentAreas, additionalFlatRateSelections, additionalFlatRateAreas, draftId]);
 
+  useSaveDraftShortcut(() => form.handleSubmit(handleSaveDraft)(), isSavingDraft || locked);
+
   return (
     <FormFillLayout
       breadcrumbParent={{ label: "Building Your Application", href: "#" }}
@@ -434,16 +438,11 @@ if (loadedData?.additional_flat_rate_areas?.length > 0) {
                 <h1 className="rpfaas-fill-title">Fill-up Form: General Description</h1>
                 <p className="text-sm text-muted-foreground">Manage structure deductions and deviations.</p>
               </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
+              <SaveDraftButton
                 onClick={() => form.handleSubmit(handleSaveDraft)()}
-                disabled={isSavingDraft || isSaving || locked || lockChecking}
-                className="shrink-0"
-              >
-                {isSavingDraft ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving...</> : 'Save Draft'}
-              </Button>
+                isSaving={isSavingDraft}
+                disabled={isSaving || locked || lockChecking}
+              />
             </header>
             <FormLockBanner locked={locked} lockedBy={lockedBy} />
             <fieldset disabled={locked} className={`border-0 p-0 m-0 min-w-0 block${locked ? ' opacity-60' : ''}${lockChecking ? ' animate-pulse' : ''}`}>

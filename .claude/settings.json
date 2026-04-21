@@ -92,7 +92,9 @@
       "Read(//tmp/**)",
       "Bash(/opt/homebrew/bin/pdfinfo /Users/rinar/Downloads/ManualRPAandAO.pdf)",
       "Bash(/opt/homebrew/bin/pdftoppm -r 200 -png -f 10 -l 15 /Users/rinar/Downloads/ManualRPAandAO.pdf /tmp/manual_p)",
-      "Bash(ls /tmp/manual_p*)"
+      "Bash(ls /tmp/manual_p*)",
+      "Bash(curl -s http://localhost:3000/api/faas/building-structures/89)",
+      "Bash(curl -s -b \"\" http://localhost:3000/api/faas/building-structures/89)"
     ],
     "additionalDirectories": [
       "/Users/rinar",

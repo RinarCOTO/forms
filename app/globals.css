@@ -218,14 +218,13 @@
 
 /* ── Review comment field highlighting ── */
 .laoo-field-focused {
-  outline: 3px solid #f97316 !important;
-  outline-offset: 3px;
+  background-color: rgba(251, 191, 36, 0.55) !important;
   border-radius: 6px;
-  animation: laoo-pulse 0.5s ease-in-out 3;
+  animation: laoo-pulse 0.4s ease-in-out 2;
 }
 @keyframes laoo-pulse {
-  0%, 100% { outline-color: #f97316; }
-  50%       { outline-color: rgba(249, 115, 22, 0.3); }
+  0%, 100% { background-color: rgba(251, 191, 36, 0.55); }
+  50%       { background-color: rgba(251, 191, 36, 0.85); }
 }
 
 .has-laoo-comment {

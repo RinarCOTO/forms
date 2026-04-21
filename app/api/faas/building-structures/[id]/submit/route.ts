@@ -58,7 +58,7 @@ export async function POST(
     // ── Fetch current record status ───────────────────────────────────────────
     const { data: record, error: fetchError } = await admin
       .from('building_structures')
-      .select('id, status')
+      .select('id, status, appraised_by')
       .eq('id', id)
       .single();
 
@@ -120,6 +120,9 @@ export async function POST(
       updated_at: now,
       submitted_signature_path: profile.signature_path ?? null,
     };
+    if (!record.appraised_by) {
+      updatePayload.appraised_by = authUser.id;
+    }
     if (skipToMunicipalSigned) {
       updatePayload.municipal_reviewer_id    = authUser.id;
       updatePayload.municipal_signed_at      = now;

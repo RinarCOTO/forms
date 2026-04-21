@@ -15,9 +15,9 @@ import { useFormData } from "@/hooks/useFormData";
 import "@/app/styles/forms-fill.css";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { FormFillLayout } from "@/components/ui/form-fill-layout";
-import { Loader2 } from "lucide-react";
+import { SaveDraftButton } from "@/components/SaveDraftButton";
+import { useSaveDraftShortcut } from "@/hooks/useSaveDraftShortcut";
 import { useFormLock } from "@/hooks/useFormLock";
 import { toast } from "sonner";
 import { FormLockBanner } from "@/components/ui/form-lock-banner";
@@ -395,6 +395,8 @@ const handleNext = useCallback(async () => {
     }
   }, [draftId, typeOfBuilding, structureType, buildingPermitNo, cct, completionIssuedOn, dateConstructed, dateOccupied, buildingAge, numberOfStoreys, floorAreas, totalFloorArea, landOwner, tdArpNo, landArea, costOfConstructionDisplay]);
 
+  useSaveDraftShortcut(handleSaveDraft, isSavingDraft || locked);
+
   // --- JSX RENDER ---
   return (
     <FormFillLayout
@@ -407,16 +409,11 @@ const handleNext = useCallback(async () => {
                 <h1 className="rpfaas-fill-title">Fill-up Form: Building Details</h1>
                 <p className="text-sm text-muted-foreground">Enter building specifications and land reference details.</p>
               </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
+              <SaveDraftButton
                 onClick={handleSaveDraft}
-                disabled={isSavingDraft || isSaving || locked || lockChecking}
-                className="shrink-0"
-              >
-                {isSavingDraft ? <><Loader2 className="h-4 w-4 animate-spin mr-1" />Saving...</> : 'Save Draft'}
-              </Button>
+                isSaving={isSavingDraft}
+                disabled={isSaving || locked || lockChecking}
+              />
             </header>
             <FormLockBanner locked={locked} lockedBy={lockedBy} />
             <fieldset disabled={locked} className={`border-0 p-0 m-0 min-w-0 block${locked ? ' opacity-60' : ''}${lockChecking ? ' animate-pulse' : ''}`}>

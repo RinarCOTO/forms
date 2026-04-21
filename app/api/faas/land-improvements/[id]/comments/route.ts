@@ -141,3 +141,58 @@ export async function POST(
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }
+
+export async function DELETE(
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> | { id: string } }
+) {
+  try {
+    const params = await Promise.resolve(context.params);
+    const id = params.id;
+
+    const sessionClient = await createClient();
+    const { data: { user: authUser }, error: authError } = await sessionClient.auth.getUser();
+    if (authError || !authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const body = await req.json().catch(() => ({}));
+    const { comment_id } = body as { comment_id?: string };
+    if (!comment_id) {
+      return NextResponse.json({ error: 'comment_id is required' }, { status: 400 });
+    }
+
+    const admin = getAdmin();
+
+    const { data: existing, error: fetchError } = await admin
+      .from('form_comments')
+      .select('id, author_id')
+      .eq('id', comment_id)
+      .eq('form_type', 'land_improvements')
+      .eq('form_id', parseInt(id))
+      .single();
+
+    if (fetchError || !existing) {
+      return NextResponse.json({ error: 'Comment not found' }, { status: 404 });
+    }
+
+    if (existing.author_id !== authUser.id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    const { error: deleteError } = await admin
+      .from('form_comments')
+      .delete()
+      .eq('id', comment_id);
+
+    if (deleteError) {
+      console.error('DELETE comment error:', deleteError.message);
+      return NextResponse.json({ error: deleteError.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    console.error('DELETE /comments unexpected:', err);
+    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+  }
+}

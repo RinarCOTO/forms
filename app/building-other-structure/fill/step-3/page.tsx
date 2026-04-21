@@ -12,7 +12,8 @@ import { useFormPersistence } from "@/hooks/useFormPersistence";
 import "@/app/styles/forms-fill.css";
 import { Button } from "@/components/ui/button";
 import { FormFillLayout } from "@/components/ui/form-fill-layout";
-import { Loader2 } from "lucide-react";
+import { SaveDraftButton } from "@/components/SaveDraftButton";
+import { useSaveDraftShortcut } from "@/hooks/useSaveDraftShortcut";
 import { useFormLock } from "@/hooks/useFormLock";
 import { toast } from "sonner";
 import { FormLockBanner } from "@/components/ui/form-lock-banner";
@@ -336,6 +337,8 @@ const BuildingStructureFormFillPage3 = () => {
     }
   }, [materials, materialsOtherText, flooringGrid, wallsGrid, draftId]);
 
+  useSaveDraftShortcut(handleSaveDraft, isSavingDraft || locked);
+
   const handleSubmit = useCallback((e: FormEvent) => {
     e.preventDefault();
     handleNext();
@@ -354,16 +357,11 @@ const BuildingStructureFormFillPage3 = () => {
                   Enter the additional details for the building/structure.
                 </p>
               </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
+              <SaveDraftButton
                 onClick={handleSaveDraft}
-                disabled={isSavingDraft || isSaving || locked || lockChecking}
-                className="shrink-0"
-              >
-                {isSavingDraft ? <><Loader2 className="h-4 w-4 animate-spin mr-1" />Saving...</> : 'Save Draft'}
-              </Button>
+                isSaving={isSavingDraft}
+                disabled={isSaving || locked || lockChecking}
+              />
             </header>
             <FormLockBanner locked={locked} lockedBy={lockedBy} />
             <fieldset disabled={locked} className={`border-0 p-0 m-0 min-w-0 block${locked ? ' opacity-60' : ''}${lockChecking ? ' animate-pulse' : ''}`}>

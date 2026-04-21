@@ -7,13 +7,13 @@ import { useEffect, useState } from "react";
 const MUNICIPALITY_MAP: Record<string, string> = { paracelis: 'paracellis' };
 
 const ROLE_LABELS: Record<string, string> = {
-  municipal_tax_mapper:                    'Tax Mapper',
-  municipal_assessor:          'Municipal Tax Mapper',
-  laoo:                          'LAOO',
-  provincial_assessor:           'Provincial Assessor',
-  assistant_provincial_assessor: 'Asst. Provincial Assessor',
-  admin:                         'Admin',
-  super_admin:                   'Super Admin',
+  municipal_tax_mapper:                    'Municipal Tax Mapper',
+  municipal_assessor:                      'Municipal Assessor',
+  laoo:                                    'LAOO',
+  provincial_assessor:                     'Provincial Assessor',
+  assistant_provincial_assessor:           'Asst. Provincial Assessor',
+  admin:                                   'Admin',
+  super_admin:                             'Super Admin',
 };
 
 type Props = {
@@ -135,7 +135,7 @@ const FaasFooter = ({
     if (!locationMunicipality) return;
     const normalized = locationMunicipality.toLowerCase();
     const municipality = MUNICIPALITY_MAP[normalized] ?? normalized;
-    fetch(`/api/users/by-role?role=municipal_tax_mapper&municipality=${municipality}`)
+    fetch(`/api/users/by-role?role=municipal_assessor&municipality=${municipality}`)
       .then(res => res.json())
       .then(data => {
         const user = data.users?.[0];
@@ -245,16 +245,16 @@ const FaasFooter = ({
             <col style={{ width: '16.7%' }} />
           </colgroup>
           <tbody>
-            <tr>
+            <tr data-field="memoranda">
               <td className="font-bold rpfaas-table-header whitespace-nowrap" style={{ borderRight: 'none' }}>Memoranda:</td>
               <td colSpan={5} style={{ minHeight: '1.5rem', borderLeft: 'none' }}>{memoranda || ''}</td>
             </tr>
-            <tr>
+            <tr data-field="previous_td_no previous_av previous_area">
               <td>Prev. TD:</td><td className="font-bold">{previousTdNo || ''}</td>
               <td>Prev. AV:</td><td className="font-bold">{fmtMoney(previousAv)}</td>
               <td>Prev. Area</td><td className="font-bold">{fmtNum(previousArea)}</td>
             </tr>
-            <tr>
+            <tr data-field="previous_owner previous_mv effectivity_of_assessment">
               <td>Prev. Owner:</td><td className="font-bold uppercase">{previousOwner || ''}</td>
               <td>Prev. MV:</td><td className="font-bold">{fmtMoney(previousMv)}</td>
               <td>Effectivity of Assessment:</td>

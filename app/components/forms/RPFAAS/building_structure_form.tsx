@@ -197,21 +197,21 @@ const BuildingStructureForm = ({ serverData }: { serverData?: Record<string, any
                         </td>
                     </tr>
 
-                    <tr>
+                    <tr data-field="arp_no pin">
                         <td>ARP No.:</td>
                         <td className="font-bold font-mono">{arpNo || ''}</td>
                         <td>PIN:</td>
                         <td className="font-bold">{pin || ''}</td>
                     </tr>
 
-                    <tr>
+                    <tr data-field="oct_tct_cloa_no">
                         <td>OCT/TCT/CLOA No.</td>
                         <td className="font-bold">{octTctCloaNo || ''}</td>
                         <td>Dated:</td>
                         <td></td>
                     </tr>
 
-                    <tr className="border-b-2">
+                    <tr className="border-b-2" data-field="survey_no lot_no">
                         <td>Survey No.</td>
                         <td className="font-bold">{surveyNo || ''}</td>
                         <td>Lot No.</td>
@@ -505,7 +505,7 @@ const BuildingStructureForm = ({ serverData }: { serverData?: Record<string, any
                     {getSelectedDeductionsWithData().length > 0 ? (
                         <>
                             {getSelectedDeductionsWithData().map((deduction, index) => (
-                                <tr key={deduction.id}>
+                                <tr key={deduction.id} data-field="selected_deductions">
                                     <td>{deduction.name}</td>
                                     <td className="text-center">{deduction.percentage}%</td>
                                     {index === 0 && (
@@ -559,7 +559,7 @@ const BuildingStructureForm = ({ serverData }: { serverData?: Record<string, any
                     </tr>
                     {/* Percentage-based Additional Items */}
                     {getSelectedAdditionalPercentageItemsWithData().map((item, index) => (
-                        <tr key={`percentage-${item.id}`}>
+                        <tr key={`percentage-${item.id}`} data-field="additional_items">
                             <td>{item.name}</td>
                             <td>
                                 <div className="rpfaas-inner-grid grid grid-cols-4 divide-x divide-black items-stretch h-full">
@@ -573,7 +573,7 @@ const BuildingStructureForm = ({ serverData }: { serverData?: Record<string, any
                     ))}
                     {/* Flat Rate Additional Items */}
                     {getSelectedAdditionalFlatRateItemsWithData().map((item, index) => (
-                        <tr key={`flatrate-${item.id}`}>
+                        <tr key={`flatrate-${item.id}`} data-field="additional_items">
                             <td>{item.name}</td>
                             <td>
                                 <div className="rpfaas-inner-grid grid grid-cols-4 divide-x divide-black items-stretch h-full">
