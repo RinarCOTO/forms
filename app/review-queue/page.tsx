@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/breadcrumb";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -340,9 +341,17 @@ export default function ReviewQueuePage() {
             </CardHeader>
             <CardContent>
               {loading ? (
-                <div className="flex items-center justify-center py-16">
-                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                  <span className="ml-2 text-sm text-muted-foreground">Loading…</span>
+                <div className="space-y-2 pt-1">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <div key={i} className="flex items-center gap-4 py-2">
+                      <Skeleton className="h-4 w-32 flex-1" />
+                      <Skeleton className="h-4 w-28" />
+                      <Skeleton className="h-4 w-24" />
+                      <Skeleton className="h-4 w-20" />
+                      <Skeleton className="h-4 w-24" />
+                      <Skeleton className="h-4 w-8 ml-auto" />
+                    </div>
+                  ))}
                 </div>
               ) : filteredItems.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-2">

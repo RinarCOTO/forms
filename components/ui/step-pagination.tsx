@@ -122,6 +122,10 @@ export function StepPagination({
         </div>
 
         {/* Center: Step number links */}
+        <div className="flex flex-col items-center gap-2">
+          <span className="text-xs text-muted-foreground font-medium tracking-wide">
+            Step {currentStep} of {steps.length}
+          </span>
         <nav className="flex items-center gap-2" aria-label="Form steps">
           {steps.map(({ step, label }) => {
             const isActive = step === currentStep;
@@ -148,6 +152,7 @@ export function StepPagination({
             );
           })}
         </nav>
+        </div>
 
         {/* Right: Next / Preview */}
         <div className="w-28 flex justify-end">

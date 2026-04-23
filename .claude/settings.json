@@ -94,7 +94,12 @@
       "Bash(/opt/homebrew/bin/pdftoppm -r 200 -png -f 10 -l 15 /Users/rinar/Downloads/ManualRPAandAO.pdf /tmp/manual_p)",
       "Bash(ls /tmp/manual_p*)",
       "Bash(curl -s http://localhost:3000/api/faas/building-structures/89)",
-      "Bash(curl -s -b \"\" http://localhost:3000/api/faas/building-structures/89)"
+      "Bash(curl -s -b \"\" http://localhost:3000/api/faas/building-structures/89)",
+      "Bash(awk '{print $NF}')",
+      "mcp__claude_ai_Notion__notion-search",
+      "mcp__claude_ai_Notion__notion-fetch",
+      "mcp__claude_ai_Notion__notion-create-pages",
+      "mcp__claude_ai_Notion__notion-update-page"
     ],
     "additionalDirectories": [
       "/Users/rinar",

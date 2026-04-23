@@ -555,7 +555,7 @@ const handleNext = useCallback(async () => {
                       <Label className="rpfaas-fill-label">Building Age</Label>
                       <Input 
                         type="text" 
-                        className="rpfaas-fill-input bg-gray-100 pr-12 font-medium"
+                        className="rpfaas-fill-input bg-muted pr-12 font-medium"
                         value={buildingAge}
                         readOnly
                       />
@@ -563,7 +563,7 @@ const handleNext = useCallback(async () => {
                   <div className="rpfaas-fill-field space-y-1" data-comment-field="unit_cost">
                     <Label className="rpfaas-fill-label">Unit Construction Cost</Label>
                     <div className="relative">
-                      <div className="rpfaas-fill-input bg-gray-100 pr-4 font-medium pl-10">
+                      <div className="rpfaas-fill-input bg-muted pr-4 font-medium pl-10">
                         {costOfConstructionDisplay || "0.00"}
                       </div>
                     </div>
@@ -579,7 +579,7 @@ const handleNext = useCallback(async () => {
                     <Input
                       type="number"
                       min={1}
-                      className="rpfaas-fill-input bg-gray-100 pr-12 font-medium"
+                      className="rpfaas-fill-input bg-muted pr-12 font-medium"
                       value={numberOfStoreys}
                       onChange={handleNumberOfStoreysChange}
                     />
@@ -598,7 +598,7 @@ const handleNext = useCallback(async () => {
                           value={floorAreas[index] ?? ""}
                           onChange={e => handleFloorAreaChange(index, e.target.value)}
                         />
-                        <span className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-gray-500">sqm</span>
+                        <span className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-muted-foreground">sqm</span>
                       </div>
                     </div>
                   ))}
@@ -610,11 +610,11 @@ const handleNext = useCallback(async () => {
                     <div className="relative">
                       <Input 
                           type="number" 
-                          className="rpfaas-fill-input bg-gray-100 pr-12"
+                          className="rpfaas-fill-input bg-muted pr-12"
                           value={totalFloorArea}
                           readOnly
                       />
-                      <span className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-gray-500">sqm</span>
+                      <span className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-muted-foreground">sqm</span>
                     </div>
                   </div>
                 </div>
@@ -652,7 +652,7 @@ const handleNext = useCallback(async () => {
                       value={landArea}
                       onChange={(e) => setLandArea(e.target.value)}
                     />
-                      <span className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-gray-500">sqm</span>
+                      <span className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-muted-foreground">sqm</span>
                     </div>
                   </div>
                 </div>

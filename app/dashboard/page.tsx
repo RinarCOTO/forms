@@ -26,6 +26,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -301,8 +302,16 @@ export default function Page() {
                 </CardHeader>
                 <CardContent>
                   {loading ? (
-                    <div className="flex items-center justify-center py-12">
-                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    <div className="space-y-2">
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <div key={i} className="flex items-center gap-4 py-2">
+                          <Skeleton className="h-4 w-16" />
+                          <Skeleton className="h-4 w-40 flex-1" />
+                          <Skeleton className="h-4 w-28" />
+                          <Skeleton className="h-4 w-20" />
+                          <Skeleton className="h-4 w-16" />
+                        </div>
+                      ))}
                     </div>
                   ) : submissions.length === 0 ? (
                     <div className="text-center py-12">

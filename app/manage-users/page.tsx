@@ -36,6 +36,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Loader2, Plus, Edit, Trash2, Users, ShieldAlert, KeyRound } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import type { User, UserRole, Municipality, CreateUserData, UpdateUserData } from "@/app/types/user";
 import { MUNICIPALITIES, MUNICIPALITY_LABELS } from "@/app/types/user";
@@ -81,6 +82,9 @@ function getRoleBadgeVariant(role: UserRole) {
   }
 }
 
+const DARK_SELECT_CLS = "w-full border border-zinc-700 rounded-md px-3 py-2 text-sm bg-zinc-800 text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-500";
+const DARK_DIALOG_CLS = "dark sm:max-w-md bg-zinc-900 border-zinc-800 text-zinc-100";
+
 // ─── Edit User Dialog ──────────────────────────────────────────────────────────
 
 interface EditDialogProps {
@@ -99,7 +103,7 @@ function MunicipalitySelect({
 }) {
   return (
     <select
-      className="w-full border border-zinc-700 rounded-md px-3 py-2 text-sm bg-zinc-800 text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-500"
+      className={DARK_SELECT_CLS}
       value={value ?? ""}
       onChange={(e) => onChange((e.target.value as Municipality) || null)}
     >
@@ -168,7 +172,7 @@ function EditUserDialog({ user, open, onClose, onSave }: EditDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="dark sm:max-w-md bg-zinc-900 border-zinc-800 text-zinc-100">
+      <DialogContent className={DARK_DIALOG_CLS}>
         <DialogHeader>
           <DialogTitle>Edit User</DialogTitle>
           <DialogDescription>{user?.email}</DialogDescription>
@@ -185,7 +189,7 @@ function EditUserDialog({ user, open, onClose, onSave }: EditDialogProps) {
           <div className="space-y-1">
             <Label>Role</Label>
             <select
-              className="w-full border border-zinc-700 rounded-md px-3 py-2 text-sm bg-zinc-800 text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-500"
+              className={DARK_SELECT_CLS}
               value={form.role ?? "user"}
               onChange={(e) => setForm((f) => ({ ...f, role: e.target.value as UserRole }))}
             >
@@ -219,7 +223,7 @@ function EditUserDialog({ user, open, onClose, onSave }: EditDialogProps) {
             <div className="space-y-1">
               <Label>LAOO Level <span className="text-red-400">*</span></Label>
               <select
-                className="w-full border border-zinc-700 rounded-md px-3 py-2 text-sm bg-zinc-800 text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-500"
+                className={DARK_SELECT_CLS}
                 value={form.laoo_level ?? ""}
                 onChange={(e) => setForm((f) => ({ ...f, laoo_level: e.target.value ? parseInt(e.target.value) : null }))}
               >
@@ -262,7 +266,7 @@ function EditUserDialog({ user, open, onClose, onSave }: EditDialogProps) {
               type="checkbox"
               checked={form.is_active ?? true}
               onChange={(e) => setForm((f) => ({ ...f, is_active: e.target.checked }))}
-              className="h-4 w-4 rounded border-gray-300"
+              className="h-4 w-4 rounded border-zinc-600"
             />
             <Label htmlFor="is_active">Active account</Label>
           </div>
@@ -348,14 +352,14 @@ function CreateUserDialog({ open, onClose, onCreate }: CreateDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="dark sm:max-w-md bg-zinc-900 border-zinc-800 text-zinc-100">
+      <DialogContent className={DARK_DIALOG_CLS}>
         <DialogHeader>
           <DialogTitle>Add New User</DialogTitle>
           <DialogDescription>Create a new user account</DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-2">
           {error && (
-            <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md">
+            <div className="p-3 text-sm text-red-400 bg-red-950 border border-red-800 rounded-md">
               {error}
             </div>
           )}
@@ -397,7 +401,7 @@ function CreateUserDialog({ open, onClose, onCreate }: CreateDialogProps) {
           <div className="space-y-1">
             <Label>Role</Label>
             <select
-              className="w-full border border-zinc-700 rounded-md px-3 py-2 text-sm bg-zinc-800 text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-500"
+              className={DARK_SELECT_CLS}
               value={form.role ?? "user"}
               onChange={(e) => setForm((f) => ({ ...f, role: e.target.value as UserRole }))}
             >
@@ -431,7 +435,7 @@ function CreateUserDialog({ open, onClose, onCreate }: CreateDialogProps) {
             <div className="space-y-1">
               <Label>LAOO Level <span className="text-red-400">*</span></Label>
               <select
-                className="w-full border border-zinc-700 rounded-md px-3 py-2 text-sm bg-zinc-800 text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-500"
+                className={DARK_SELECT_CLS}
                 value={form.laoo_level ?? ""}
                 onChange={(e) => setForm((f) => ({ ...f, laoo_level: e.target.value ? parseInt(e.target.value) : null }))}
               >
@@ -573,6 +577,7 @@ export default function ManageUsersPage() {
   const [editTarget, setEditTarget] = useState<User | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const [changePasswordTarget, setChangePasswordTarget] = useState<User | null>(null);
 
   // Auth guard
@@ -656,24 +661,30 @@ export default function ManageUsersPage() {
     toast.success("Password updated successfully.");
   }, []);
 
-  const handleDelete = useCallback(async (userId: string, userName: string) => {
-    if (!confirm(`Delete user "${userName}"? This action cannot be undone.`)) return;
-    setDeletingId(userId);
+  const handleDelete = useCallback((userId: string, userName: string) => {
+    setDeleteTarget({ id: userId, name: userName });
+  }, []);
+
+  const confirmDelete = useCallback(async () => {
+    if (!deleteTarget) return;
+    const { id, name } = deleteTarget;
+    setDeleteTarget(null);
+    setDeletingId(id);
     try {
-      const res = await fetch(`/api/users/${userId}`, { method: "DELETE" });
+      const res = await fetch(`/api/users/${id}`, { method: "DELETE" });
       if (res.ok) {
         toast.success("User deleted.");
-        setUsers((prev) => prev.filter((u) => u.id !== userId));
+        setUsers((prev) => prev.filter((u) => u.id !== id));
       } else {
         const err = await res.json();
         toast.error(err.error ?? "Failed to delete user.");
       }
     } catch {
-      toast.error("Error deleting user.");
+      toast.error(`Error deleting "${name}".`);
     } finally {
       setDeletingId(null);
     }
-  }, []);
+  }, [deleteTarget]);
 
   if (authLoading) {
     return (
@@ -739,8 +750,20 @@ export default function ManageUsersPage() {
               </CardHeader>
               <CardContent>
                 {usersLoading ? (
-                  <div className="flex items-center justify-center py-16">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  <div className="space-y-2 pt-1">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <div key={i} className="flex items-center gap-4 py-2">
+                        <Skeleton className="h-4 w-28" />
+                        <Skeleton className="h-4 w-36" />
+                        <Skeleton className="h-4 w-24" />
+                        <Skeleton className="h-4 w-24" />
+                        <Skeleton className="h-4 w-28" />
+                        <Skeleton className="h-4 w-20" />
+                        <Skeleton className="h-4 w-16" />
+                        <Skeleton className="h-4 w-24" />
+                        <Skeleton className="h-4 w-16 ml-auto" />
+                      </div>
+                    ))}
                   </div>
                 ) : users.length === 0 ? (
                   <div className="text-center py-16">
@@ -869,6 +892,24 @@ export default function ManageUsersPage() {
         onClose={() => setChangePasswordTarget(null)}
         onSave={handleChangePassword}
       />
+      <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <DialogContent className="dark bg-zinc-900 border-zinc-800 text-zinc-100">
+          <DialogHeader>
+            <DialogTitle>Delete user</DialogTitle>
+            <DialogDescription className="text-zinc-400">
+              Delete <span className="font-medium text-zinc-200">{deleteTarget?.name}</span>? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteTarget(null)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={confirmDelete}>
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </SidebarProvider>
     </div>
   );
