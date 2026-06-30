@@ -62,6 +62,16 @@ function fmtAssessmentLevel(val: string | number | undefined | null): string {
   return text.includes("%") ? text : `${text}%`;
 }
 
+function fmtDate(val: string | undefined): string {
+  if (!val) return "";
+  const date = new Date(val.includes("T") ? val : `${val}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return val;
+  const month = date.getMonth() + 1;
+  const day = String(date.getDate()).padStart(2, "0");
+  const year = date.getFullYear();
+  return `${month}/${day}/${year}`;
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function TaxDeclarationBuilding({
@@ -142,8 +152,8 @@ export default function TaxDeclarationBuilding({
             <div className="border-b border-black flex-1 font-bold">{fmt(data.oct_tct_cloa_no)}</div>
           </div>
           <div className="flex gap-2">
-            <div className="w-36 shrink-0">Transaction Code:</div>
-            <div className="border-b border-black flex-1 font-bold">{fmt(data.transaction_code)}</div>
+            <div className="w-36 shrink-0">Dated:</div>
+            <div className="border-b border-black flex-1 font-bold">{fmtDate(approvedDate)}</div>
           </div>
         </div>
       </section>
