@@ -53,7 +53,7 @@ function collectFormData(
   if (safeMaterials.reinforcedConcrete) selectedRoof.push('Reinforced Concrete');
   if (safeMaterials.longspanRoof) selectedRoof.push('Longspan Roof');
   if (safeMaterials.tiles) selectedRoof.push('Tiles');
-  if (safeMaterials.giSheets) selectedRoof.push('GI Sheets');
+  if (safeMaterials.giSheets) selectedRoof.push('G.I. Sheets');
   if (safeMaterials.aluminum) selectedRoof.push('Aluminum');
   if (safeMaterials.others && materialsOtherText) selectedRoof.push(`Other: ${materialsOtherText}`);
   const roofSummary = selectedRoof.join(', ');
@@ -79,7 +79,7 @@ function collectFormData(
   // Walls String
   let wallSummary = "";
   if (wallsGrid && wallsGrid.length > 0) {
-    const wallLabels = ["Concrete", "Plain Cement", "Wood", "CHB", "C.I. Sheets"];
+    const wallLabels = ["Concrete", "Plain Cement", "Wood", "CHB", "G.I. Sheets"];
     const selectedWalls: string[] = [];
     wallsGrid.forEach((row, rIdx) => {
       if(Array.isArray(row)) {
@@ -119,7 +119,7 @@ const FORM_NAME = "building-structure-form-fill-page-3";
 
 // Constant label arrays at module scope — no need to recreate on every render
 const flooringLabels = ["Concrete", "Plain Cement", "Marble", "Wood", "Tiles", "Other"];
-const wallLabels = ["Concrete", "Plain Cement", "Wood", "CHB", "C.I. Sheets"];
+const wallLabels = ["Concrete", "Plain Cement", "Wood", "CHB", "G.I. Sheets"];
 
 const BuildingStructureFormFillPage3 = () => {
   const router = useRouter();

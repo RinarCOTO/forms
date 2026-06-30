@@ -3,7 +3,7 @@ export const STRUCTURAL_MATERIAL_ROWS = [
     { roof: "Longspan Roof", flooring: "Plain Cement", walls: "Plain Cement" },
     { roof: "Tiles", flooring: "Marble", walls: "Wood" },
     { roof: "G.I. Sheets", flooring: "Wood", walls: "CHB" },
-    { roof: "Aluminum", flooring: "Tiles", walls: "C.I. Sheet" },
+    { roof: "Aluminum", flooring: "Tiles", walls: "G.I. Sheet" },
     { roof: "Others (Specify)", flooring: null, walls: "Others (Specify)" },
 ];
 
