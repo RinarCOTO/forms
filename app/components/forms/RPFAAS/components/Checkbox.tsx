@@ -17,14 +17,15 @@ export const Checkbox = ({ label, checked = false }: CheckboxProps) => (
                 height: '11px',
                 minWidth: '11px',
                 border: '1.5px solid #000',
-                backgroundColor: checked ? '#000' : '#fff',
-                color: '#fff',
-                fontSize: '9px',
+                backgroundColor: '#fff',
+                color: '#000',
+                fontSize: '10px',
+                fontWeight: 700,
                 lineHeight: 1,
                 flexShrink: 0,
             }}
         >
-            {checked ? '✓' : ''}
+            {checked ? 'X' : ''}
         </span>
         {label}
     </label>
