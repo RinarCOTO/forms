@@ -24,11 +24,10 @@ export const TaxDecFooter = ({
         if (!value) return "";
         const date = new Date(value.includes("T") ? value : `${value}T00:00:00`);
         if (Number.isNaN(date.getTime())) return value;
-        return date.toLocaleDateString("en-PH", {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-        });
+        const month = date.getMonth() + 1;
+        const day = String(date.getDate()).padStart(2, "0");
+        const year = date.getFullYear();
+        return `${month}/${day}/${year}`;
     };
 
     useEffect(() => {
