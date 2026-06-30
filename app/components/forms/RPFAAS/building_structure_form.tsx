@@ -326,11 +326,9 @@ const BuildingStructureForm = ({ serverData }: { serverData?: Record<string, any
                             </div>
                         </td>
                         <td className="land-reference">
-                            <div className="rpfaas-inner-grid grid grid-cols-4 divide-x divide-black items-stretch h-full">
-                                <div className="flex items-center self-stretch rpfaas-print-small-1 font-bold">TD No.:</div>
-                                <div className="flex items-center self-stretch rpfaas-print-small">{landTdNo || landTdArpNo || ''}</div>
-                                <div className="flex items-center self-stretch rpfaas-print-small-1 font-bold">ARP No.:</div>
-                                <div className="flex items-center self-stretch rpfaas-print-small">{landArpNo || ''}</div>
+                            <div className="rpfaas-inner-grid grid grid-cols-3 divide-x divide-black items-stretch h-full">
+                                <div className="flex items-center self-stretch rpfaas-print-small-1 font-bold col-span-1">TD No.:</div>
+                                <div className="flex items-center self-stretch col-span-2 rpfaas-print-small">{landTdNo || landTdArpNo || ''}</div>
                             </div>
                         </td>
                     </tr>
@@ -346,8 +344,8 @@ const BuildingStructureForm = ({ serverData }: { serverData?: Record<string, any
                         </td>
                         <td className="land-reference">
                             <div className="rpfaas-inner-grid grid grid-cols-3 divide-x divide-black items-stretch h-full">
-                                <div className="flex items-center self-stretch rpfaas-print-small-1 font-bold col-span-1">Area:</div>
-                                <div className="flex items-center self-stretch col-span-2 rpfaas-print-small">{landArea || ''} sqm</div>
+                                <div className="flex items-center self-stretch rpfaas-print-small-1 font-bold col-span-1">ARP No.:</div>
+                                <div className="flex items-center self-stretch col-span-2 rpfaas-print-small">{landArpNo || ''}</div>
                             </div>
                         </td>
                     </tr>
@@ -361,7 +359,12 @@ const BuildingStructureForm = ({ serverData }: { serverData?: Record<string, any
                                 <div className="flex items-center self-stretch font-bold rpfaas-print-small whitespace-nowrap">{storeys >= 2 ? floorAreas[1] || '' : ''}</div>
                             </div>
                         </td>
-                        <td className="land-reference"></td>
+                        <td className="land-reference">
+                            <div className="rpfaas-inner-grid grid grid-cols-3 divide-x divide-black items-stretch h-full">
+                                <div className="flex items-center self-stretch rpfaas-print-small-1 font-bold col-span-1">Area:</div>
+                                <div className="flex items-center self-stretch col-span-2 rpfaas-print-small">{landArea || ''} sqm</div>
+                            </div>
+                        </td>
                     </tr>
 
                     <tr data-field="completion_issued_on">
