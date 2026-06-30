@@ -8,6 +8,7 @@ type TaxDecFooterProps = {
     exempt?: boolean;
     effectivityOfAssessment?: string;
     amountInWords?: string;
+    approvedDate?: string;
 };
 
 export const TaxDecFooter = ({
@@ -15,8 +16,20 @@ export const TaxDecFooter = ({
     exempt = false,
     effectivityOfAssessment,
     amountInWords,
+    approvedDate,
 }: TaxDecFooterProps) => {
     const [provincialAssessorName, setProvincialAssessorName] = useState("");
+
+    const formatApprovedDate = (value?: string) => {
+        if (!value) return "";
+        const date = new Date(value.includes("T") ? value : `${value}T00:00:00`);
+        if (Number.isNaN(date.getTime())) return value;
+        return date.toLocaleDateString("en-PH", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+        });
+    };
 
     useEffect(() => {
         fetch("/api/users/by-role?role=provincial_assessor")
@@ -57,7 +70,9 @@ export const TaxDecFooter = ({
                     </span>
                 </div>
                 <div className="text-center">
-                    <span className="inline-block border-b border-black w-40 mx-auto">&nbsp;</span>
+                    <span className="inline-block border-b border-black w-40 mx-auto font-bold">
+                        {formatApprovedDate(approvedDate) || "\u00a0"}
+                    </span>
                 </div>
             </div>
             <div className="grid grid-cols-2 text-center mt-2">

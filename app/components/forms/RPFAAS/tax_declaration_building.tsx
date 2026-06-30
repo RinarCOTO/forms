@@ -64,7 +64,13 @@ function fmtAssessmentLevel(val: string | number | undefined | null): string {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function TaxDeclarationBuilding({ data = {} }: { data?: BuildingTaxDecFormData }) {
+export default function TaxDeclarationBuilding({
+  data = {},
+  approvedDate,
+}: {
+  data?: BuildingTaxDecFormData;
+  approvedDate?: string;
+}) {
   const isTaxable = data.tax_status === "taxable";
   const isExempt  = data.tax_status === "exempt";
 
@@ -199,6 +205,7 @@ export default function TaxDeclarationBuilding({ data = {} }: { data?: BuildingT
         exempt={isExempt}
         effectivityOfAssessment={data.effectivity_of_assessment}
         amountInWords={data.amount_in_words}
+        approvedDate={approvedDate}
       />
 
       {/* Previous Assessment */}
