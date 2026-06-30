@@ -45,6 +45,8 @@ export const useRPFAASData = (serverData?: Record<string, any>) => {
         floorAreas: [],
         totalFloorArea: "",
         landOwner: "",
+        landTdNo: "",
+        landArpNo: "",
         landTdArpNo: "",
         landArea: "",
         roofMaterials: {
@@ -215,6 +217,8 @@ export const useRPFAASData = (serverData?: Record<string, any>) => {
                 floorAreas:          d.floor_areas || [],
                 totalFloorArea,
                 landOwner:           d.land_owner || "",
+                landTdNo:            d.land_td_no || d.td_arp_no || "",
+                landArpNo:           d.land_arp_no || "",
                 landTdArpNo:         d.td_arp_no || "",
                 landArea:            d.land_area || "",
                 roofMaterials,
@@ -342,6 +346,8 @@ export const useRPFAASData = (serverData?: Record<string, any>) => {
             const floorAreas = step2Data.floor_areas || [];
             const totalFloorArea = step2Data.total_floor_area || "";
             const landOwner = step2Data.land_owner || "";
+            const landTdNo = step2Data.land_td_no || step2Data.td_arp_no || "";
+            const landArpNo = step2Data.land_arp_no || "";
             const landTdArpNo = step2Data.td_arp_no || "";
             const landArea = step2Data.land_area || "";
 
@@ -558,6 +564,8 @@ export const useRPFAASData = (serverData?: Record<string, any>) => {
                 floorAreas,
                 totalFloorArea,
                 landOwner,
+                landTdNo,
+                landArpNo,
                 landTdArpNo,
                 landArea,
                 roofMaterials,

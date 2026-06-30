@@ -62,7 +62,7 @@ const FIELD_LABELS: Record<string, string> = {
   completion_issued_on: "Completion Date", date_constructed: "Date Constructed",
   date_occupied: "Date Occupied", building_age: "Building Age",
   number_of_storeys: "No. of Storeys", total_floor_area: "Total Floor Area",
-  unit_cost: "Unit Cost", land_owner: "Land Owner", td_arp_no: "Land TD/ARP No.", land_area: "Land Area",
+  unit_cost: "Unit Cost", land_owner: "Land Owner", land_td_no: "Land TD No.", land_arp_no: "Land ARP No.", td_arp_no: "Land TD/ARP No.", land_area: "Land Area",
   roofing_material: "Roofing Material", flooring_material: "Flooring Material", wall_material: "Wall Material",
   selected_deductions: "Standard Deductions", market_value: "Market Value",
   actual_use: "Actual Use", assessment_level: "Assessment Level",
@@ -415,6 +415,8 @@ function PreviewFormPage() {
               floor_areas:         d.floor_areas         || [],
               total_floor_area:    d.total_floor_area    || "",
               land_owner:          d.land_owner          || "",
+              land_td_no:          d.land_td_no          || d.td_arp_no || "",
+              land_arp_no:         d.land_arp_no         || "",
               td_arp_no:           d.td_arp_no           || "",
               land_area:           d.land_area           || "",
             }));

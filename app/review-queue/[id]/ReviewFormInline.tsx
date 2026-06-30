@@ -132,7 +132,7 @@ export default function ReviewFormInline({ serverData, comments, onCommentSectio
     typeOfBuilding, structuralType, buildingPermitNo, cct,
     completionIssuedOn, dateConstructed, dateOccupied, buildingAge,
     numberOfStoreys, floorAreas, totalFloorArea,
-    landOwner, landTdArpNo, landArea,
+    landOwner, landTdNo, landArpNo, landTdArpNo, landArea,
     roofMaterials, roofMaterialsOtherText,
     flooringGrid, wallsGrid,
     selectedDeductions, deductionAmounts, deductionComments,
@@ -303,7 +303,8 @@ export default function ReviewFormInline({ serverData, comments, onCommentSectio
       <Section title="Land Reference">
         <div className="grid grid-cols-2 gap-3">
           <FieldRow label="Land Owner" fieldKey="land_owner" value={landOwner} {...fp} />
-          <FieldRow label="TD / ARP No." fieldKey="td_arp_no" value={landTdArpNo} {...fp} />
+          <FieldRow label="Land TD No." fieldKey="land_td_no" value={landTdNo || landTdArpNo} {...fp} />
+          <FieldRow label="Land ARP No." fieldKey="land_arp_no" value={landArpNo} {...fp} />
           <FieldRow label="Land Area" fieldKey="land_area" value={landArea ? `${landArea} sqm` : ""} {...fp} />
         </div>
       </Section>

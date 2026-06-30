@@ -71,6 +71,8 @@ export interface RPFAASFormData {
     
     // Land Info
     landOwner: string;
+    landTdNo: string;
+    landArpNo: string;
     landTdArpNo: string;
     landArea: string;
     

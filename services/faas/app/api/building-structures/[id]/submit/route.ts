@@ -111,6 +111,8 @@ export async function POST(
         total_floor_area: String(fullRecord.total_floor_area ?? ''),
         unit_cost: String(fullRecord.cost_of_construction ?? ''),
         land_owner: String(fullRecord.land_owner ?? ''),
+        land_td_no: String(fullRecord.land_td_no ?? fullRecord.td_arp_no ?? ''),
+        land_arp_no: String(fullRecord.land_arp_no ?? ''),
         td_arp_no: String(fullRecord.td_arp_no ?? ''),
         land_area: String(fullRecord.land_area ?? ''),
         roofing_material: (() => { try { const v = typeof fullRecord.roofing_material === 'string' ? JSON.parse(fullRecord.roofing_material) : fullRecord.roofing_material; return v?.summary ?? JSON.stringify(v) ?? ''; } catch { return ''; } })(),

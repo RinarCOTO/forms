@@ -21,6 +21,8 @@ CREATE TABLE IF NOT EXISTS building_structures (
     date_completed DATE,
     date_occupied DATE,
     building_permit_no VARCHAR(100),
+    land_td_no VARCHAR(100),
+    land_arp_no VARCHAR(100),
     
     -- Step 3: Construction Details
     total_floor_area DECIMAL(10, 2),
@@ -54,6 +56,8 @@ CREATE TABLE IF NOT EXISTS building_structures (
 -- Indexes for faster lookups
 CREATE INDEX IF NOT EXISTS idx_building_arp_no ON building_structures(arp_no);
 CREATE INDEX IF NOT EXISTS idx_building_td_no ON building_structures(td_no);
+CREATE INDEX IF NOT EXISTS idx_building_land_td_no ON building_structures(land_td_no);
+CREATE INDEX IF NOT EXISTS idx_building_land_arp_no ON building_structures(land_arp_no);
 CREATE INDEX IF NOT EXISTS idx_building_pin ON building_structures(pin);
 CREATE INDEX IF NOT EXISTS idx_building_owner_name ON building_structures(owner_name);
 CREATE INDEX IF NOT EXISTS idx_building_status ON building_structures(status);

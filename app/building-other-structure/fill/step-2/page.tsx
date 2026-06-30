@@ -138,7 +138,8 @@ const handleCostOfConstructionChange = useCallback((e: React.ChangeEvent<HTMLInp
   
   // Land Reference States
   const [landOwner, setLandOwner] = useState("");
-  const [tdArpNo, setTdArpNo] = useState(""); // Added
+  const [landTdNo, setLandTdNo] = useState("");
+  const [landArpNo, setLandArpNo] = useState("");
   const [landArea, setLandArea] = useState(""); // Added
 
   // --- 2. CALCULATIONS ---
@@ -218,7 +219,8 @@ const handleCostOfConstructionChange = useCallback((e: React.ChangeEvent<HTMLInp
 
       setTotalFloorArea(loadedData.total_floor_area || "");
       setLandOwner(loadedData.land_owner || "");
-      setTdArpNo(loadedData.td_arp_no || "");
+      setLandTdNo(loadedData.land_td_no || loadedData.td_arp_no || "");
+      setLandArpNo(loadedData.land_arp_no || "");
       setLandArea(loadedData.land_area || "");
 
       // Load cost of construction
@@ -248,7 +250,9 @@ const handleCostOfConstructionChange = useCallback((e: React.ChangeEvent<HTMLInp
     floor_areas: floorAreas,
     total_floor_area: totalFloorArea,
     land_owner: landOwner,
-    td_arp_no: tdArpNo,
+    land_td_no: landTdNo,
+    land_arp_no: landArpNo,
+    td_arp_no: [landTdNo, landArpNo].filter(Boolean).join(" / "),
     land_area: landArea
   });
 
@@ -312,7 +316,9 @@ const handleNext = useCallback(async () => {
         floor_areas: typeof numberOfStoreys === 'number' ? floorAreas.slice(0, numberOfStoreys) : floorAreas,
         total_floor_area: totalFloorArea,
         land_owner: landOwner,
-        td_arp_no: tdArpNo,
+        land_td_no: landTdNo,
+        land_arp_no: landArpNo,
+        td_arp_no: [landTdNo, landArpNo].filter(Boolean).join(" / "),
         land_area: landArea,
         // We use the raw value here for the DB too
         cost_of_construction: rawCostValue === "0" ? null : rawCostValue,
@@ -351,7 +357,7 @@ const handleNext = useCallback(async () => {
     } finally {
       setIsSaving(false);
     }
-  }, [draftId, router, typeOfBuilding, structureType, buildingPermitNo, cct, completionIssuedOn, dateConstructed, dateOccupied, buildingAge, numberOfStoreys, floorAreas, totalFloorArea, landOwner, tdArpNo, landArea, costOfConstructionDisplay, costOfConstruction]);
+  }, [draftId, router, typeOfBuilding, structureType, buildingPermitNo, cct, completionIssuedOn, dateConstructed, dateOccupied, buildingAge, numberOfStoreys, floorAreas, totalFloorArea, landOwner, landTdNo, landArpNo, landArea, costOfConstructionDisplay, costOfConstruction]);
 
   const handleSaveDraft = useCallback(async () => {
     setIsSavingDraft(true);
@@ -371,7 +377,11 @@ const handleNext = useCallback(async () => {
         building_age: buildingAge, number_of_storeys: numberOfStoreys,
         floor_areas: typeof numberOfStoreys === 'number' ? floorAreas.slice(0, numberOfStoreys) : floorAreas,
         total_floor_area: totalFloorArea,
-        land_owner: landOwner, td_arp_no: tdArpNo, land_area: landArea,
+        land_owner: landOwner,
+        land_td_no: landTdNo,
+        land_arp_no: landArpNo,
+        td_arp_no: [landTdNo, landArpNo].filter(Boolean).join(" / "),
+        land_area: landArea,
         cost_of_construction: rawCostValue === '0' ? null : rawCostValue,
       };
       const currentDraftId = draftId || localStorage.getItem('draft_id');
@@ -393,7 +403,7 @@ const handleNext = useCallback(async () => {
     } finally {
       setIsSavingDraft(false);
     }
-  }, [draftId, typeOfBuilding, structureType, buildingPermitNo, cct, completionIssuedOn, dateConstructed, dateOccupied, buildingAge, numberOfStoreys, floorAreas, totalFloorArea, landOwner, tdArpNo, landArea, costOfConstructionDisplay]);
+  }, [draftId, typeOfBuilding, structureType, buildingPermitNo, cct, completionIssuedOn, dateConstructed, dateOccupied, buildingAge, numberOfStoreys, floorAreas, totalFloorArea, landOwner, landTdNo, landArpNo, landArea, costOfConstructionDisplay]);
 
   useSaveDraftShortcut(handleSaveDraft, isSavingDraft || locked);
 
@@ -402,7 +412,7 @@ const handleNext = useCallback(async () => {
     <FormFillLayout
       breadcrumbParent={{ label: "Building Your Application", href: "#" }}
       pageTitle="Building Details"
-      sidePanel={<ErrorBoundary><ReviewCommentsFloat draftId={draftId} stepFields={["type_of_building","structure_type","building_permit_no","cct","completion_issued_on","date_constructed","date_occupied","building_age","unit_cost","number_of_storeys","total_floor_area","land_owner","td_arp_no","land_area"]} /></ErrorBoundary>}
+      sidePanel={<ErrorBoundary><ReviewCommentsFloat draftId={draftId} stepFields={["type_of_building","structure_type","building_permit_no","cct","completion_issued_on","date_constructed","date_occupied","building_age","unit_cost","number_of_storeys","total_floor_area","land_owner","land_td_no","land_arp_no","land_area"]} /></ErrorBoundary>}
     >
             <header className="rpfaas-fill-header flex items-center justify-between gap-4 mb-6">
               <div>
@@ -632,14 +642,24 @@ const handleNext = useCallback(async () => {
                     />
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="rpfaas-fill-field space-y-1" data-comment-field="td_arp_no">
-                    <Label className="rpfaas-fill-label">TD/ARP No.</Label>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="rpfaas-fill-field space-y-1" data-comment-field="land_td_no">
+                    <Label className="rpfaas-fill-label">Land TD No.</Label>
                     <Input 
-                      type="number" 
-                      className="rpfaas-fill-input" 
-                      value={tdArpNo}
-                      onChange={(e) => setTdArpNo(e.target.value)}
+                      type="text"
+                      className="rpfaas-fill-input font-mono"
+                      value={landTdNo}
+                      onChange={(e) => setLandTdNo(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="rpfaas-fill-field space-y-1" data-comment-field="land_arp_no">
+                    <Label className="rpfaas-fill-label">Land ARP No.</Label>
+                    <Input
+                      type="text"
+                      className="rpfaas-fill-input font-mono"
+                      value={landArpNo}
+                      onChange={(e) => setLandArpNo(e.target.value)}
                     />
                   </div>
 

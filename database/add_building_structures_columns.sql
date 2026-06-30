@@ -17,6 +17,8 @@ ALTER TABLE public.building_structures
   ADD COLUMN IF NOT EXISTS building_age              INTEGER,
   ADD COLUMN IF NOT EXISTS floor_areas               JSONB,
   ADD COLUMN IF NOT EXISTS land_owner                VARCHAR(255),
+  ADD COLUMN IF NOT EXISTS land_td_no                VARCHAR(100),
+  ADD COLUMN IF NOT EXISTS land_arp_no               VARCHAR(100),
   ADD COLUMN IF NOT EXISTS td_arp_no                 VARCHAR(100),
   ADD COLUMN IF NOT EXISTS land_area                 DECIMAL(10,2),
   ADD COLUMN IF NOT EXISTS cost_of_construction      DECIMAL(15,2),

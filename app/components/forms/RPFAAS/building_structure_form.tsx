@@ -47,6 +47,8 @@ const BuildingStructureForm = ({ serverData }: { serverData?: Record<string, any
         floorAreas,
         totalFloorArea,
         landOwner,
+        landTdNo,
+        landArpNo,
         landTdArpNo,
         landArea,
         roofMaterials,
@@ -161,6 +163,8 @@ const BuildingStructureForm = ({ serverData }: { serverData?: Record<string, any
         buildingPermitNo,
         totalFloorArea,
         landOwner,
+        landTdNo,
+        landArpNo,
         landTdArpNo,
         landArea
     });
@@ -312,7 +316,7 @@ const BuildingStructureForm = ({ serverData }: { serverData?: Record<string, any
                         </td>
                     </tr>
 
-                    <tr className="py-auto my-auto" data-field="structure_type number_of_storeys td_arp_no">
+                    <tr className="py-auto my-auto" data-field="structure_type number_of_storeys land_td_no land_arp_no">
                         <td>Structural Type:</td>
                         <td>
                             <div className="rpfaas-inner-grid grid grid-cols-3 divide-x divide-black items-stretch h-full">
@@ -322,9 +326,11 @@ const BuildingStructureForm = ({ serverData }: { serverData?: Record<string, any
                             </div>
                         </td>
                         <td className="land-reference">
-                            <div className="rpfaas-inner-grid grid grid-cols-3 divide-x divide-black items-stretch h-full">
-                                <div className="flex items-center self-stretch rpfaas-print-small-1 font-bold col-span-1">TD/ARP No.:</div>
-                                <div className="flex items-center self-stretch col-span-2 rpfaas-print-small">{landTdArpNo || ''}</div>
+                            <div className="rpfaas-inner-grid grid grid-cols-4 divide-x divide-black items-stretch h-full">
+                                <div className="flex items-center self-stretch rpfaas-print-small-1 font-bold">TD No.:</div>
+                                <div className="flex items-center self-stretch rpfaas-print-small">{landTdNo || landTdArpNo || ''}</div>
+                                <div className="flex items-center self-stretch rpfaas-print-small-1 font-bold">ARP No.:</div>
+                                <div className="flex items-center self-stretch rpfaas-print-small">{landArpNo || ''}</div>
                             </div>
                         </td>
                     </tr>

@@ -24,7 +24,7 @@ const FIELD_LABELS: Record<string, string> = {
   completion_issued_on: "Completion Date", date_constructed: "Date Constructed",
   date_occupied: "Date Occupied", building_age: "Building Age",
   number_of_storeys: "No. of Storeys", total_floor_area: "Total Floor Area",
-  unit_cost: "Unit Cost", land_owner: "Land Owner", td_arp_no: "Land TD/ARP No.", land_area: "Land Area",
+  unit_cost: "Unit Cost", land_owner: "Land Owner", land_td_no: "Land TD No.", land_arp_no: "Land ARP No.", td_arp_no: "Land TD/ARP No.", land_area: "Land Area",
   roofing_material: "Roofing Material", flooring_material: "Flooring Material", wall_material: "Wall Material",
   selected_deductions: "Standard Deductions", market_value: "Market Value",
   actual_use: "Actual Use", assessment_level: "Assessment Level",
@@ -54,7 +54,7 @@ const FIELD_STEP: Record<string, number> = {
   type_of_building: 2, structure_type: 2, building_permit_no: 2, cct: 2,
   completion_issued_on: 2, date_constructed: 2, date_occupied: 2,
   building_age: 2, unit_cost: 2, number_of_storeys: 2, total_floor_area: 2,
-  land_owner: 2, td_arp_no: 2, land_area: 2,
+  land_owner: 2, land_td_no: 2, land_arp_no: 2, td_arp_no: 2, land_area: 2,
   // Step 3 — Structural materials
   roofing_material: 3, flooring_material: 3, wall_material: 3,
   // Step 4 — Deductions & valuation
