@@ -7,13 +7,13 @@ import { LAND_STEPS } from "@/app/land-other-improvements/fill/constants";
 import { ReviewCommentsFloat } from "@/components/review-comments-float";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import "@/app/styles/forms-fill.css";
-import { Button } from "@/components/ui/button";
 import { FormFillLayout } from "@/components/ui/form-fill-layout";
+import { SaveDraftButton } from "@/components/SaveDraftButton";
+import { FormLockBanner } from "@/components/ui/form-lock-banner";
 
 import { DeductionsTable, AdjustmentTable, SelectOption } from "./improvementsTable";
 import TotalImprovements from "./improvementsTable";
 
-import { Loader2, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { useFormLock } from "@/hooks/useFormLock";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -377,39 +377,22 @@ const LandImprovementsFormFillPage4 = () => {
     <FormFillLayout
       breadcrumbParent={{ label: "Land & Other Improvements", href: "/land-other-improvements/dashboard" }}
       pageTitle="Other Improvements"
-      contentClassName="max-w-4xl mx-auto"
       sidePanel={<ErrorBoundary><ReviewCommentsFloat draftId={draftId} /></ErrorBoundary>}
     >
-            <header className="flex items-center justify-between gap-4 mb-6">
+            <header className="rpfaas-fill-header flex items-center justify-between gap-4 mb-6">
               <div>
-                <h1 className="text-2xl font-bold tracking-tight">Fill-up Form: Other Improvements</h1>
+                <h1 className="rpfaas-fill-title">Fill-up Form: Other Improvements</h1>
                 <p className="text-sm text-muted-foreground">Manage land improvement deductions and deviations.</p>
               </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
+              <SaveDraftButton
                 onClick={() => form.handleSubmit(handleSaveDraft)()}
+                isSaving={isSavingDraft}
                 disabled={isSavingDraft || isSaving || locked || lockChecking}
-                className="shrink-0"
-              >
-                {isSavingDraft ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving...</> : "Save Draft"}
-              </Button>
+              />
             </header>
-            {lockChecking && (
-              <div className="flex items-center gap-2 mb-4 rounded-md border bg-muted px-4 py-3 text-sm text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Checking form availability…
-              </div>
-            )}
-            {!lockChecking && locked && (
-              <div className="flex items-center gap-2 mb-4 rounded-md border border-yellow-400/50 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
-                <Lock className="h-4 w-4 shrink-0" />
-                <span><strong>{lockedBy}</strong> is currently editing this form. You can view it but cannot make changes.</span>
-              </div>
-            )}
+            <FormLockBanner locked={locked} lockedBy={lockedBy} />
             <fieldset disabled={locked || lockChecking} className={`border-0 p-0 m-0 min-w-0 block${locked || lockChecking ? ' opacity-60' : ''}`}>
-            <form onSubmit={form.handleSubmit(handleNext)} className="space-y-8">
+            <form onSubmit={form.handleSubmit(handleNext)} className="rpfaas-fill-form rpfaas-fill-form-single space-y-6">
 
               <div data-comment-field="selected_deductions">
                 <DeductionsTable

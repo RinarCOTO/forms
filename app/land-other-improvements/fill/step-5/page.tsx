@@ -9,7 +9,8 @@ import { ErrorBoundary } from "@/components/ui/error-boundary";
 import "@/app/styles/forms-fill.css";
 import { Button } from "@/components/ui/button";
 import { FormFillLayout } from "@/components/ui/form-fill-layout";
-import { Loader2, Upload, X, ImageIcon, AlertTriangle, Info, Lock } from "lucide-react";
+import { FormLockBanner } from "@/components/ui/form-lock-banner";
+import { Loader2, Upload, X, ImageIcon, AlertTriangle, Info } from "lucide-react";
 import { toast } from "sonner";
 import { useFormLock } from "@/hooks/useFormLock";
 import {
@@ -460,26 +461,17 @@ function LandImprovementsFormFillPage5() {
         </Dialog>
       </>}
     >
-            <header className="rpfaas-fill-header mb-6">
-              <h1 className="rpfaas-fill-title">Fill-up Form: Supporting Documents</h1>
-              <p className="text-sm text-muted-foreground">
-                Upload the required supporting documents for this property assessment.
-                Files are stored securely and will be included in the preview and print.
-              </p>
+            <header className="rpfaas-fill-header flex items-center justify-between gap-4 mb-6">
+              <div>
+                <h1 className="rpfaas-fill-title">Fill-up Form: Supporting Documents</h1>
+                <p className="text-sm text-muted-foreground">
+                  Upload the required supporting documents for this property assessment.
+                  Files are stored securely and will be included in the preview and print.
+                </p>
+              </div>
             </header>
 
-            {lockChecking && (
-              <div className="flex items-center gap-2 mb-4 rounded-md border bg-muted px-4 py-3 text-sm text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Checking form availability…
-              </div>
-            )}
-            {!lockChecking && locked && (
-              <div className="flex items-center gap-2 mb-4 rounded-md border border-yellow-400/50 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
-                <Lock className="h-4 w-4 shrink-0" />
-                <span><strong>{lockedBy}</strong> is currently editing this form. You can view it but cannot make changes.</span>
-              </div>
-            )}
+            <FormLockBanner locked={locked} lockedBy={lockedBy} />
 
             {/* No-draft warning */}
             {!draftId && (

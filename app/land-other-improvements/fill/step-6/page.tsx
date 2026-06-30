@@ -11,9 +11,10 @@ import { Textarea } from "@/components/ui/textarea";
 import "@/app/styles/forms-fill.css";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { FormFillLayout } from "@/components/ui/form-fill-layout";
-import { Loader2, Lock } from "lucide-react";
+import { SaveDraftButton } from "@/components/SaveDraftButton";
+import { FormLockBanner } from "@/components/ui/form-lock-banner";
+import { FormSection } from "@/components/ui/form-section";
 import { toast } from "sonner";
 import { useFormLock } from "@/hooks/useFormLock";
 import { generateEffectivityYears } from "@/utils/form-helpers";
@@ -290,33 +291,16 @@ function LandImprovementsFormFillPage6() {
                 <h1 className="rpfaas-fill-title">Fill-up Form: Property Assessment</h1>
                 <p className="text-sm text-muted-foreground">Final summary of the land improvement assessment.</p>
               </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
+              <SaveDraftButton
                 onClick={handleSaveDraft}
+                isSaving={isSaving}
                 disabled={isSaving || locked || lockChecking}
-                className="shrink-0"
-              >
-                {isSaving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving...</> : "Save Draft"}
-              </Button>
+              />
             </header>
-            {lockChecking && (
-              <div className="flex items-center gap-2 mb-4 rounded-md border bg-muted px-4 py-3 text-sm text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Checking form availability…
-              </div>
-            )}
-            {!lockChecking && locked && (
-              <div className="flex items-center gap-2 mb-4 rounded-md border border-yellow-400/50 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
-                <Lock className="h-4 w-4 shrink-0" />
-                <span><strong>{lockedBy}</strong> is currently editing this form. You can view it but cannot make changes.</span>
-              </div>
-            )}
+            <FormLockBanner locked={locked} lockedBy={lockedBy} />
             <fieldset disabled={locked || lockChecking} className={`border-0 p-0 m-0 min-w-0 block${locked || lockChecking ? ' opacity-60' : ''}`}>
-            <form className="rpfaas-fill-form rpfaas-fill-form-single space-y-6">
-              <section className="rpfaas-fill-section">
-                <h2 className="rpfaas-fill-section-title mb-4">Property Assessment</h2>
+            <form className="rpfaas-fill-form rpfaas-fill-form-single space-y-6 px-4 py-6">
+              <FormSection title="Property Assessment">
 
                 <div className="rpfaas-fill-field space-y-1" data-comment-field="actual_use">
                   <Label className="rpfaas-fill-label" htmlFor="actual_use_p6">Actual Use</Label>
@@ -418,10 +402,10 @@ function LandImprovementsFormFillPage6() {
                     </SelectContent>
                   </Select>
                 </div>
-              </section>
+              </FormSection>
 
-              <section className="rpfaas-fill-section">
-                <div className="rpfaas-fill-field space-y-1 mt-4" data-comment-field="appraised_by">
+              <FormSection>
+                <div className="rpfaas-fill-field space-y-1" data-comment-field="appraised_by">
                   <Label className="rpfaas-fill-label" htmlFor="appraised_by_p6">Assessed/Appraised by:</Label>
                   <Select
                     value={appraisedBy}
@@ -459,7 +443,7 @@ function LandImprovementsFormFillPage6() {
                     rows={3}
                   />
                 </div>
-              </section>
+              </FormSection>
 
               <StepPagination
                 currentStep={6}
