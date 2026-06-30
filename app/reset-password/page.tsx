@@ -25,13 +25,15 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
 
-  // Detect Supabase recovery token in URL hash — switches to "set new password" mode
+  // Wait for Supabase to exchange the recovery token before switching to "set" mode
   useEffect(() => {
-    const hash = window.location.hash
-    if (hash.includes("type=recovery")) {
-      // Let Supabase SSR pick up the session from the hash automatically
-      setMode("set")
-    }
+    const supabase = createClient()
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") {
+        setMode("set")
+      }
+    })
+    return () => subscription.unsubscribe()
   }, [])
 
   const handleRequest = useCallback(async (e: React.FormEvent) => {
@@ -39,17 +41,22 @@ export default function ResetPasswordPage() {
     setLoading(true)
     setError("")
     setMessage("")
-    const res = await fetch("/api/auth/reset-password", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email }),
-    })
-    const data = await res.json()
-    setLoading(false)
-    if (res.ok) {
-      setMessage("Check your email for a password reset link.")
-    } else {
-      setError(data.message || "Something went wrong.")
+    try {
+      const res = await fetch("/api/auth/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        setMessage("Check your email for a password reset link.")
+      } else {
+        setError(data.message || "Something went wrong.")
+      }
+    } catch {
+      setError("Network error. Please try again.")
+    } finally {
+      setLoading(false)
     }
   }, [email])
 

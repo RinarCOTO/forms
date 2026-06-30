@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState, useCallback, Suspense, useRef, useMemo } from "react";
+import { useEffect, useState, useCallback, Suspense, useRef } from "react";
 import { StepPagination } from "@/components/ui/step-pagination";
 import { BUILDING_STEPS } from "@/app/building-other-structure/fill/constants";
 import { ReviewCommentsFloat } from "@/components/review-comments-float";
@@ -125,7 +125,7 @@ function BuildingOtherStructureFillPageContent() {
   }, []);
 
   const [transactionCode, setTransactionCode] = useState("");
-  const [arpSeq, setArpSeq] = useState("");
+  const [arpNo, setArpNo] = useState("");
   const [titleType, setTitleType] = useState("");
   const [titleNo, setTitleNo] = useState("");
   const [pin, setPin] = useState("");
@@ -147,18 +147,6 @@ function BuildingOtherStructureFillPageContent() {
   const ownerLoc = useLocationSelect("rpfaas_owner_address");
   const adminLoc = useLocationSelect("rpfaas_admin");
   const propLoc  = useLocationSelect("rpfaas_location", MOUNTAIN_PROVINCE_CODE);
-
-  const arpPrefix = useMemo(() => {
-    if (!propLoc.municipalityCode || !propLoc.barangayCode) return "";
-    const munPart = propLoc.municipalityCode.substring(4, 6);
-    const barPart = propLoc.barangayCode.substring(6).padStart(4, '0');
-    return `${munPart}-${barPart}`;
-  }, [propLoc.municipalityCode, propLoc.barangayCode]);
-
-  const arpNo = useMemo(
-    () => arpPrefix ? `${arpPrefix}-${arpSeq}` : arpSeq,
-    [arpPrefix, arpSeq]
-  );
 
   useEffect(() => {
     fetch('/api/auth/user')
@@ -187,10 +175,7 @@ function BuildingOtherStructureFillPageContent() {
               return;
             }
             if (data.transaction_code) setTransactionCode(data.transaction_code);
-            if (data.arp_no) {
-              const lastDash = (data.arp_no as string).lastIndexOf('-');
-              setArpSeq(lastDash !== -1 ? (data.arp_no as string).slice(lastDash + 1) : data.arp_no);
-            }
+            if (data.arp_no) setArpNo(data.arp_no);
             if (data.oct_tct_cloa_no) {
               const stored = data.oct_tct_cloa_no as string;
               const spaceIdx = stored.indexOf(' ');
@@ -379,7 +364,7 @@ function BuildingOtherStructureFillPageContent() {
           <FormSection title="Property Identification">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <TransactionCodeSelect value={transactionCode} onChange={setTransactionCode} codes={TRANSACTION_CODES} />
-              <ArpNoField arpPrefix={arpPrefix} arpSeq={arpSeq} onArpSeqChange={setArpSeq} />
+              <ArpNoField value={arpNo} onChange={setArpNo} />
               {transactionCode && transactionCode !== "DC" && (
                 <ErrorBoundary>
                   <PreviousTdBlock

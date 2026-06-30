@@ -58,7 +58,7 @@ interface TaxDecRecord {
 
 type Tab = "land" | "building" | "machinery";
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
 // ─── Tab config ───────────────────────────────────────────────────────────────
 
@@ -66,19 +66,19 @@ const TABS: { key: Tab; label: string; api: string; viewRoute: (id: number) => s
   {
     key: "land",
     label: "Land & Other Improvements",
-    api: "/api/faas/land-improvements",
+    api: "/api/faas/land-improvements?status=approved&limit=200",
     viewRoute: (id) => `/tax-declaration/land?id=${id}`,
   },
   {
     key: "building",
     label: "Building & Structures",
-    api: "/api/faas/building-structures",
+    api: "/api/faas/building-structures?status=approved&limit=200",
     viewRoute: (id) => `/tax-declaration/building?id=${id}`,
   },
   {
     key: "machinery",
     label: "Machinery",
-    api: "/api/faas/machinery",
+    api: "/api/faas/machinery?status=approved&limit=200",
     viewRoute: (id) => `/machinery/tax-declaration?id=${id}`,
   },
 ];
@@ -112,6 +112,7 @@ export default function TaxDeclarationPage() {
   const [selectedBarangays, setSelectedBarangays] = useState<string[]>([]);
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   // Fetch all tabs on mount
   useEffect(() => {
@@ -119,8 +120,9 @@ export default function TaxDeclarationPage() {
       fetch(api)
         .then((r) => r.json())
         .then((res) => {
-          const all: TaxDecRecord[] = res.data || res || [];
-          setData((prev) => ({ ...prev, [key]: all.filter((r) => r.status === "approved") }));
+          const raw = res.data ?? res;
+          const all: TaxDecRecord[] = Array.isArray(raw) ? raw : [];
+          setData((prev) => ({ ...prev, [key]: all }));
         })
         .catch(() => setData((prev) => ({ ...prev, [key]: [] })))
         .finally(() => setLoading((prev) => ({ ...prev, [key]: false })));
@@ -134,6 +136,7 @@ export default function TaxDeclarationPage() {
     setSelectedBarangays([]);
     setSearch("");
     setCurrentPage(1);
+    setPageSize(10);
   };
 
   const records = data[activeTab];
@@ -177,8 +180,8 @@ export default function TaxDeclarationPage() {
     return muniMatch && barangayMatch && searchMatch;
   });
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const paginated = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const paginated = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   return (
     <SidebarProvider>
@@ -365,14 +368,25 @@ export default function TaxDeclarationPage() {
 
                     {/* Pagination */}
                     <div className="flex items-center justify-between px-2 py-4 border-t">
-                      <p className="text-sm text-muted-foreground">
-                        {filtered.length === 0
-                          ? "0 row(s)"
-                          : `${(currentPage - 1) * PAGE_SIZE + 1}–${Math.min(
-                              currentPage * PAGE_SIZE,
-                              filtered.length
-                            )} of ${filtered.length} row(s)`}
-                      </p>
+                      <div className="flex items-center gap-3">
+                        <p className="text-sm text-muted-foreground">
+                          {filtered.length === 0
+                            ? "0 row(s)"
+                            : `${(currentPage - 1) * pageSize + 1}–${Math.min(
+                                currentPage * pageSize,
+                                filtered.length
+                              )} of ${filtered.length} row(s)`}
+                        </p>
+                        <select
+                          value={pageSize}
+                          onChange={(e) => { setPageSize(Number(e.target.value)); setCurrentPage(1); }}
+                          className="text-sm border rounded-md px-2 py-1 bg-background text-foreground"
+                        >
+                          {PAGE_SIZE_OPTIONS.map((n) => (
+                            <option key={n} value={n}>{n} / page</option>
+                          ))}
+                        </select>
+                      </div>
                       <div className="flex items-center gap-1">
                         <Button
                           variant="outline"

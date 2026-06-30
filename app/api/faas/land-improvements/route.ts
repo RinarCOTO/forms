@@ -11,6 +11,10 @@ function getAdminClient() {
   )
 }
 
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error)
+}
+
 export async function GET(request: NextRequest) {
   try {
     const userCtx = await getCurrentUserContext()
@@ -42,24 +46,27 @@ export async function GET(request: NextRequest) {
     }
 
     const PROVINCIAL_ROLES  = ['laoo', 'assistant_provincial_assessor', 'provincial_assessor'];
-    const HIDE_DRAFTS_ROLES = ['municipal_assessor', 'laoo', 'provincial_assessor', 'assistant_provincial_assessor'];
+    const MUNICIPAL_DASHBOARD_ROLES = ['municipal_tax_mapper', 'municipal_assessor'];
+    const HIDE_DRAFTS_ROLES = ['laoo', 'provincial_assessor', 'assistant_provincial_assessor'];
+    const OWN_WORK_STATUSES = ['draft', 'returned', 'returned_to_municipal'];
+    const HIDDEN_REVIEW_STATUSES = ['draft', 'returned'];
+    const ownWorkVisibilityFilter =
+      `status.not.in.(${HIDDEN_REVIEW_STATUSES.join(',')}),and(status.in.(${OWN_WORK_STATUSES.join(',')}),created_by.eq.${userCtx.userId})`
 
     if (searchParams.get('meta') === '1') {
       let mq = admin
         .from('land_improvements')
         .select('location_municipality, location_barangay')
-      if (userCtx.role === 'municipal_tax_mapper') {
-        mq = mq.or(`created_by.eq.${userCtx.userId},assigned_to.eq.${userCtx.userId}`)
+      if (MUNICIPAL_DASHBOARD_ROLES.includes(userCtx.role)) {
+        mq = userCtx.municipality
+          ? mq.or(`municipality.eq.${userCtx.municipality},location_municipality.ilike.${userCtx.municipality},created_by.eq.${userCtx.userId},assigned_to.eq.${userCtx.userId}`)
+          : mq.or(`created_by.eq.${userCtx.userId},assigned_to.eq.${userCtx.userId}`)
       } else {
         if (!userCtx.isAdmin && !PROVINCIAL_ROLES.includes(userCtx.role) && userCtx.municipality) {
-          mq = mq.eq('municipality', userCtx.municipality)
+          mq = mq.or(`municipality.eq.${userCtx.municipality},location_municipality.ilike.${userCtx.municipality}`)
         }
         if (HIDE_DRAFTS_ROLES.includes(userCtx.role)) {
-          if (userCtx.role === 'laoo') {
-            mq = mq.or(`and(status.neq.draft,status.neq.returned),and(status.eq.draft,created_by.eq.${userCtx.userId})`)
-          } else {
-            mq = mq.not('status', 'in', '("draft","returned")')
-          }
+          mq = mq.or(ownWorkVisibilityFilter)
         }
       }
       const { data: mData } = await mq
@@ -78,21 +85,19 @@ export async function GET(request: NextRequest) {
 
     let query = admin
       .from('land_improvements')
-      .select('id, owner_name, updated_at, status, municipality, arp_no, location_municipality, location_barangay, created_by, assigned_to, approved_at', { count: 'exact' })
+      .select('id, owner_name, updated_at, status, municipality, arp_no, location_municipality, location_barangay, created_by, assigned_to', { count: 'exact' })
       .order('updated_at', { ascending: false })
 
-    if (userCtx.role === 'municipal_tax_mapper') {
-      query = query.or(`created_by.eq.${userCtx.userId},assigned_to.eq.${userCtx.userId}`)
+    if (MUNICIPAL_DASHBOARD_ROLES.includes(userCtx.role)) {
+      query = userCtx.municipality
+        ? query.or(`municipality.eq.${userCtx.municipality},location_municipality.ilike.${userCtx.municipality},created_by.eq.${userCtx.userId},assigned_to.eq.${userCtx.userId}`)
+        : query.or(`created_by.eq.${userCtx.userId},assigned_to.eq.${userCtx.userId}`)
     } else {
       if (!userCtx.isAdmin && !PROVINCIAL_ROLES.includes(userCtx.role) && userCtx.municipality) {
-        query = query.eq('municipality', userCtx.municipality)
+        query = query.or(`municipality.eq.${userCtx.municipality},location_municipality.ilike.${userCtx.municipality}`)
       }
       if (HIDE_DRAFTS_ROLES.includes(userCtx.role)) {
-        if (userCtx.role === 'laoo') {
-          query = query.or(`and(status.neq.draft,status.neq.returned),and(status.eq.draft,created_by.eq.${userCtx.userId})`)
-        } else {
-          query = query.not('status', 'in', '("draft","returned")')
-        }
+        query = query.or(ownWorkVisibilityFilter)
       }
     }
 
@@ -109,9 +114,9 @@ export async function GET(request: NextRequest) {
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
     return NextResponse.json({ data: data ?? [], total: count ?? 0 })
-  } catch (error: any) {
+  } catch (error: unknown) {
     return NextResponse.json(
-      { error: 'Failed to fetch land improvements', details: error.message },
+      { error: 'Failed to fetch land improvements', details: getErrorMessage(error) },
       { status: 500 }
     )
   }
@@ -128,7 +133,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
 
     // Clean the data: remove undefined, null, and empty string values
-    const cleanedData = Object.entries(body).reduce((acc, [key, value]) => {
+    const cleanedData = Object.entries(body).reduce<Record<string, unknown>>((acc, [key, value]) => {
       if (value !== undefined && value !== null && value !== '' && value !== 'undefined') {
         if (['area', 'market_value', 'assessment_level', 'assessed_value'].includes(key)) {
           const numValue = parseFloat(value as string)
@@ -140,7 +145,7 @@ export async function POST(request: NextRequest) {
         }
       }
       return acc
-    }, {} as any)
+    }, {})
 
     // Stamp municipality and creator from user profile
     if (!userCtx.isAdmin && userCtx.municipality) {
@@ -162,7 +167,7 @@ export async function POST(request: NextRequest) {
     revalidateTag('form-counts', 'max')
 
     return NextResponse.json({ success: true, data })
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message || 'Unknown error' }, { status: 500 })
+  } catch (error: unknown) {
+    return NextResponse.json({ success: false, error: getErrorMessage(error) || 'Unknown error' }, { status: 500 })
   }
 }

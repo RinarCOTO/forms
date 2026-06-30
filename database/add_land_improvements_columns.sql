@@ -53,8 +53,10 @@ ALTER TABLE public.land_improvements
 
   -- Step 5 (Assessment)
   ADD COLUMN IF NOT EXISTS actual_use                VARCHAR(100),
+  ADD COLUMN IF NOT EXISTS tax_status                VARCHAR(20) DEFAULT 'taxable',
   ADD COLUMN IF NOT EXISTS amount_in_words           TEXT,
   ADD COLUMN IF NOT EXISTS effectivity_of_assessment DATE,
+  ADD COLUMN IF NOT EXISTS appraised_by              UUID REFERENCES auth.users(id),
   ADD COLUMN IF NOT EXISTS memoranda                 TEXT,
 
   -- Review workflow

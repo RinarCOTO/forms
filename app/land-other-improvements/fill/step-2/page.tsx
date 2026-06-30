@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { useSaveDraft } from "@/hooks/useSaveDraft";
 import { Loader2, Lock } from "lucide-react";
 import { FormFillLayout } from "@/components/ui/form-fill-layout";
+import { FormSection } from "@/components/ui/form-section";
 import { useFormLock } from "@/hooks/useFormLock";
 
 const FORM_NAME = "land-other-improvements-fill-2";
@@ -34,7 +35,7 @@ const LandOtherImprovementFormFillPage2 = () => {
         if (isDataApplied) {
             router.push("/error-page");
         }
-    }, []);
+    }, [router]);
 
     useEffect(() => {
         if (!draftId) return;
@@ -61,8 +62,8 @@ const LandOtherImprovementFormFillPage2 = () => {
     const { handleSave, isSaving } = useSaveDraft({
         getFormData: () => ({
             north_property: NorthProperty,
-            south_property: SouthProperty,
             east_property: EastProperty,
+            south_property: SouthProperty,
             west_property: WestProperty,
         }),
         draftId,
@@ -115,24 +116,26 @@ const LandOtherImprovementFormFillPage2 = () => {
                         <form id={`form_${FORM_NAME}_main`} onSubmit={handleSubmit}
                         className="rpfaas-fill-form rpfaas-fill-form-single space-y-6"
                         >
-                            <section className="rpfaas-fill-section">
-                                <div className="rpfaas-fill-field space-y-1">
-                                    <Label className="rpfaas-fill-label">North</Label>
-                                    <Input value={NorthProperty} onChange={(e) => setNorthProperty(e.target.value)} className="rpfaas-fill-input" />
+                            <FormSection title="Boundaries">
+                                <div className="grid gap-4 md:grid-cols-2">
+                                    <div className="rpfaas-fill-field space-y-1">
+                                        <Label className="rpfaas-fill-label">North</Label>
+                                        <Input value={NorthProperty} onChange={(e) => setNorthProperty(e.target.value)} className="rpfaas-fill-input" />
+                                    </div>
+                                    <div className="rpfaas-fill-field space-y-1">
+                                        <Label className="rpfaas-fill-label">East</Label>
+                                        <Input value={EastProperty} onChange={(e) => setEastProperty(e.target.value)} className="rpfaas-fill-input" />
+                                    </div>
+                                    <div className="rpfaas-fill-field space-y-1">
+                                        <Label className="rpfaas-fill-label">South</Label>
+                                        <Input value={SouthProperty} onChange={(e) => setSouthProperty(e.target.value)} className="rpfaas-fill-input" />
+                                    </div>
+                                    <div className="rpfaas-fill-field space-y-1">
+                                        <Label className="rpfaas-fill-label">West</Label>
+                                        <Input value={WestProperty} onChange={(e) => setWestProperty(e.target.value)} className="rpfaas-fill-input" />
+                                    </div>
                                 </div>
-                                <div className="rpfaas-fill-field space-y-1">
-                                    <Label className="rpfaas-fill-label">South</Label>
-                                    <Input value={SouthProperty} onChange={(e) => setSouthProperty(e.target.value)} className="rpfaas-fill-input" />
-                                </div>
-                                <div className="rpfaas-fill-field space-y-1">
-                                    <Label className="rpfaas-fill-label">East</Label>
-                                    <Input value={EastProperty} onChange={(e) => setEastProperty(e.target.value)} className="rpfaas-fill-input" />
-                                </div>
-                                <div className="rpfaas-fill-field space-y-1">
-                                    <Label className="rpfaas-fill-label">West</Label>
-                                    <Input value={WestProperty} onChange={(e) => setWestProperty(e.target.value)} className="rpfaas-fill-input" />
-                                </div>
-                            </section>
+                            </FormSection>
                             <StepPagination
                                 currentStep={2}
                                 draftId={draftId}

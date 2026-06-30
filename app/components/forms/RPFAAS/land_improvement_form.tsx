@@ -232,13 +232,13 @@ const LandImprovementForm = ({ data }: { data: LandImprovementFormData }) => {
             <td>North:</td>
             <td colSpan={3}>{fmt(data.north_property)}</td>
           </tr>
-          <tr data-field="south_property" style={{ height: "2rem" }}>
-            <td>South:</td>
-            <td colSpan={3}>{fmt(data.south_property)}</td>
-          </tr>
           <tr data-field="east_property" style={{ height: "2rem" }}>
             <td>East:</td>
             <td colSpan={3}>{fmt(data.east_property)}</td>
+          </tr>
+          <tr data-field="south_property" style={{ height: "2rem" }}>
+            <td>South:</td>
+            <td colSpan={3}>{fmt(data.south_property)}</td>
           </tr>
           <tr data-field="west_property" style={{ height: "2rem" }}>
             <td>West:</td>

@@ -23,8 +23,8 @@ import { useFormData } from "@/hooks/useFormData";
 import { municipalityData } from "@/app/smv/land-other-improvements/data";
 
 // ─── Empty choice arrays — data to be added later ────────────────────────────
-const DEDUCTION_CHOICES: any[] = [];
-const ADDITIONAL_PERCENT_CHOICES: any[] = [];
+const DEDUCTION_CHOICES: SelectOption[] = [];
+const ADDITIONAL_PERCENT_CHOICES: SelectOption[] = [];
 
 // ─── Agricultural Land Adjustment Factors (RA 7160 / RPAM) ──────────────────
 // Category 1: Type of Road
@@ -56,6 +56,14 @@ const API_ENDPOINT = "/api/faas/land-improvements";
 const FormSchema = z.object({
   deductions: z.array(z.string()),
 });
+
+function safeSetLocalStorage(key: string, value: string) {
+  try {
+    localStorage.setItem(key, value);
+  } catch (error) {
+    console.warn(`Skipping localStorage write for ${key}:`, error);
+  }
+}
 
 const LandImprovementsFormFillPage4 = () => {
   const router = useRouter();
@@ -124,6 +132,14 @@ const LandImprovementsFormFillPage4 = () => {
     resolver: zodResolver(FormSchema),
     defaultValues: { deductions: [] },
   });
+
+  useEffect(() => {
+    try {
+      localStorage.removeItem("land_p4");
+    } catch {
+      // Best-effort cleanup only.
+    }
+  }, []);
 
   // ── Data Loading ────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -213,7 +229,7 @@ const LandImprovementsFormFillPage4 = () => {
 
     const standardDeductionTotal = selections.reduce<number>((acc, curr) => {
       if (!curr) return acc;
-      const opt = effectiveDeductionChoices.find((c) => String(c.id) === String(curr)) as any;
+      const opt = effectiveDeductionChoices.find((c) => String(c.id) === String(curr));
       if (!opt) return acc;
 
       let amount = 0;
@@ -228,7 +244,7 @@ const LandImprovementsFormFillPage4 = () => {
     let additionalPercentTotal = 0;
     additionalPercentSelections.forEach((id, idx) => {
       if (!id) return;
-      const opt = ADDITIONAL_PERCENT_CHOICES.find((o: any) => String(o.id) === String(id));
+      const opt = ADDITIONAL_PERCENT_CHOICES.find((o) => String(o.id) === String(id));
       const area = additionalPercentAreas[idx] || 0;
       if (opt?.percentage) {
         additionalPercentTotal += ((unitCost * opt.percentage) / 100) * area;
@@ -265,27 +281,12 @@ const LandImprovementsFormFillPage4 = () => {
     additionalPercentSelections,
     additionalPercentAreas,
     additionalFlatRateSelections,
-    additionalFlatRateAreas,
   ]);
 
   // ── Handle Next ─────────────────────────────────────────────────────────────
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleNext = useCallback(async (_data: any) => {
+  const handleNext = useCallback(async () => {
     setIsSaving(true);
     try {
-      localStorage.setItem("land_market_value_p4", adjustedMarketValue.toString());
-
-      const p4LocalStorageData = {
-        selected_deductions: selections.filter(Boolean),
-        overall_comments: comments,
-        additional_percentage_choice: additionalPercentSelections.filter(Boolean).join(","),
-        additional_percentage_areas: additionalPercentAreas,
-        additional_flat_rate_choice: additionalFlatRateSelections.filter(Boolean).join(","),
-        additional_flat_rate_areas: additionalFlatRateAreas,
-        market_value: adjustedMarketValue,
-      };
-      localStorage.setItem("land_p4", JSON.stringify(p4LocalStorageData));
-
       const formData = {
         status: "draft",
         selected_deductions: selections.filter(Boolean),
@@ -315,7 +316,8 @@ const LandImprovementsFormFillPage4 = () => {
         const result = await response.json();
         if (result.data?.id) {
           setIsDirty(false);
-          localStorage.setItem("land_draft_id", result.data.id.toString());
+          safeSetLocalStorage("land_market_value_p4", adjustedMarketValue.toString());
+          safeSetLocalStorage("land_draft_id", result.data.id.toString());
           router.push(`/land-other-improvements/fill/step-5?id=${result.data.id}`);
         }
       }
@@ -324,24 +326,12 @@ const LandImprovementsFormFillPage4 = () => {
     } finally {
       setIsSaving(false);
     }
-  }, [adjustedMarketValue, financialSummary, selections, comments, additionalPercentSelections, additionalPercentAreas, additionalFlatRateSelections, additionalFlatRateAreas, draftId, router]);
+  }, [adjustedMarketValue, financialSummary, selections, selectedKinds, quantities, comments, additionalPercentSelections, additionalPercentAreas, additionalFlatRateSelections, additionalFlatRateAreas, draftId, router]);
 
   // ── Handle Save Draft ───────────────────────────────────────────────────────
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleSaveDraft = useCallback(async (_data: any) => {
+  const handleSaveDraft = useCallback(async () => {
     setIsSavingDraft(true);
     try {
-      localStorage.setItem("land_market_value_p4", adjustedMarketValue.toString());
-      localStorage.setItem("land_p4", JSON.stringify({
-        selected_deductions: selections.filter(Boolean),
-        overall_comments: comments,
-        additional_percentage_choice: additionalPercentSelections.filter(Boolean).join(","),
-        additional_percentage_areas: additionalPercentAreas,
-        additional_flat_rate_choice: additionalFlatRateSelections.filter(Boolean).join(","),
-        additional_flat_rate_areas: additionalFlatRateAreas,
-        market_value: adjustedMarketValue,
-      }));
-
       const formData = {
         status: "draft",
         selected_deductions: selections.filter(Boolean),
@@ -369,7 +359,8 @@ const LandImprovementsFormFillPage4 = () => {
 
       if (response.ok) {
         const result = await response.json();
-        if (result.data?.id) localStorage.setItem("land_draft_id", result.data.id.toString());
+        if (result.data?.id) safeSetLocalStorage("land_draft_id", result.data.id.toString());
+        safeSetLocalStorage("land_market_value_p4", adjustedMarketValue.toString());
         setIsDirty(false);
         toast.success("Draft saved successfully.");
       } else {
@@ -380,7 +371,7 @@ const LandImprovementsFormFillPage4 = () => {
     } finally {
       setIsSavingDraft(false);
     }
-  }, [adjustedMarketValue, financialSummary, selections, comments, additionalPercentSelections, additionalPercentAreas, additionalFlatRateSelections, additionalFlatRateAreas, draftId]);
+  }, [adjustedMarketValue, financialSummary, selections, selectedKinds, quantities, comments, additionalPercentSelections, additionalPercentAreas, additionalFlatRateSelections, additionalFlatRateAreas, draftId]);
 
   return (
     <FormFillLayout

@@ -106,8 +106,8 @@ const FIELD_LABELS: Record<string, string> = {
   location_municipality:   "Municipality",
   location_barangay:       "Barangay",
   north_property:          "North",
-  south_property:          "South",
   east_property:           "East",
+  south_property:          "South",
   west_property:           "West",
   classification:          "Classification",
   sub_classification:      "Sub-Classification",
@@ -168,14 +168,12 @@ function PreviewFormPage() {
   const [canSubmit, setCanSubmit] = useState(false);
   const [canViewHistory, setCanViewHistory] = useState(false);
   const [canPrint, setCanPrint] = useState(false);
-  const [userRole, setUserRole] = useState<string | null>(null);
   useEffect(() => {
     fetch("/api/users/permissions")
       .then((r) => r.json())
       .then((d) => {
         console.log('[preview] permissions:', d);
         console.log('[preview] canViewHistory:', HISTORY_ALLOWED_ROLES.includes(d?.role));
-        if (d?.role) setUserRole(d.role);
         if (d?.role && SUBMIT_ALLOWED_ROLES.includes(d.role)) setCanSubmit(true);
         if (d?.role && HISTORY_ALLOWED_ROLES.includes(d.role)) setCanViewHistory(true);
         if (d?.role && PRINT_ALLOWED_ROLES.includes(d.role)) setCanPrint(true);

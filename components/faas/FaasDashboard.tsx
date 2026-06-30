@@ -88,6 +88,7 @@ export function FaasDashboard({ config }: { config: FaasDashboardConfig }) {
   const [submissions, setSubmissions] = useState<FormSubmission[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedMunicipalities, setSelectedMunicipalities] = useState<string[]>([]);
   const [selectedBarangays, setSelectedBarangays] = useState<string[]>([]);
@@ -119,6 +120,7 @@ export function FaasDashboard({ config }: { config: FaasDashboardConfig }) {
     barangays: string[],
   ) => {
     setLoading(true);
+    setFetchError(null);
     try {
       const params = new URLSearchParams({ page: String(page), limit: String(PAGE_SIZE) });
       if (searchVal)           params.set('search', searchVal);
@@ -130,9 +132,14 @@ export function FaasDashboard({ config }: { config: FaasDashboardConfig }) {
         setSubmissions(json?.data ?? json ?? []);
         setTotal(json?.total ?? 0);
       } else {
+        const errorJson = await res.json().catch(() => null);
+        setFetchError(errorJson?.error ?? errorJson?.details ?? `Request failed (${res.status})`);
         setSubmissions([]); setTotal(0);
       }
-    } catch { setSubmissions([]); setTotal(0); }
+    } catch {
+      setFetchError('Unable to load submissions. Please refresh and try again.');
+      setSubmissions([]); setTotal(0);
+    }
     finally { setLoading(false); }
   }, [config.apiPath]);
 
@@ -522,6 +529,10 @@ export function FaasDashboard({ config }: { config: FaasDashboardConfig }) {
                 {loading ? (
                   <div className="flex items-center justify-center py-12">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                ) : fetchError ? (
+                  <div className="rounded-md border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
+                    {fetchError}
                   </div>
                 ) : submissions.length === 0 ? (
                   <div className="text-center py-12">

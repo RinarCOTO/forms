@@ -66,6 +66,26 @@ function formatWithCommas(num: number): string {
   return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function safeSetLocalStorage(key: string, value: string) {
+  try {
+    localStorage.setItem(key, value);
+  } catch (error) {
+    console.warn(`Skipping localStorage write for ${key}:`, error);
+  }
+}
+
+function yearToDateString(year: string) {
+  return /^\d{4}$/.test(year) ? `${year}-01-01` : year;
+}
+
+function dateStringToYear(value: string) {
+  return value.length >= 4 ? value.slice(0, 4) : value;
+}
+
 // Roles that see a dropdown so they can select the actual appraiser
 const SELECTABLE_APPRAISER_ROLES = [
   'municipal_tax_mapper',
@@ -176,7 +196,7 @@ function LandImprovementsFormFillPage6() {
         if (data.market_value) setMarketValue(parseFloat(data.market_value));
         if (data.appraised_by) setAppraisedBy(String(data.appraised_by));
         if (data.memoranda) setMemoranda(data.memoranda);
-        if (data.effectivity_of_assessment) setEffectivityYear(String(data.effectivity_of_assessment));
+        if (data.effectivity_of_assessment) setEffectivityYear(dateStringToYear(String(data.effectivity_of_assessment)));
         if (data.tax_status === "taxable" || data.tax_status === "exempt") setTaxStatus(data.tax_status);
       } catch {
         // ignore
@@ -199,15 +219,8 @@ function LandImprovementsFormFillPage6() {
     if (appraisedBy) formData.appraised_by = appraisedBy;
     if (memoranda) formData.memoranda = memoranda;
     if (effectivityYear) {
-      formData.effectivity_of_assessment = effectivityYear;
-      localStorage.setItem("land_effectivity_of_assessment_p5", effectivityYear);
+      formData.effectivity_of_assessment = yearToDateString(effectivityYear);
     }
-
-    localStorage.setItem("land_assessment_level_p5", assessmentLevel);
-    localStorage.setItem("land_assessed_value_p5", assessedValue.toString());
-    localStorage.setItem("land_actual_use_p5", classification);
-    localStorage.setItem("land_tax_status_p5", taxStatus);
-    if (appraisedBy) localStorage.setItem("land_appraised_by_p5", appraisedBy);
 
     const currentDraftId = draftId || localStorage.getItem("land_draft_id");
     const method = currentDraftId ? "PUT" : "POST";
@@ -219,10 +232,25 @@ function LandImprovementsFormFillPage6() {
       body: JSON.stringify(formData),
     });
 
-    if (!response.ok) throw new Error("Failed to save assessment.");
+    if (!response.ok) {
+      let message = "Failed to save assessment.";
+      try {
+        const error = await response.json();
+        message = error.details || error.error || error.message || message;
+      } catch {
+        // keep default message
+      }
+      throw new Error(message);
+    }
     const result = await response.json();
-    const id = result.data?.id?.toString() ?? null;
-    if (id) localStorage.setItem("land_draft_id", id);
+    const id = result.data?.id?.toString() ?? currentDraftId ?? null;
+    if (id) safeSetLocalStorage("land_draft_id", id);
+    if (effectivityYear) safeSetLocalStorage("land_effectivity_of_assessment_p5", effectivityYear);
+    safeSetLocalStorage("land_assessment_level_p5", assessmentLevel);
+    safeSetLocalStorage("land_assessed_value_p5", assessedValue.toString());
+    safeSetLocalStorage("land_actual_use_p5", classification);
+    safeSetLocalStorage("land_tax_status_p5", taxStatus);
+    if (appraisedBy) safeSetLocalStorage("land_appraised_by_p5", appraisedBy);
     return id;
   }, [classification, taxStatus, marketValue, assessmentLevel, assessedValue, amountInWords, effectivityYear, appraisedBy, memoranda, draftId]);
 
@@ -231,8 +259,8 @@ function LandImprovementsFormFillPage6() {
     try {
       await saveData();
       toast.success("Draft saved successfully.");
-    } catch {
-      toast.error("Error saving. Please try again.");
+    } catch (error) {
+      toast.error(getErrorMessage(error) || "Error saving. Please try again.");
     } finally {
       setIsSaving(false);
     }
@@ -243,8 +271,8 @@ function LandImprovementsFormFillPage6() {
     try {
       const id = await saveData();
       if (id) router.push(`/land-other-improvements/fill/preview-form?id=${id}`);
-    } catch {
-      toast.error("Error saving. Please try again.");
+    } catch (error) {
+      toast.error(getErrorMessage(error) || "Error saving. Please try again.");
     } finally {
       setIsSaving(false);
     }

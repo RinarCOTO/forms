@@ -28,6 +28,23 @@ const LAND_CLASSIFICATION_DESCRIPTIONS: Record<string, string> = {
   special: "S – Special Purpose: Lands actually, directly, and exclusively used for educational, cultural, scientific, hospital, religious, charitable, or government purposes — often granted a lower assessment level or are tax-exempt.",
 };
 
+const LAND_CLASSIFICATION_OPTIONS = [
+  { id: "residential", label: "Residential" },
+  { id: "agricultural", label: "Agricultural" },
+  { id: "commercial", label: "Commercial" },
+  { id: "industrial", label: "Industrial" },
+  { id: "mineral", label: "Mineral" },
+  { id: "timberland", label: "Timberland" },
+  { id: "special", label: "Special" },
+] as const;
+
+const NON_AGRICULTURAL_SMV_DATA_CATEGORIES = ["commercial", "residential", "industrial"] as const;
+type NonAgriculturalSmvDataCategory = (typeof NON_AGRICULTURAL_SMV_DATA_CATEGORIES)[number];
+
+function hasNonAgriculturalSmvDataRows(category: string): category is NonAgriculturalSmvDataCategory {
+    return NON_AGRICULTURAL_SMV_DATA_CATEGORIES.includes(category as NonAgriculturalSmvDataCategory);
+}
+
 const FORM_NAME = "land-other-improvements-fill-3";
 
 const LandOtherImprovementFormFillPage3 = () => {
@@ -44,12 +61,8 @@ const LandOtherImprovementFormFillPage3 = () => {
     // Load municipality from draft (saved in step 1) to filter SMV categories
     const [municipality, setMunicipality] = useState("");
 
-    // Derive which categories have SMV data for this municipality
+    // Derive SMV-backed sub-classifications for the selected municipality.
     const munKey = municipality.toLowerCase();
-    const SMV_CATEGORIES = ["commercial", "residential", "agricultural", "industrial"] as const;
-    const availableCategories = SMV_CATEGORIES.filter(
-        (cat) => (municipalityData[munKey]?.[cat]?.length ?? 0) > 0
-    );
 
     // Derive sub-classification options from the selected classification's SMV rows
     // e.g. besao + residential → ["R-1", "R-2", "R-3", "R-4"]
@@ -58,7 +71,9 @@ const LandOtherImprovementFormFillPage3 = () => {
     const subClassificationOptions = classification
         ? classification === "agricultural"
             ? (municipalityData[munKey]?.agricultural ?? []).map((row) => row.landType)
-            : (municipalityData[munKey]?.[classification as "commercial" | "residential" | "industrial"] ?? []).map((row) => row.subClassification)
+            : hasNonAgriculturalSmvDataRows(classification)
+                ? (municipalityData[munKey]?.[classification] ?? []).map((row) => row.subClassification)
+                : []
         : [];
     // Build land class options (1, 2, 3, 4) from the selected agricultural row.
     // Only include entries where the price is not "-" (e.g. Cogon Land only has "first").
@@ -75,14 +90,15 @@ const LandOtherImprovementFormFillPage3 = () => {
 
     // Derive unit value from the selected sub-classification + land class.
     // For agricultural: use row[landClass] (e.g. row["first"] = "₱ 63,480.00").
-    // For commercial/residential: use year2012 from the matching sub-classification row.
+    // For commercial/residential/industrial: use year2012 from the matching sub-classification row.
     const unitValue = (() => {
         if (!classification || !subClassification) return "";
         if (classification === "agricultural") {
             const row = (municipalityData[munKey]?.agricultural ?? []).find((r) => r.landType === subClassification);
             return landClass ? (row?.[landClass as typeof classKeys[number]] ?? "") : "";
         }
-        const row = (municipalityData[munKey]?.[classification as "commercial" | "residential" | "industrial"] ?? []).find((r) => r.subClassification === subClassification);
+        if (!hasNonAgriculturalSmvDataRows(classification)) return "";
+        const row = (municipalityData[munKey]?.[classification] ?? []).find((r) => r.subClassification === subClassification);
         return row?.year2012 ?? "";
     })();
 
@@ -95,19 +111,12 @@ const baseMarketValue = (() => {
     return Math.round(raw / 10) * 10;
 })();
 
-    // Auto-select when there is only one option (e.g. commercial → C-1)
-    useEffect(() => {
-        if (subClassificationOptions.length === 1) {
-            setSubClassification(subClassificationOptions[0]);
-        }
-    }, [subClassificationOptions.length, classification]);
-
     useEffect(() => {
         const isDataApplied = checkIfDataIsApplied();
         if (isDataApplied) {
             router.push("/error-page");
         }
-    }, []);
+    }, [router]);
 
     // Load saved values from the draft
     useEffect(() => {
@@ -209,17 +218,12 @@ const baseMarketValue = (() => {
                                                 setSubClassification("");
                                                 setLandClass("");
                                             }}
-                                            disabled={availableCategories.length === 0}
-                                            className="rpfaas-fill-input appearance-none w-full disabled:opacity-50 disabled:cursor-not-allowed"
+                                            className="rpfaas-fill-input appearance-none w-full"
                                         >
-                                            <option value="">
-                                                {availableCategories.length === 0
-                                                    ? "No SMV data for this municipality"
-                                                    : "Select classification"}
-                                            </option>
-                                            {availableCategories.map((cat) => (
-                                                <option key={cat} value={cat}>
-                                                    {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                                            <option value="">Select classification</option>
+                                            {LAND_CLASSIFICATION_OPTIONS.map((classificationOption) => (
+                                                <option key={classificationOption.id} value={classificationOption.id}>
+                                                    {classificationOption.label}
                                                 </option>
                                             ))}
                                         </select>
