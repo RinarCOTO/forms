@@ -277,7 +277,7 @@ export default function TaxDeclarationLand({
                     </div>
                     <div className="flex gap-2">
                         <div className="shrink-0 w-28">Assessed Value:</div>
-                        <div className="border-b border-black flex-1 text-center">{fmt(data.assessed_value)}</div>
+                        <div className="border-b border-black flex-1 text-center">{fmtNumber(data.assessed_value)}</div>
                     </div>
                 </div>
                 <div className="grid grid-cols-3 gap-3">
@@ -285,7 +285,7 @@ export default function TaxDeclarationLand({
                     <div></div>
                     <div className="flex gap-2">
                         <div className="shrink-0 w-28">Market Value:</div>
-                        <div className="border-b border-black flex-1 text-center">{fmt(data.market_value)}</div>
+                        <div className="border-b border-black flex-1 text-center">{fmtNumber(data.market_value)}</div>
                     </div>
                 </div>
             </div>
