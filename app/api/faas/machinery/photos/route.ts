@@ -3,6 +3,8 @@ import { createClient as createAdminClient } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/server';
 
 const BUCKET = 'machinery-photos';
+const MAX_STORED_UPLOAD_BYTES = 10 * 1024 * 1024;
+const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
 
 const VALID_PHOTO_TYPES = [
   'machinery_photo',
@@ -41,6 +43,20 @@ export async function POST(req: NextRequest) {
     if (!file || !machineryId || !photoType) {
       return NextResponse.json(
         { success: false, error: 'file, machineryId, and photoType are required' },
+        { status: 400 }
+      );
+    }
+
+    if (!ALLOWED_FILE_TYPES.includes(file.type)) {
+      return NextResponse.json(
+        { success: false, error: 'Only JPG, PNG, WebP, or PDF files are allowed.' },
+        { status: 400 }
+      );
+    }
+
+    if (file.size > MAX_STORED_UPLOAD_BYTES) {
+      return NextResponse.json(
+        { success: false, error: 'File must be under 10 MB after compression.' },
         { status: 400 }
       );
     }

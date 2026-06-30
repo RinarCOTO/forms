@@ -10,6 +10,10 @@ import "@/app/styles/forms-fill.css";
 // Third-party
 import { Loader2, Upload, X, ImageIcon, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
+import {
+  formatFileSize,
+  prepareSupportingDocumentForUpload,
+} from "@/utils/image-compression";
 
 // UI components
 import { Button } from "@/components/ui/button";
@@ -209,7 +213,7 @@ function PhotoUploadCard({
                 <><Upload className="h-4 w-4 mr-2" />Choose File</>
               )}
             </Button>
-            <p className="text-xs text-muted-foreground mt-2">JPG, PNG, WebP, or PDF — max 10 MB</p>
+            <p className="text-xs text-muted-foreground mt-2">JPG, PNG, WebP, or PDF — images auto-compress, PDF max 10 MB</p>
           </div>
         )}
       </div>
@@ -275,21 +279,27 @@ function MachineryStep3Content() {
       toast.error("Please save the form in a previous step before uploading files.");
       return;
     }
-    const ALLOWED = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
-    if (!ALLOWED.includes(file.type)) { toast.error("Only JPG, PNG, WebP, or PDF files are allowed."); return; }
-    if (file.size > 10 * 1024 * 1024) { toast.error("File must be under 10 MB."); return; }
-
     setUploading((prev) => ({ ...prev, [photoType]: true }));
     try {
+      const prepared = await prepareSupportingDocumentForUpload(file);
+      if (!prepared.ok) {
+        toast.error(prepared.error);
+        return;
+      }
+
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("file", prepared.file);
       formData.append("machineryId", draftId);
       formData.append("photoType", photoType);
 
       const res = await fetch("/api/faas/machinery/photos", { method: "POST", body: formData });
       const result = await res.json();
       if (result.success) {
-        toast.success("File uploaded successfully.");
+        toast.success(
+          prepared.compressed
+            ? `Image compressed from ${formatFileSize(prepared.originalSize)} to ${formatFileSize(prepared.file.size)} and uploaded.`
+            : "File uploaded successfully."
+        );
         await loadPhotos(draftId);
       } else {
         toast.error("Upload failed: " + (result.error ?? "Unknown error"));

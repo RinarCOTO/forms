@@ -4,6 +4,14 @@
 
 ---
 
+## Later Storage Option
+
+- Keep Supabase as the database/auth source of truth, but consider moving uploaded images and PDFs to Backblaze B2 when Supabase Storage capacity becomes a bottleneck.
+- New uploads can be routed to Backblaze behind environment variables while existing Supabase Storage files remain readable during a migration period.
+- Keep client-side image compression enabled either way, because smaller files reduce storage and bandwidth costs.
+
+---
+
 ## Project Structure (Key Paths)
 
 ```

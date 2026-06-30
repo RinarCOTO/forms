@@ -16,6 +16,10 @@ import { toast } from "sonner";
 import { useFormLock } from "@/hooks/useFormLock";
 import { FormLockBanner } from "@/components/ui/form-lock-banner";
 import {
+  formatFileSize,
+  prepareSupportingDocumentForUpload,
+} from "@/utils/image-compression";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -254,7 +258,7 @@ function PhotoUploadCard({
             )}
           </Button>
           <p className="text-xs text-muted-foreground mt-2">
-            JPG, PNG, WebP, or PDF — max 10 MB
+            JPG, PNG, WebP, or PDF — images auto-compress, PDF max 10 MB
           </p>
         </div>
       )}
@@ -340,20 +344,16 @@ function BuildingStructureFormFillPage5() {
         return;
       }
 
-      const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
-      if (!ALLOWED_TYPES.includes(file.type)) {
-        toast.error('Only JPG, PNG, WebP, or PDF files are allowed.');
-        return;
-      }
-      if (file.size > 10 * 1024 * 1024) {
-        toast.error('File must be under 10 MB.');
-        return;
-      }
-
       setUploading((prev) => ({ ...prev, [photoType]: true }));
       try {
+        const prepared = await prepareSupportingDocumentForUpload(file);
+        if (!prepared.ok) {
+          toast.error(prepared.error);
+          return;
+        }
+
         const formData = new FormData();
-        formData.append("file", file);
+        formData.append("file", prepared.file);
         formData.append("buildingStructureId", draftId);
         formData.append("photoType", photoType);
 
@@ -364,7 +364,11 @@ function BuildingStructureFormFillPage5() {
         const result = await res.json();
 
         if (result.success) {
-          toast.success("Image uploaded successfully.");
+          toast.success(
+            prepared.compressed
+              ? `Image compressed from ${formatFileSize(prepared.originalSize)} to ${formatFileSize(prepared.file.size)} and uploaded.`
+              : "Image uploaded successfully."
+          );
           // Refresh the photo list to get the new signed URL
           await loadPhotos(draftId);
         } else {

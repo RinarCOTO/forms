@@ -46,6 +46,7 @@ export interface LandImprovementFormData {
   assessed_value?: string | number;
   amount_in_words?: string;
   effectivity_of_assessment?: string;
+  tax_status?: string;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -58,8 +59,11 @@ function fmt(val: string | number | undefined | null): string {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function TaxDeclarationLand({ data = {} }: { data?: LandImprovementFormData }) {
+    const isTaxable = data.tax_status === "taxable";
+    const isExempt = data.tax_status === "exempt";
+
     return (
-        <div className="rpfaas-print space-y-3 tax-dec-body" style={{ backgroundColor: "white" }}>
+        <div className="rpfaas-print space-y-3 tax-dec-body tax-dec-land" style={{ backgroundColor: "white" }}>
             <h1 className="text-lg font-bold text-center uppercase mb-1 tax-dec-title">
                 Tax Declaration of Real Property
             </h1>
@@ -150,12 +154,12 @@ export default function TaxDeclarationLand({ data = {} }: { data?: LandImproveme
                     <div className="border-b border-black flex-1 font-bold">{fmt(data.north_property)}</div>
                 </div>
                 <div className="flex gap-2">
-                    <div className="w-12 shrink-0">South</div>
-                    <div className="border-b border-black flex-1 font-bold">{fmt(data.south_property)}</div>
-                </div>
-                <div className="flex gap-2">
                     <div className="w-12 shrink-0">East</div>
                     <div className="border-b border-black flex-1 font-bold">{fmt(data.east_property)}</div>
+                </div>
+                <div className="flex gap-2">
+                    <div className="w-12 shrink-0">South</div>
+                    <div className="border-b border-black flex-1 font-bold">{fmt(data.south_property)}</div>
                 </div>
                 <div className="flex gap-2">
                     <div className="w-12 shrink-0">West</div>
@@ -220,6 +224,8 @@ export default function TaxDeclarationLand({ data = {} }: { data?: LandImproveme
             </section>
 
             <TaxDecFooter
+                taxable={isTaxable}
+                exempt={isExempt}
                 effectivityOfAssessment={data.effectivity_of_assessment}
                 amountInWords={data.amount_in_words}
             />

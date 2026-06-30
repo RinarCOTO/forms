@@ -109,6 +109,9 @@ export interface RPFAASFormData {
     amountInWords: string;
     effectivityOfAssessment: string;
     appraisedById: string;
+    submittedAt: string;
+    municipalSignedAt: string;
+    provincialSignedAt: string;
     municipalReviewerId: string;
     provincialReviewerId: string;
     memoranda: string;
