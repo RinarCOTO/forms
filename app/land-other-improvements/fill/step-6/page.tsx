@@ -16,6 +16,7 @@ import { FormFillLayout } from "@/components/ui/form-fill-layout";
 import { Loader2, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { useFormLock } from "@/hooks/useFormLock";
+import { generateEffectivityYears } from "@/utils/form-helpers";
 
 const API_ENDPOINT = "/api/faas/land-improvements";
 
@@ -411,7 +412,7 @@ function LandImprovementsFormFillPage6() {
                       <SelectValue placeholder="Select year" />
                     </SelectTrigger>
                     <SelectContent>
-                      {Array.from({ length: 16 }, (_, i) => new Date().getFullYear() - 5 + i).map((year) => (
+                      {generateEffectivityYears(2001, 10).map((year) => (
                         <SelectItem key={year} value={String(year)}>{year}</SelectItem>
                       ))}
                     </SelectContent>

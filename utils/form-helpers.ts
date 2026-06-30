@@ -13,6 +13,18 @@ export function generateYears(startYear = 1900): number[] {
 }
 
 /**
+ * Generate ascending effectivity years from a fixed start year through a future offset.
+ */
+export function generateEffectivityYears(startYear = 2001, futureYears = 10): number[] {
+  const endYear = new Date().getFullYear() + futureYears;
+  const years: number[] = [];
+  for (let year = startYear; year <= endYear; year++) {
+    years.push(year);
+  }
+  return years;
+}
+
+/**
  * Calculate age based on input year.
  */
 export function calculateAge(year: number): number | string {

@@ -20,6 +20,7 @@ import { useSaveDraftShortcut } from "@/hooks/useSaveDraftShortcut";
 import { FormLockBanner } from "@/components/ui/form-lock-banner";
 import { FormSection } from "@/components/ui/form-section";
 import { useFormLock } from "@/hooks/useFormLock";
+import { generateEffectivityYears } from "@/utils/form-helpers";
 
 // Helper function to collect form data from ONLY this step (step 5)
 function collectFormData(
@@ -530,7 +531,7 @@ function BuildingStructureFormFillPage6() {
                       <SelectValue placeholder="Select year" />
                     </SelectTrigger>
                     <SelectContent>
-                      {Array.from({ length: 30 }, (_, i) => new Date().getFullYear() - 10 + i).map((year) => (
+                      {generateEffectivityYears(2001, 19).map((year) => (
                         <SelectItem key={year} value={String(year)}>{year}</SelectItem>
                       ))}
                     </SelectContent>
