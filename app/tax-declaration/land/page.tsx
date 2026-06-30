@@ -37,6 +37,7 @@ function LandTaxDecPage() {
 
   const [data, setData] = useState<Record<string, unknown> | null>(null);
   const [loading, setLoading] = useState(true);
+  const [datedDate, setDatedDate] = useState(getTodayDateInputValue);
   const [approvedDate, setApprovedDate] = useState(getTodayDateInputValue);
 
   useEffect(() => {
@@ -87,7 +88,19 @@ function LandTaxDecPage() {
                 <h1 className="rpfaas-fill-title">Tax Declaration — Land &amp; Improvements</h1>
                 <p className="text-sm text-muted-foreground">Print or review the approved tax declaration.</p>
               </div>
-              <div className="flex items-end gap-3">
+              <div className="flex flex-wrap items-end gap-3">
+                <div className="space-y-1">
+                  <label htmlFor="land-tax-dec-dated-date" className="text-xs font-medium text-muted-foreground">
+                    Dated
+                  </label>
+                  <Input
+                    id="land-tax-dec-dated-date"
+                    type="date"
+                    value={datedDate}
+                    onChange={(event) => setDatedDate(event.target.value)}
+                    className="h-9 w-40"
+                  />
+                </div>
                 <div className="space-y-1">
                   <label htmlFor="land-tax-dec-approved-date" className="text-xs font-medium text-muted-foreground">
                     Date Approved
@@ -115,6 +128,7 @@ function LandTaxDecPage() {
               ) : data ? (
                 <TaxDeclarationLand
                   data={data as Parameters<typeof TaxDeclarationLand>[0]["data"]}
+                  datedDate={datedDate}
                   approvedDate={approvedDate}
                 />
               ) : (

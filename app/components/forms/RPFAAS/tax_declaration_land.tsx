@@ -89,9 +89,11 @@ function fmtDate(val: string | undefined): string {
 
 export default function TaxDeclarationLand({
     data = {},
+    datedDate,
     approvedDate,
 }: {
     data?: LandImprovementFormData;
+    datedDate?: string;
     approvedDate?: string;
 }) {
     const isTaxable = data.tax_status === "taxable";
@@ -172,7 +174,7 @@ export default function TaxDeclarationLand({
                 <div className="grid grid-cols-2">
                     <div className="flex gap-2">
                         <div className="w-36 shrink-0">Dated:</div>
-                        <div className="border-b border-black flex-1 font-bold">{fmtDate(approvedDate)}</div>
+                        <div className="border-b border-black flex-1 font-bold">{fmtDate(datedDate)}</div>
                     </div>
                     <div className="flex gap-2">
                         <div className="w-20 shrink-0">Lot No:</div>
