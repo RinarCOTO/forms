@@ -57,6 +57,24 @@ function fmt(val: string | number | undefined | null): string {
   return String(val);
 }
 
+function fmtNumber(val: string | number | undefined | null): string {
+  if (val == null || val === "") return "";
+  const raw = String(val).replace(/,/g, "");
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return String(val);
+  const decimals = raw.includes(".") ? raw.split(".")[1]?.length ?? 0 : 0;
+  return n.toLocaleString("en-US", {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: Math.max(decimals, 0),
+  });
+}
+
+function fmtAssessmentLevel(val: string | number | undefined | null): string {
+  if (val == null || val === "") return "";
+  const text = String(val);
+  return text.includes("%") ? text : `${text}%`;
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function TaxDeclarationLand({ data = {} }: { data?: LandImprovementFormData }) {
@@ -190,16 +208,12 @@ export default function TaxDeclarationLand({ data = {} }: { data?: LandImproveme
                 </div>
                 <div className="grid grid-cols-5 gap-3 text-center">
                     <div className="border-b border-black w-full mx-auto  capitalize">{fmt(data.classification)}</div>
-                    <div className="border-b border-black w-full mx-auto ">{fmt(data.land_area)}</div>
-                    <div className="border-b border-black w-full mx-auto ">{fmt(data.market_value)}</div>
+                    <div className="border-b border-black w-full mx-auto ">{fmtNumber(data.land_area)}</div>
+                    <div className="border-b border-black w-full mx-auto ">{fmtNumber(data.market_value)}</div>
                     <div className="border-b border-black w-full mx-auto ">
-                        {data.assessment_level
-                            ? String(data.assessment_level).includes("%")
-                                ? String(data.assessment_level)
-                                : `${data.assessment_level}%`
-                            : ""}
+                        {fmtAssessmentLevel(data.assessment_level)}
                     </div>
-                    <div className="border-b border-black w-full mx-auto font-bold">{data.assessed_value ? `Php ${fmt(data.assessed_value)}` : ""}</div>
+                    <div className="border-b border-black w-full mx-auto font-bold">{data.assessed_value ? `Php ${fmtNumber(data.assessed_value)}` : ""}</div>
                 </div>
                 <div className="grid grid-cols-5 gap-3 text-center">
                     <div className="border-b border-black w-full mx-auto">{fmt(data.sub_classification)}</div>
@@ -217,10 +231,10 @@ export default function TaxDeclarationLand({ data = {} }: { data?: LandImproveme
                 </div>
                 <div className="grid grid-cols-5 gap-3 text-center font-semibold">
                     <div className="border-b border-black w-full mx-auto">Total</div>
-                    <div className="border-b border-black w-full mx-auto font-bold">{fmt(data.land_area)}</div>
-                    <div className="border-b border-black w-full mx-auto font-bold">{fmt(data.market_value)}</div>
-                    <div className="border-b border-black w-full mx-auto"></div>
-                    <div className="border-b border-black w-full mx-auto font-bold">{data.assessed_value ? `Php ${fmt(data.assessed_value)}` : ""}</div>
+                    <div className="border-b border-black w-full mx-auto font-bold">{fmtNumber(data.land_area)}</div>
+                    <div className="border-b border-black w-full mx-auto font-bold">{fmtNumber(data.market_value)}</div>
+                    <div className="border-b border-black w-full mx-auto font-bold">{fmtAssessmentLevel(data.assessment_level)}</div>
+                    <div className="border-b border-black w-full mx-auto font-bold">{data.assessed_value ? `Php ${fmtNumber(data.assessed_value)}` : ""}</div>
                 </div>
             </section>
 
