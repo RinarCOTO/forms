@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
 
     let query = admin
       .from('machinery')
-      .select('id, owner_name, updated_at, approved_at, status, municipality, created_by', { count: 'exact' })
+      .select('id, owner_name, updated_at, approved_at, status, municipality, td_no, arp_no, created_by', { count: 'exact' })
       .order('updated_at', { ascending: false })
 
     if (!userCtx.isAdmin && userCtx.municipality) {

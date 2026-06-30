@@ -9,6 +9,7 @@ export const useRPFAASData = (serverData?: Record<string, any>) => {
     const [isLoaded, setIsLoaded] = useState(false);
     const [formData, setFormData] = useState<RPFAASFormData>({
         transactionCode: "",
+        tdNo: "",
         arpNo: "",
         octTctCloaNo: "",
         pin: "",
@@ -184,6 +185,7 @@ export const useRPFAASData = (serverData?: Record<string, any>) => {
 
             setFormData({
                 transactionCode: d.transaction_code || "",
+                tdNo:            d.td_no || "",
                 arpNo:           d.arp_no || "",
                 octTctCloaNo:    d.oct_tct_cloa_no && d.oct_tct_cloa_no !== 'None' ? d.oct_tct_cloa_no : "",
                 pin:             d.pin || "",
@@ -265,6 +267,7 @@ export const useRPFAASData = (serverData?: Record<string, any>) => {
             
             // Property Identification from Step 1
             const transactionCode = localStorage.getItem("rpfaas_transaction_code") || "";
+            const tdNo = localStorage.getItem("rpfaas_td_no") || "";
             const arpNo = localStorage.getItem("rpfaas_arp_no") || "";
             const titleType = localStorage.getItem("rpfaas_title_type") || "";
             const titleNo = localStorage.getItem("rpfaas_title_no") || "";
@@ -519,6 +522,7 @@ export const useRPFAASData = (serverData?: Record<string, any>) => {
 
             setFormData({
                 transactionCode,
+                tdNo,
                 arpNo,
                 octTctCloaNo,
                 pin,

@@ -9,6 +9,7 @@ import { TaxDecFooter } from "@/app/components/forms/RPFAAS/components";
 export interface LandImprovementFormData {
   // Identification
   transaction_code?: string;
+  td_no?: string;
   arp_no?: string;
   pin?: string;
   oct_tct_cloa_no?: string;
@@ -74,7 +75,7 @@ export default function TaxDeclarationLand({ data = {} }: { data?: LandImproveme
                 <div className="grid grid-cols-2">
                     <div className="flex gap-2">
                         <div className="w-52 shrink-0">TD No:</div>
-                        <div className="border-b border-black flex-1 font-bold font-mono">{fmt(data.arp_no)}</div>
+                        <div className="border-b border-black flex-1 font-bold font-mono">{fmt(data.td_no || data.arp_no)}</div>
                     </div>
                     <div className="flex gap-2 justify-end">
                         <div>Property Identification No:</div>

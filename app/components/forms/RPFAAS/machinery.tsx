@@ -27,6 +27,7 @@ interface MachineryItem {
 export interface MachineryFormData {
   // Step 1 — identification
   transaction_code?: string;
+  td_no?: string;
   arp_no?: string;
   oct_tct_cloa_no?: string;
   pin?: string;
@@ -130,11 +131,16 @@ export default function MachineryForm({ data }: { data?: MachineryFormData }) {
             </td>
           </tr>
 
-          <tr>
+          <tr data-field="td_no arp_no">
+            <td>TD No.:</td>
+            <td className="font-bold font-mono">{fmt(data.td_no)}</td>
             <td>ARP No.:</td>
             <td className="font-bold font-mono">{fmt(data.arp_no)}</td>
+          </tr>
+
+          <tr>
             <td>PIN:</td>
-            <td className="font-bold">{fmt(data.pin)}</td>
+            <td className="font-bold" colSpan={3}>{fmt(data.pin)}</td>
           </tr>
 
           <tr>

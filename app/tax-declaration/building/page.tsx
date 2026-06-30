@@ -43,9 +43,9 @@ function BuildingTaxDecPage() {
   const handlePrint = () => {
     const prev = document.title;
     const owner = (data?.owner_name as string) ?? "Unknown";
-    const arp = (data?.arp_no as string) ?? "Unknown";
+    const td = (data?.td_no as string) || (data?.arp_no as string) || "Unknown";
     const date = new Date().toISOString().slice(0, 10);
-    document.title = `Tax Declaration - Building_${owner}_${arp}_${date}`;
+    document.title = `Tax Declaration - Building_${owner}_${td}_${date}`;
     window.print();
     document.title = prev;
   };

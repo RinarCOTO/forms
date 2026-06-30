@@ -21,6 +21,7 @@ import { PinInput } from "@/components/ui/pin-input";
 import { OwnerSection } from "@/components/rpfaas/owner-section";
 import { PropertyLocationSection } from "@/components/rpfaas/property-location-section";
 import { ArpNoField } from "@/components/rpfaas/arp-no-field";
+import { TdNoField } from "@/components/rpfaas/td-no-field";
 import { TitleNoField } from "@/components/rpfaas/title-no-field";
 import { PreviousTdBlock } from "@/components/rpfaas/previous-td-block";
 import { TransactionCodeSelect, type TransactionCode } from "@/components/rpfaas/transaction-code-select";
@@ -46,6 +47,7 @@ function collectFormData(
   adminLoc: any,
   propLoc: any,
   transactionCode: string,
+  tdNo: string,
   arpNo: string,
   titleType: string,
   titleNo: string,
@@ -64,6 +66,7 @@ function collectFormData(
     admin_care_of: adminCareOf,
     property_address: propertyStreet,
     transaction_code: transactionCode,
+    td_no: tdNo,
     arp_no: arpNo,
     oct_tct_cloa_no: titleType === 'None' || !titleType ? null : `${titleType} ${titleNo}`.trim(),
     pin,
@@ -121,6 +124,7 @@ function LandOtherImprovementsFillPageContent() {
   const [adminCareOf, setAdminCareOf] = useState("");
   const [propertyStreet, setPropertyStreet] = useState("");
   const [transactionCode, setTransactionCode] = useState("");
+  const [tdNo, setTdNo] = useState("");
   const [arpNo, setArpNo] = useState("");
   const [titleType, setTitleType] = useState("");
   const [titleNo, setTitleNo] = useState("");
@@ -171,6 +175,7 @@ function LandOtherImprovementsFillPageContent() {
             if (data.admin_care_of) setAdminCareOf(data.admin_care_of);
             if (data.property_address) setPropertyStreet(data.property_address);
             if (data.transaction_code) setTransactionCode(data.transaction_code);
+            if (data.td_no) setTdNo(data.td_no);
             if (data.arp_no) setArpNo(data.arp_no);
             if (data.oct_tct_cloa_no) {
               const stored = data.oct_tct_cloa_no as string;
@@ -232,9 +237,12 @@ function LandOtherImprovementsFillPageContent() {
   useEffect(() => safeSetLS("rpfaas_owner_name", ownerName), [ownerName]);
   useEffect(() => safeSetLS("rpfaas_admin_careof", adminCareOf), [adminCareOf]);
   useEffect(() => safeSetLS("rpfaas_location_street", propertyStreet), [propertyStreet]);
+  useEffect(() => safeSetLS("rpfaas_transaction_code", transactionCode), [transactionCode]);
+  useEffect(() => safeSetLS("rpfaas_td_no", tdNo), [tdNo]);
+  useEffect(() => safeSetLS("rpfaas_arp_no", arpNo), [arpNo]);
 
   const saveData = useCallback(async (): Promise<string | null> => {
-    const formData = collectFormData(ownerName, adminCareOf, propertyStreet, ownerLoc, adminLoc, propLoc, transactionCode, arpNo, titleType, titleNo, pin, surveyNo, lotNo, blk, previousTdNo, previousOwner, previousAv, previousMv, previousArea);
+    const formData = collectFormData(ownerName, adminCareOf, propertyStreet, ownerLoc, adminLoc, propLoc, transactionCode, tdNo, arpNo, titleType, titleNo, pin, surveyNo, lotNo, blk, previousTdNo, previousOwner, previousAv, previousMv, previousArea);
     formData.status = 'draft';
     const currentDraftId = draftId || localStorage.getItem('land_draft_id');
     const method = currentDraftId ? 'PUT' : 'POST';
@@ -247,7 +255,7 @@ function LandOtherImprovementsFillPageContent() {
     const id = result.data?.id?.toString() ?? null;
     if (id) localStorage.setItem('land_draft_id', id);
     return id;
-  }, [ownerName, adminCareOf, propertyStreet, ownerLoc, adminLoc, propLoc, transactionCode, arpNo, titleType, titleNo, pin, surveyNo, lotNo, blk, previousTdNo, previousOwner, previousAv, previousMv, previousArea, draftId]);
+  }, [ownerName, adminCareOf, propertyStreet, ownerLoc, adminLoc, propLoc, transactionCode, tdNo, arpNo, titleType, titleNo, pin, surveyNo, lotNo, blk, previousTdNo, previousOwner, previousAv, previousMv, previousArea, draftId]);
 
   const handleSaveDraft = useCallback(async () => {
     setIsSaving(true);
@@ -309,6 +317,7 @@ function LandOtherImprovementsFillPageContent() {
           <FormSection title="Property Identification">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <TransactionCodeSelect value={transactionCode} onChange={setTransactionCode} codes={TRANSACTION_CODES} />
+              <TdNoField value={tdNo} onChange={setTdNo} />
               <ArpNoField value={arpNo} onChange={setArpNo} />
               {transactionCode && transactionCode !== "DC" && (
                 <ErrorBoundary>

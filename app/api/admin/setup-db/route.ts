@@ -44,6 +44,7 @@ export async function POST() {
         id SERIAL PRIMARY KEY,
         
         -- Property Information
+        td_no VARCHAR(50),
         arp_no VARCHAR(50),
         pin VARCHAR(50),
         owner_name VARCHAR(255),

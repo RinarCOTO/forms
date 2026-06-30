@@ -12,6 +12,7 @@ import { DEDUCTION_CHOICES, ADDITIONAL_PERCENT_CHOICES, ADDITIONAL_FLAT_RATE_CHO
 const BuildingStructureForm = ({ serverData }: { serverData?: Record<string, any> }) => {
     const {
         transactionCode,
+        tdNo,
         arpNo,
         octTctCloaNo,
         pin,
@@ -197,11 +198,16 @@ const BuildingStructureForm = ({ serverData }: { serverData?: Record<string, any
                         </td>
                     </tr>
 
-                    <tr data-field="arp_no pin">
+                    <tr data-field="td_no arp_no">
+                        <td>TD No.:</td>
+                        <td className="font-bold font-mono">{tdNo || ''}</td>
                         <td>ARP No.:</td>
                         <td className="font-bold font-mono">{arpNo || ''}</td>
+                    </tr>
+
+                    <tr data-field="pin">
                         <td>PIN:</td>
-                        <td className="font-bold">{pin || ''}</td>
+                        <td className="font-bold" colSpan={3}>{pin || ''}</td>
                     </tr>
 
                     <tr data-field="oct_tct_cloa_no">

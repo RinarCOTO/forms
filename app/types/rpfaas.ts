@@ -23,6 +23,7 @@ export interface RoofMaterials {
 export interface RPFAASFormData {
     // Property Identification
     transactionCode: string;
+    tdNo: string;
     arpNo: string;
     octTctCloaNo: string;
     pin: string;

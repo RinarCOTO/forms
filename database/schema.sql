@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS building_structures (
     id SERIAL PRIMARY KEY,
     
     -- Step 1: Property Information
+    td_no VARCHAR(50),
     arp_no VARCHAR(50),
     pin VARCHAR(50),
     owner_name VARCHAR(255),
@@ -52,6 +53,7 @@ CREATE TABLE IF NOT EXISTS building_structures (
 
 -- Indexes for faster lookups
 CREATE INDEX IF NOT EXISTS idx_building_arp_no ON building_structures(arp_no);
+CREATE INDEX IF NOT EXISTS idx_building_td_no ON building_structures(td_no);
 CREATE INDEX IF NOT EXISTS idx_building_pin ON building_structures(pin);
 CREATE INDEX IF NOT EXISTS idx_building_owner_name ON building_structures(owner_name);
 CREATE INDEX IF NOT EXISTS idx_building_status ON building_structures(status);
@@ -64,6 +66,7 @@ CREATE TABLE IF NOT EXISTS land_improvements (
     id SERIAL PRIMARY KEY,
     
     -- Property Information
+    td_no VARCHAR(50),
     arp_no VARCHAR(50),
     pin VARCHAR(50),
     owner_name VARCHAR(255),
@@ -89,6 +92,7 @@ CREATE TABLE IF NOT EXISTS land_improvements (
 );
 
 CREATE INDEX IF NOT EXISTS idx_land_arp_no ON land_improvements(arp_no);
+CREATE INDEX IF NOT EXISTS idx_land_td_no ON land_improvements(td_no);
 CREATE INDEX IF NOT EXISTS idx_land_pin ON land_improvements(pin);
 CREATE INDEX IF NOT EXISTS idx_land_owner_name ON land_improvements(owner_name);
 
@@ -99,6 +103,7 @@ CREATE TABLE IF NOT EXISTS machinery (
     id SERIAL PRIMARY KEY,
     
     -- Property Information
+    td_no VARCHAR(50),
     arp_no VARCHAR(50),
     pin VARCHAR(50),
     owner_name VARCHAR(255),
@@ -127,6 +132,7 @@ CREATE TABLE IF NOT EXISTS machinery (
 );
 
 CREATE INDEX IF NOT EXISTS idx_machinery_arp_no ON machinery(arp_no);
+CREATE INDEX IF NOT EXISTS idx_machinery_td_no ON machinery(td_no);
 CREATE INDEX IF NOT EXISTS idx_machinery_pin ON machinery(pin);
 CREATE INDEX IF NOT EXISTS idx_machinery_owner_name ON machinery(owner_name);
 

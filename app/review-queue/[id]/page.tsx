@@ -94,6 +94,7 @@ function fmtDayHeader(key: string) {
 // Field options for comment targeting
 // ---------------------------------------------------------------------------
 const FIELD_OPTIONS = [
+  { value: "td_no",                 label: "TD No.",                  group: "Property Identification" },
   { value: "arp_no",                label: "ARP No.",                 group: "Property Identification" },
   { value: "oct_tct_cloa_no",       label: "OCT/TCT/CLOA No.",        group: "Property Identification" },
   { value: "survey_no",             label: "Survey No.",              group: "Property Identification" },

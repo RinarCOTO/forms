@@ -13,6 +13,7 @@ const LandImprovementUpdateSchema = z.object({
   updated_by: z.string().max(255).optional(),
 
   // step 1 — property identification
+  td_no: z.string().max(50).optional(),
   arp_no: z.string().max(50).optional(),
   pin: z.string().max(50).optional(),
   transaction_code: z.string().optional(),

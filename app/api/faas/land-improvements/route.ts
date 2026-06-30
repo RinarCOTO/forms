@@ -85,7 +85,7 @@ export async function GET(request: NextRequest) {
 
     let query = admin
       .from('land_improvements')
-      .select('id, owner_name, updated_at, status, municipality, arp_no, location_municipality, location_barangay, created_by, assigned_to', { count: 'exact' })
+      .select('id, owner_name, updated_at, status, municipality, td_no, arp_no, location_municipality, location_barangay, created_by, assigned_to', { count: 'exact' })
       .order('updated_at', { ascending: false })
 
     if (MUNICIPAL_DASHBOARD_ROLES.includes(userCtx.role)) {

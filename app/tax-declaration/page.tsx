@@ -52,6 +52,7 @@ interface TaxDecRecord {
   location_barangay?: string;
   updated_at: string;
   status: string;
+  td_no?: string;
   arp_no?: string;
   td_arp_no?: string;
 }
@@ -173,6 +174,7 @@ export default function TaxDeclarationPage() {
     const searchMatch =
       q === "" ||
       String(r.owner_name ?? "").toLowerCase().includes(q) ||
+      String(r.td_no ?? "").toLowerCase().includes(q) ||
       String(r.arp_no ?? "").toLowerCase().includes(q) ||
       String(r.td_arp_no ?? "").toLowerCase().includes(q) ||
       getMunicipality(r).toLowerCase().includes(q) ||
@@ -332,7 +334,7 @@ export default function TaxDeclarationPage() {
                           <TableRow key={record.id}>
                             <TableCell className="font-medium">#{record.id}</TableCell>
                             <TableCell className="font-mono">
-                              <Highlight text={String(record.arp_no || record.td_arp_no || "—")} query={search} />
+                              <Highlight text={String(record.td_no || record.arp_no || record.td_arp_no || "—")} query={search} />
                             </TableCell>
                             <TableCell>
                               <Highlight text={record.owner_name || "N/A"} query={search} />

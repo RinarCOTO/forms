@@ -15,7 +15,7 @@ interface ReviewComment {
 }
 
 const FIELD_LABELS: Record<string, string> = {
-  arp_no: "ARP No.", oct_tct_cloa_no: "OCT/TCT/CLOA No.", survey_no: "Survey No.",
+  td_no: "TD No.", arp_no: "ARP No.", oct_tct_cloa_no: "OCT/TCT/CLOA No.", survey_no: "Survey No.",
   pin: "PIN", lot_no: "Lot No.",
   owner_name: "Owner Name", admin_care_of: "Admin / Care Of", owner_address: "Owner Address",
   location_province: "Province", location_municipality: "Municipality", location_barangay: "Barangay",
@@ -47,7 +47,7 @@ function fmtDayHeader(iso: string) {
 // Maps each field to the step number it lives on
 const FIELD_STEP: Record<string, number> = {
   // Step 1 — Property identification & owner
-  arp_no: 1, oct_tct_cloa_no: 1, survey_no: 1, pin: 1, lot_no: 1,
+  td_no: 1, arp_no: 1, oct_tct_cloa_no: 1, survey_no: 1, pin: 1, lot_no: 1,
   owner_name: 1, owner_address: 1, admin_care_of: 1,
   location_province: 1, location_municipality: 1, location_barangay: 1,
   // Step 2 — Building details

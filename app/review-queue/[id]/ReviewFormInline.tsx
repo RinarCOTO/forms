@@ -124,7 +124,7 @@ function Section({
 
 export default function ReviewFormInline({ serverData, comments, onCommentSection }: Props) {
   const {
-    transactionCode, arpNo, octTctCloaNo, pin, surveyNo, lotNo,
+    transactionCode, tdNo, arpNo, octTctCloaNo, pin, surveyNo, lotNo,
     ownerName, adminCareOfName,
     ownerAddressBarangay, ownerAddressMunicipality, ownerAddressProvince,
     adminBarangayName, adminMunicipalityName, adminProvinceName,
@@ -225,6 +225,7 @@ export default function ReviewFormInline({ serverData, comments, onCommentSectio
       {/* 1. Property Identification */}
       <Section title="Property Identification">
         <div className="grid grid-cols-2 gap-3">
+          <FieldRow label="TD No." fieldKey="td_no" value={tdNo} mono {...fp} />
           <FieldRow label="ARP No." fieldKey="arp_no" value={arpNo} mono {...fp} />
           <FieldRow label="PIN" fieldKey="pin" value={pin} mono {...fp} />
           <FieldRow label="OCT/TCT/CLOA No." fieldKey="oct_tct_cloa_no" value={octTctCloaNo} {...fp} />

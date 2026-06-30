@@ -22,6 +22,7 @@ import { useLocationSelect, safeSetLS } from "@/hooks/useLocationSelect";
 import { OwnerSection } from "@/components/rpfaas/owner-section";
 import { PropertyLocationSection } from "@/components/rpfaas/property-location-section";
 import { ArpNoField } from "@/components/rpfaas/arp-no-field";
+import { TdNoField } from "@/components/rpfaas/td-no-field";
 import { TitleNoField } from "@/components/rpfaas/title-no-field";
 import { PreviousTdBlock } from "@/components/rpfaas/previous-td-block";
 import { TransactionCodeSelect, type TransactionCode } from "@/components/rpfaas/transaction-code-select";
@@ -46,6 +47,7 @@ function collectFormData(
   adminLoc: any,
   propLoc: any,
   transactionCode: string,
+  tdNo: string,
   arpNo: string,
   titleType: string,
   titleNo: string,
@@ -64,6 +66,7 @@ function collectFormData(
     admin_care_of: adminCareOf,
     property_address: propertyStreet,
     transaction_code: transactionCode,
+    td_no: tdNo,
     arp_no: arpNo,
     oct_tct_cloa_no: titleType === 'None' || !titleType ? '' : `${titleType} ${titleNo}`.trim(),
     pin,
@@ -125,6 +128,7 @@ function BuildingOtherStructureFillPageContent() {
   }, []);
 
   const [transactionCode, setTransactionCode] = useState("");
+  const [tdNo, setTdNo] = useState("");
   const [arpNo, setArpNo] = useState("");
   const [titleType, setTitleType] = useState("");
   const [titleNo, setTitleNo] = useState("");
@@ -175,6 +179,7 @@ function BuildingOtherStructureFillPageContent() {
               return;
             }
             if (data.transaction_code) setTransactionCode(data.transaction_code);
+            if (data.td_no) setTdNo(data.td_no);
             if (data.arp_no) setArpNo(data.arp_no);
             if (data.oct_tct_cloa_no) {
               const stored = data.oct_tct_cloa_no as string;
@@ -239,6 +244,7 @@ function BuildingOtherStructureFillPageContent() {
   }, [previousTdNo]);
 
   useEffect(() => safeSetLS("rpfaas_transaction_code", transactionCode), [transactionCode]);
+  useEffect(() => safeSetLS("rpfaas_td_no", tdNo), [tdNo]);
   useEffect(() => safeSetLS("rpfaas_arp_no", arpNo), [arpNo]);
   useEffect(() => safeSetLS("rpfaas_title_type", titleType), [titleType]);
   useEffect(() => safeSetLS("rpfaas_title_no", titleNo), [titleNo]);
@@ -264,7 +270,7 @@ function BuildingOtherStructureFillPageContent() {
   const handleNext = useCallback(async () => {
     setIsSaving(true);
     try {
-      const formData = collectFormData(ownerName, adminCareOf, propertyStreet, ownerLoc, adminLoc, propLoc, transactionCode, arpNo, titleType, titleNo, pin, surveyNo, lotNo, blk, previousTdNo, previousOwner, previousAv, previousMv, previousArea);
+      const formData = collectFormData(ownerName, adminCareOf, propertyStreet, ownerLoc, adminLoc, propLoc, transactionCode, tdNo, arpNo, titleType, titleNo, pin, surveyNo, lotNo, blk, previousTdNo, previousOwner, previousAv, previousMv, previousArea);
       const currentDraftId = draftId || localStorage.getItem('draft_id');
       if (!currentDraftId) formData.status = 'draft';
       let response;
@@ -302,12 +308,12 @@ function BuildingOtherStructureFillPageContent() {
     } finally {
       setIsSaving(false);
     }
-  }, [ownerName, adminCareOf, propertyStreet, ownerLoc, adminLoc, propLoc, transactionCode, arpNo, titleType, titleNo, pin, surveyNo, lotNo, blk, previousTdNo, previousOwner, previousAv, previousMv, previousArea, draftId, router]);
+  }, [ownerName, adminCareOf, propertyStreet, ownerLoc, adminLoc, propLoc, transactionCode, tdNo, arpNo, titleType, titleNo, pin, surveyNo, lotNo, blk, previousTdNo, previousOwner, previousAv, previousMv, previousArea, draftId, router]);
 
   const handleSaveDraft = useCallback(async () => {
     setIsSavingDraft(true);
     try {
-      const formData = collectFormData(ownerName, adminCareOf, propertyStreet, ownerLoc, adminLoc, propLoc, transactionCode, arpNo, titleType, titleNo, pin, surveyNo, lotNo, blk, previousTdNo, previousOwner, previousAv, previousMv, previousArea);
+      const formData = collectFormData(ownerName, adminCareOf, propertyStreet, ownerLoc, adminLoc, propLoc, transactionCode, tdNo, arpNo, titleType, titleNo, pin, surveyNo, lotNo, blk, previousTdNo, previousOwner, previousAv, previousMv, previousArea);
       const currentDraftId = draftId || localStorage.getItem('draft_id');
       if (!currentDraftId) formData.status = 'draft';
       let response;
@@ -334,7 +340,7 @@ function BuildingOtherStructureFillPageContent() {
     } finally {
       setIsSavingDraft(false);
     }
-  }, [ownerName, adminCareOf, propertyStreet, ownerLoc, adminLoc, propLoc, transactionCode, arpNo, titleType, titleNo, pin, surveyNo, lotNo, blk, previousTdNo, previousOwner, previousAv, previousMv, previousArea, draftId]);
+  }, [ownerName, adminCareOf, propertyStreet, ownerLoc, adminLoc, propLoc, transactionCode, tdNo, arpNo, titleType, titleNo, pin, surveyNo, lotNo, blk, previousTdNo, previousOwner, previousAv, previousMv, previousArea, draftId]);
 
   useSaveDraftShortcut(handleSaveDraft, isSavingDraft || locked);
 
@@ -342,7 +348,7 @@ function BuildingOtherStructureFillPageContent() {
     <FormFillLayout
       breadcrumbParent={{ label: "Building Your Application", href: "#" }}
       pageTitle="Step 1: Enter Owner and Property Location Details."
-      sidePanel={<ErrorBoundary><ReviewCommentsFloat draftId={draftId} stepFields={["arp_no","oct_tct_cloa_no","survey_no","pin","lot_no","owner_name","owner_address","admin_care_of","location_municipality","location_barangay","location_province"]} /></ErrorBoundary>}
+      sidePanel={<ErrorBoundary><ReviewCommentsFloat draftId={draftId} stepFields={["td_no","arp_no","oct_tct_cloa_no","survey_no","pin","lot_no","owner_name","owner_address","admin_care_of","location_municipality","location_barangay","location_province"]} /></ErrorBoundary>}
     >
       <FormLockBanner locked={locked} lockedBy={lockedBy} />
 
@@ -364,6 +370,7 @@ function BuildingOtherStructureFillPageContent() {
           <FormSection title="Property Identification">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <TransactionCodeSelect value={transactionCode} onChange={setTransactionCode} codes={TRANSACTION_CODES} />
+              <TdNoField value={tdNo} onChange={setTdNo} />
               <ArpNoField value={arpNo} onChange={setArpNo} />
               {transactionCode && transactionCode !== "DC" && (
                 <ErrorBoundary>

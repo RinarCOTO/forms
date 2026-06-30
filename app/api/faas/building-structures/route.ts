@@ -80,7 +80,7 @@ export async function GET(request: NextRequest) {
 
     let query = admin
       .from('building_structures')
-      .select('id, owner_name, updated_at, status, municipality, location_municipality, location_barangay, submitted_at, td_arp_no, created_by, approved_at, assigned_to', { count: 'exact' })
+      .select('id, owner_name, updated_at, status, municipality, location_municipality, location_barangay, submitted_at, td_no, arp_no, td_arp_no, created_by, approved_at, assigned_to', { count: 'exact' })
       .order('updated_at', { ascending: false })
 
     if (userCtx.role === 'municipal_tax_mapper') {
