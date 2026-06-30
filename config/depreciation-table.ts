@@ -55,7 +55,8 @@ export function getBuildingDepreciationRate(
   yearsUsed: number,
   structuralType: string
 ): DepreciationResult | null {
-  const config = TYPES[structuralType];
+  const normalizedType = structuralType.replace(/^Type\s+/i, "").trim();
+  const config = TYPES[structuralType] ?? TYPES[`Type ${normalizedType}`];
   if (!config) return null;
 
   const years = Math.max(0, Math.floor(yearsUsed));

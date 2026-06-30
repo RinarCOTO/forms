@@ -41,46 +41,46 @@ export const ADDITIONAL_FLAT_RATE_CHOICES = [
 // config/form-options.ts
 
 export const BUILDING_TYPES = [
-  { id: "building_type_1", label: "Residential" },
+  { id: "building_type_1", label: "Residential Houses" },
   { id: "building_type_2", label: "Apartment Row Houses" },
   {
     id: "building_type_3",
-    label: "Boarding House, Lodging House, Hotels, Inns, Motels, Restaurant",
+    label: "Boarding House, Lodging House, Hotels, Inns, Motels, Stores, Restaurant",
   },
   {
     id: "building_type_4",
     label:
-      "Accessory Garage, Green House, Laundry House, Gasoline Station, Swimming Pool, Bath House",
+      "Accessoria, Garage, Green House, Laundry House, Guard House, Gasoline Station, Shed, Swimming Pool, Bath House",
   },
   { id: "building_type_5", label: "School Buildings" },
   {
     id: "building_type_6",
-    label: "Hospital Office Buildings, Banta, Condominiums, Super Markets, Shopping Malls",
+    label: "Hospitals, Office Buildings, Banks, Condominiums, Supermarkets, Shopping Malls",
   },
   {
     id: "building_type_7",
-    label: "Church Chapels, Assembly House, Theaters, Funeral Parlor",
+    label: "Church, Chapels, Assembly House, Theaters, Funeral Parlor",
   },
   {
     id: "building_type_8",
-    label: "Factory Wave House, Bodega, Storage, Rice Mill, Shop, Bakery Shop",
+    label: "Factory Warehouse, Bodega, Storage, Rice Mill, Shop, Bakery",
   },
   { id: "building_type_9", label: "Open Market" },
   { id: "building_type_10", label: "Open Gym" },
 ];
 
 export const STRUCTURAL_TYPES = [
-  "Type V-C",
-  "Type V-B",
-  "Type V-A",
-  "Type IV-B",
-  "Type IV-A",
-  "Type III-E",
-  "Type III-CD",
-  "Type III-AB",
-  "Type II-B",
-  "Type II-A",
-  "Type I",
+  "V-A",
+  "V-B",
+  "IV-A",
+  "IV-B",
+  "IV-C",
+  "III-A",
+  "III-B",
+  "III-C",
+  "II-A",
+  "II-B",
+  "I",
 ];
 
 export const DEDUCTION_OPTIONS = [

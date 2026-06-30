@@ -30,6 +30,10 @@ function formatPeso(value: string | number) {
   return `₱${num.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+function normalizeStructuralType(value: string) {
+  return value.replace(/^Type\s+/i, "").trim();
+}
+
 // Helper function to collect form data
 function collectFormData(
   typeOfBuilding: string,
@@ -69,13 +73,13 @@ const BuildingStructureFormFillPage2 = () => {
   // Derived value saved to DB: "Residential" or "Commercial - <subtype>"
   const typeOfBuilding =
     buildingCategory === "Residential"
-      ? "Residential"
+      ? "Residential Houses"
       : buildingSubType
       ? `Commercial - ${buildingSubType}`
       : "";
   // Label passed to unit cost lookup (always the original BUILDING_TYPES label)
   const typeOfBuildingForCost =
-    buildingCategory === "Residential" ? "Residential" : buildingSubType;
+    buildingCategory === "Residential" ? "Residential Houses" : buildingSubType;
   const [structureType, setStructureType] = useState("");
   const [buildingPermitNo, setBuildingPermitNo] = useState(""); // Added
   const [cct, setCct] = useState(""); // Added
@@ -127,9 +131,12 @@ const handleCostOfConstructionChange = useCallback((e: React.ChangeEvent<HTMLInp
 
   useEffect(() => {
     const rawValue = getUnitConstructionCost(typeOfBuildingForCost, structureType);
-    if (rawValue) {
+    if (rawValue != null) {
       setCostOfConstruction(rawValue);
       setCostOfConstructionDisplay(formatPeso(rawValue));
+    } else {
+      setCostOfConstruction("");
+      setCostOfConstructionDisplay("");
     }
   }, [typeOfBuildingForCost, structureType]);
   const [numberOfStoreys, setNumberOfStoreys] = useState<number | "">(1);
@@ -180,7 +187,7 @@ const handleCostOfConstructionChange = useCallback((e: React.ChangeEvent<HTMLInp
       };
 
       const savedType: string = loadedData.type_of_building || "";
-      if (savedType === "Residential") {
+      if (savedType === "Residential" || savedType === "Residential Houses") {
         setBuildingCategory("Residential");
         setBuildingSubType("");
       } else if (savedType.startsWith("Commercial - ")) {
@@ -191,7 +198,7 @@ const handleCostOfConstructionChange = useCallback((e: React.ChangeEvent<HTMLInp
         setBuildingCategory("Commercial");
         setBuildingSubType(savedType);
       }
-      setStructureType(loadedData.structure_type || "");
+      setStructureType(normalizeStructuralType(loadedData.structure_type || ""));
       setBuildingPermitNo(loadedData.building_permit_no || "");
       setCct(loadedData.cct || "");
 
@@ -444,7 +451,7 @@ const handleNext = useCallback(async () => {
                         className="rpfaas-fill-input appearance-none"
                       >
                         <option value="">Select Category</option>
-                        <option value="Residential">Residential</option>
+                        <option value="Residential">Residential Houses</option>
                         <option value="Commercial">Commercial</option>
                       </select>
                     </div>

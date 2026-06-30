@@ -1,8 +1,148 @@
 import { BUILDING_TYPES } from "@/config/form-options";
 
+const normalizeStructuralType = (structureType: string): string =>
+  structureType.replace(/^Type\s+/i, "").trim();
+
 const getBuildingTypeId = (label: string): string | null => {
-  const match = BUILDING_TYPES.find((item) => item.label === label);
+  const normalized = label.trim();
+  if (normalized === "Residential") return "building_type_1";
+  const match = BUILDING_TYPES.find((item) => item.label === normalized);
   return match ? match.id : null;
+};
+
+const UNIT_CONSTRUCTION_COSTS: Record<string, Record<string, number | null>> = {
+  "V-A": {
+    building_type_1: 9950,
+    building_type_2: 11550,
+    building_type_3: 11780,
+    building_type_4: 8670,
+    building_type_5: 9380,
+    building_type_6: 16560,
+    building_type_7: 8530,
+    building_type_8: 5680,
+    building_type_9: 5470,
+    building_type_10: 4970,
+  },
+  "V-B": {
+    building_type_1: 8900,
+    building_type_2: 10090,
+    building_type_3: 10660,
+    building_type_4: 7630,
+    building_type_5: 8890,
+    building_type_6: 14750,
+    building_type_7: 7840,
+    building_type_8: 5080,
+    building_type_9: 4670,
+    building_type_10: null,
+  },
+  "IV-A": {
+    building_type_1: 8170,
+    building_type_2: 9690,
+    building_type_3: 9940,
+    building_type_4: 6330,
+    building_type_5: 8250,
+    building_type_6: 13300,
+    building_type_7: 7570,
+    building_type_8: 4830,
+    building_type_9: 4140,
+    building_type_10: null,
+  },
+  "IV-B": {
+    building_type_1: 7200,
+    building_type_2: 8270,
+    building_type_3: 8490,
+    building_type_4: 5450,
+    building_type_5: 6400,
+    building_type_6: 12130,
+    building_type_7: 6850,
+    building_type_8: 4600,
+    building_type_9: 3680,
+    building_type_10: null,
+  },
+  "IV-C": {
+    building_type_1: 6450,
+    building_type_2: 7530,
+    building_type_3: 7690,
+    building_type_4: 4980,
+    building_type_5: 5260,
+    building_type_6: 10230,
+    building_type_7: 6400,
+    building_type_8: 4360,
+    building_type_9: null,
+    building_type_10: null,
+  },
+  "III-A": {
+    building_type_1: 4960,
+    building_type_2: 5680,
+    building_type_3: 6150,
+    building_type_4: 3840,
+    building_type_5: 4120,
+    building_type_6: null,
+    building_type_7: 4320,
+    building_type_8: 3890,
+    building_type_9: 2320,
+    building_type_10: null,
+  },
+  "III-B": {
+    building_type_1: 4310,
+    building_type_2: 5150,
+    building_type_3: 5400,
+    building_type_4: 3280,
+    building_type_5: 3710,
+    building_type_6: null,
+    building_type_7: 3750,
+    building_type_8: 3310,
+    building_type_9: null,
+    building_type_10: null,
+  },
+  "III-C": {
+    building_type_1: 3870,
+    building_type_2: 4470,
+    building_type_3: 4970,
+    building_type_4: 2800,
+    building_type_5: 3450,
+    building_type_6: null,
+    building_type_7: 3360,
+    building_type_8: 3110,
+    building_type_9: null,
+    building_type_10: null,
+  },
+  "II-A": {
+    building_type_1: 2360,
+    building_type_2: null,
+    building_type_3: null,
+    building_type_4: null,
+    building_type_5: null,
+    building_type_6: null,
+    building_type_7: null,
+    building_type_8: null,
+    building_type_9: null,
+    building_type_10: null,
+  },
+  "II-B": {
+    building_type_1: 1520,
+    building_type_2: null,
+    building_type_3: null,
+    building_type_4: null,
+    building_type_5: null,
+    building_type_6: null,
+    building_type_7: null,
+    building_type_8: null,
+    building_type_9: null,
+    building_type_10: null,
+  },
+  I: {
+    building_type_1: 970,
+    building_type_2: null,
+    building_type_3: null,
+    building_type_4: null,
+    building_type_5: null,
+    building_type_6: null,
+    building_type_7: null,
+    building_type_8: null,
+    building_type_9: null,
+    building_type_10: null,
+  },
 };
 
 export const getUnitConstructionCost = (
@@ -10,356 +150,9 @@ export const getUnitConstructionCost = (
   structureType: string
 ): string | null => {
   const buildingTypeId = getBuildingTypeId(typeOfBuildingLabel);
+  const normalizedStructureType = normalizeStructuralType(structureType);
+  if (!buildingTypeId || !normalizedStructureType) return null;
 
-  if (buildingTypeId === "building_type_1" && structureType === "Type V-A") {
-    return "9950";
-  }
-  if (buildingTypeId === "building_type_2" && structureType === "Type V-A") {
-    return "11550";
-  }
-  if (buildingTypeId === "building_type_3" && structureType === "Type V-A") {
-    return "11780";
-  }
-  if (buildingTypeId === "building_type_4" && structureType === "Type V-A") {
-    return "8670";
-  }
-  if (buildingTypeId === "building_type_5" && structureType === "Type V-A") {
-    return "9880";
-  }
-  if (buildingTypeId === "building_type_6" && structureType === "Type V-A") {
-    return "16560";
-  }
-  if (buildingTypeId === "building_type_7" && structureType === "Type V-A") {
-    return "8530";
-  }
-  if (buildingTypeId === "building_type_8" && structureType === "Type V-A") {
-    return "5680";
-  }
-  if (buildingTypeId === "building_type_9" && structureType === "Type V-A") {
-    return "5470";
-  }
-  if (buildingTypeId === "building_type_10" && structureType === "Type V-A") {
-    return "4970";
-  }
-
-//TYPE V-B
-  if (buildingTypeId === "building_type_1" && structureType === "Type V-B") {
-    return "8900";
-  }
-  if (buildingTypeId === "building_type_2" && structureType === "Type V-B") {
-    return "10990";
-  }
-  if (buildingTypeId === "building_type_3" && structureType === "Type V-B") {
-    return "10660";
-  }
-  if (buildingTypeId === "building_type_4" && structureType === "Type V-B") {
-    return "7630";
-  }
-  if (buildingTypeId === "building_type_5" && structureType === "Type V-B") {
-    return "8890";
-  }
-  if (buildingTypeId === "building_type_6" && structureType === "Type V-B") {
-    return "14750";
-  }
-  if (buildingTypeId === "building_type_7" && structureType === "Type V-B") {
-    return "7840";
-  }
-  if (buildingTypeId === "building_type_8" && structureType === "Type V-B") {
-    return "5080";
-  }
-  if (buildingTypeId === "building_type_9" && structureType === "Type V-B") {
-    return "4670";
-  }
-  if (buildingTypeId === "building_type_10" && structureType === "Type V-B") {
-    return "0";
-  }
-
-//TYPE V-C
-  if (buildingTypeId === "building_type_1" && structureType === "Type V-C") {
-    return "0";
-  }
-  if (buildingTypeId === "building_type_2" && structureType === "Type V-C") {
-    return "0";
-  }
-  if (buildingTypeId === "building_type_3" && structureType === "Type V-C") {
-    return "0";
-  }
-  if (buildingTypeId === "building_type_4" && structureType === "Type V-C") {
-    return "0";
-  }
-  if (buildingTypeId === "building_type_5" && structureType === "Type V-C") {
-    return "0";
-  }
-  if (buildingTypeId === "building_type_6" && structureType === "Type V-C") {
-    return "0";
-  }
-  if (buildingTypeId === "building_type_7" && structureType === "Type V-C") {
-    return "0";
-  }
-  if (buildingTypeId === "building_type_8" && structureType === "Type V-C") {
-    return "0";
-  }
-  if (buildingTypeId === "building_type_9" && structureType === "Type V-C") {
-    return "0";
-  }
-  if (buildingTypeId === "building_type_10" && structureType === "Type V-C") {
-    return "0";
-  }
-
-  //TYPE IV-A
-  if (buildingTypeId === "building_type_1" && structureType === "Type IV-A") {
-    return "8170";
-  }
-  if (buildingTypeId === "building_type_2" && structureType === "Type IV-A") {
-    return "9690";
-  }
-  if (buildingTypeId === "building_type_3" && structureType === "Type IV-A") {
-    return "9940";
-  }
-  if (buildingTypeId === "building_type_4" && structureType === "Type IV-A") {
-    return "6330";
-  }
-  if (buildingTypeId === "building_type_5" && structureType === "Type IV-A") {
-    return "8250";
-  }
-  if (buildingTypeId === "building_type_6" && structureType === "Type IV-A") {
-    return "13300";
-  }
-  if (buildingTypeId === "building_type_7" && structureType === "Type IV-A") {
-    return "7570";
-  }
-  if (buildingTypeId === "building_type_8" && structureType === "Type IV-A") {
-    return "4830";
-  }
-  if (buildingTypeId === "building_type_9" && structureType === "Type IV-A") {
-    return "4140";
-  }
-  if (buildingTypeId === "building_type_10" && structureType === "Type IV-A") {
-    return "0";
-  }
-  
-//TYPE IV-B
-  if (buildingTypeId === "building_type_1" && structureType === "Type IV-B") {
-    return "7200";
-  }
-  if (buildingTypeId === "building_type_2" && structureType === "Type IV-B") {
-    return "8270";
-  }
-  if (buildingTypeId === "building_type_3" && structureType === "Type IV-B") {
-    return "8490";
-  }
-  if (buildingTypeId === "building_type_4" && structureType === "Type IV-B") {
-    return "8450";
-  }
-  if (buildingTypeId === "building_type_5" && structureType === "Type IV-B") {
-    return "6400";
-  }
-  if (buildingTypeId === "building_type_6" && structureType === "Type IV-B") {
-    return "12130";
-  }
-  if (buildingTypeId === "building_type_7" && structureType === "Type IV-B") {
-    return "6850";
-  }
-  if (buildingTypeId === "building_type_8" && structureType === "Type IV-B") {
-    return "4600";
-  }
-  if (buildingTypeId === "building_type_9" && structureType === "Type IV-B") {
-    return "3680";
-  }
-  if (buildingTypeId === "building_type_10" && structureType === "Type IV-B") {
-    return "0";
-  }
-
-//TYPE III-AB
-  if (buildingTypeId === "building_type_1" && structureType === "Type III-AB") {
-    return "4960";
-  }
-  if (buildingTypeId === "building_type_2" && structureType === "Type III-AB") {
-    return "5600";
-  }
-  if (buildingTypeId === "building_type_3" && structureType === "Type III-AB") {
-    return "6150";
-  }
-  if (buildingTypeId === "building_type_4" && structureType === "Type III-AB") {
-    return "3840";
-  }
-  if (buildingTypeId === "building_type_5" && structureType === "Type III-AB") {
-    return "4120";
-  }
-  if (buildingTypeId === "building_type_6" && structureType === "Type III-AB") {
-    return "0";
-  }
-  if (buildingTypeId === "building_type_7" && structureType === "Type III-AB") {
-    return "4320";
-  }
-  if (buildingTypeId === "building_type_8" && structureType === "Type III-AB") {
-    return "3890";
-  }
-  if (buildingTypeId === "building_type_9" && structureType === "Type III-AB") {
-    return "2320";
-  }
-  if (buildingTypeId === "building_type_10" && structureType === "Type III-AB") {
-    return "0";
-  }
-
-//TYPE III-CD
-  if (buildingTypeId === "building_type_1" && structureType === "Type III-CD") {
-    return "3870";
-  }
-  if (buildingTypeId === "building_type_2" && structureType === "Type III-CD") {
-    return "4470";
-  }
-  if (buildingTypeId === "building_type_3" && structureType === "Type III-CD") {
-    return "4970";
-  }
-  if (buildingTypeId === "building_type_4" && structureType === "Type III-CD") {
-    return "2800";
-  }
-  if (buildingTypeId === "building_type_5" && structureType === "Type III-CD") {
-    return "3450";
-  }
-  if (buildingTypeId === "building_type_6" && structureType === "Type III-CD") {
-    return "0";
-  }
-  if (buildingTypeId === "building_type_7" && structureType === "Type III-CD") {
-    return "3360";
-  }
-  if (buildingTypeId === "building_type_8" && structureType === "Type III-CD") {
-    return "3110";
-  }
-  if (buildingTypeId === "building_type_9" && structureType === "Type III-CD") {
-    return "0";
-  }
-  if (buildingTypeId === "building_type_10" && structureType === "Type III-CD") {
-    return "0";
-  }
-
-//TYPE III-E
-  if (buildingTypeId === "building_type_1" && structureType === "Type III-E") {
-    return "0";
-  }
-  if (buildingTypeId === "building_type_2" && structureType === "Type III-E") {
-    return "0";
-  }
-  if (buildingTypeId === "building_type_3" && structureType === "Type III-E") {
-    return "0";
-  }
-  if (buildingTypeId === "building_type_4" && structureType === "Type III-E") {
-    return "0";
-  }
-  if (buildingTypeId === "building_type_5" && structureType === "Type III-E") {
-    return "0";
-  }
-  if (buildingTypeId === "building_type_6" && structureType === "Type III-E") {
-    return "0";
-  }
-  if (buildingTypeId === "building_type_7" && structureType === "Type III-E") {
-    return "0";
-  }
-  if (buildingTypeId === "building_type_8" && structureType === "Type III-E") {
-    return "0";
-  }
-  if (buildingTypeId === "building_type_9" && structureType === "Type III-E") {
-    return "0";
-  }
-  if (buildingTypeId === "building_type_10" && structureType === "Type III-E") {
-    return "0";
-  }
-//TYPE II-A
-  if (buildingTypeId === "building_type_1" && structureType === "Type II-A") {
-    return "2360";
-  }
-  if (buildingTypeId === "building_type_2" && structureType === "Type II-A") {
-    return "0";
-  }
-  if (buildingTypeId === "building_type_3" && structureType === "Type II-A") {
-    return "0";
-  }
-  if (buildingTypeId === "building_type_4" && structureType === "Type II-A") {
-    return "0";
-  }
-  if (buildingTypeId === "building_type_5" && structureType === "Type II-A") {
-    return "0";
-  }
-  if (buildingTypeId === "building_type_6" && structureType === "Type II-A") {
-    return "0";
-  }
-  if (buildingTypeId === "building_type_7" && structureType === "Type II-A") {
-    return "0";
-  }
-  if (buildingTypeId === "building_type_8" && structureType === "Type II-A") {
-    return "0";
-  }
-  if (buildingTypeId === "building_type_9" && structureType === "Type II-A") {
-    return "0";
-  }
-  if (buildingTypeId === "building_type_10" && structureType === "Type II-A") {
-    return "0";
-  }
-//TYPE II-B
-  if (buildingTypeId === "building_type_1" && structureType === "Type II-B") {
-    return "1520";
-  }
-  if (buildingTypeId === "building_type_2" && structureType === "Type II-B") {
-    return "0";
-  }
-  if (buildingTypeId === "building_type_3" && structureType === "Type II-B") {
-    return "0";
-  }
-  if (buildingTypeId === "building_type_4" && structureType === "Type II-B") {
-    return "0";
-  }
-  if (buildingTypeId === "building_type_5" && structureType === "Type II-B") {
-    return "0";
-  }
-  if (buildingTypeId === "building_type_6" && structureType === "Type II-B") {
-    return "0";
-  }
-  if (buildingTypeId === "building_type_7" && structureType === "Type II-B") {
-    return "0";
-  }
-  if (buildingTypeId === "building_type_8" && structureType === "Type II-B") {
-    return "0";
-  }
-  if (buildingTypeId === "building_type_9" && structureType === "Type II-B") {
-    return "0";
-  }
-  if (buildingTypeId === "building_type_10" && structureType === "Type II-B") {
-    return "0";
-  }
-
-  //TYPE I
-  if (buildingTypeId === "building_type_1" && structureType === "Type I") {
-    return "970";
-  }
-  if (buildingTypeId === "building_type_2" && structureType === "Type I") {
-    return "0";
-  }
-  if (buildingTypeId === "building_type_3" && structureType === "Type I") {
-    return "0";
-  }
-  if (buildingTypeId === "building_type_4" && structureType === "Type I") {
-    return "0";
-  }
-  if (buildingTypeId === "building_type_5" && structureType === "Type I") {
-    return "0";
-  }
-  if (buildingTypeId === "building_type_6" && structureType === "Type I") {
-    return "0";
-  }
-  if (buildingTypeId === "building_type_7" && structureType === "Type I") {
-    return "0";
-  }
-  if (buildingTypeId === "building_type_8" && structureType === "Type I") {
-    return "0";
-  }
-  if (buildingTypeId === "building_type_9" && structureType === "Type I") {
-    return "0";
-  }
-  if (buildingTypeId === "building_type_10" && structureType === "Type I") {
-    return "0";
-  }
-
-
-  return null;
+  const cost = UNIT_CONSTRUCTION_COSTS[normalizedStructureType]?.[buildingTypeId];
+  return cost == null ? null : String(cost);
 };
