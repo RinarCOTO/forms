@@ -10,6 +10,8 @@ const VALID_PHOTO_TYPES = [
 const handlers = createFaasPhotoRouteHandlers({
   bucket: 'machinery-photos',
   table: 'machinery_photos',
+  parentTable: 'machinery',
+  parentAccessSelect: 'id, created_by, appraised_by, laoo_reviewer_id, municipality, location_municipality',
   parentIdFormField: 'machineryId',
   parentIdQueryParam: 'machineryId',
   parentIdColumn: 'machinery_id',

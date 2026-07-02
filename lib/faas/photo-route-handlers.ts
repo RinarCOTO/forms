@@ -1,6 +1,8 @@
 import { createClient as createAdminClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { canAccessFaasRecord, parsePositiveIntegerId, type FaasAccessRecord } from '@/lib/faas/access-control';
+import { getCurrentUserContext } from '@/lib/services/user.service';
 
 const MAX_STORED_UPLOAD_BYTES = 10 * 1024 * 1024;
 const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
@@ -8,6 +10,8 @@ const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'applicatio
 interface FaasPhotoRouteConfig {
   bucket: string;
   table: string;
+  parentTable: string;
+  parentAccessSelect: string;
   parentIdFormField: string;
   parentIdQueryParam: string;
   parentIdColumn: string;
@@ -128,21 +132,41 @@ export function createFaasPhotoRouteHandlers(config: FaasPhotoRouteConfig) {
 
   async function GET(req: NextRequest) {
     try {
+      const userCtx = await getCurrentUserContext();
+      if (!userCtx) {
+        return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+      }
+
       const { searchParams } = new URL(req.url);
       const parentId = searchParams.get(config.parentIdQueryParam);
+      const parentRecordId = parsePositiveIntegerId(parentId);
 
-      if (!parentId) {
+      if (!parentRecordId) {
         return NextResponse.json(
-          { success: false, error: `${config.parentIdQueryParam} query param is required` },
+          { success: false, error: `${config.parentIdQueryParam} must be a positive integer` },
           { status: 400 }
         );
       }
 
       const admin = getAdminClient();
+      const { data: parentRecord, error: parentError } = await admin
+        .from(config.parentTable)
+        .select(config.parentAccessSelect)
+        .eq('id', parentRecordId)
+        .single();
+
+      if (parentError || !parentRecord) {
+        return NextResponse.json({ success: false, error: 'Parent record not found' }, { status: 404 });
+      }
+
+      if (!canAccessFaasRecord(userCtx, parentRecord as unknown as FaasAccessRecord)) {
+        return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
+      }
+
       const { data: photos, error: dbError } = await admin
         .from(config.table)
         .select('*')
-        .eq(config.parentIdColumn, parseInt(parentId, 10))
+        .eq(config.parentIdColumn, parentRecordId)
         .order('created_at', { ascending: true });
 
       if (dbError) {

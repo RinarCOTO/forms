@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { getCurrentUserContext } from '@/lib/services/user.service';
+import { canAccessFaasRecord, parsePositiveIntegerId } from '@/lib/faas/access-control';
 
 const getSupabaseAdmin = () =>
   createSupabaseClient(
@@ -13,11 +14,20 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
   try {
     const params = await Promise.resolve(context.params);
     const id = params.id;
+    const recordId = parsePositiveIntegerId(id);
 
-    if (!id) {
+    if (!recordId) {
       return NextResponse.json(
-        { success: false, message: 'No ID provided', error: 'Missing ID parameter' },
+        { success: false, message: 'Invalid ID provided', error: 'ID must be a positive integer' },
         { status: 400 }
+      );
+    }
+
+    const userCtx = await getCurrentUserContext();
+    if (!userCtx) {
+      return NextResponse.json(
+        { success: false, message: 'Unauthorized', error: 'Not authenticated' },
+        { status: 401 }
       );
     }
 
@@ -26,13 +36,20 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
     const { data: draft, error } = await supabase
       .from('machinery')
       .select('*')
-      .eq('id', id)
+      .eq('id', recordId)
       .single();
 
     if (error || !draft) {
       return NextResponse.json(
         { success: false, message: 'Record not found', error: error?.message ?? 'No data returned' },
         { status: 404 }
+      );
+    }
+
+    if (!canAccessFaasRecord(userCtx, draft)) {
+      return NextResponse.json(
+        { success: false, message: 'Forbidden', error: 'You do not have access to this record' },
+        { status: 403 }
       );
     }
 
@@ -50,11 +67,20 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
   try {
     const params = await Promise.resolve(context.params);
     const id = params.id;
+    const recordId = parsePositiveIntegerId(id);
 
-    if (!id) {
+    if (!recordId) {
       return NextResponse.json(
-        { success: false, message: 'No ID provided', error: 'Missing ID parameter' },
+        { success: false, message: 'Invalid ID provided', error: 'ID must be a positive integer' },
         { status: 400 }
+      );
+    }
+
+    const userCtx = await getCurrentUserContext();
+    if (!userCtx) {
+      return NextResponse.json(
+        { success: false, message: 'Unauthorized', error: 'Not authenticated' },
+        { status: 401 }
       );
     }
 
@@ -63,10 +89,42 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
 
     const supabase = getSupabaseAdmin();
 
+    const { data: currentRecord, error: currentError } = await supabase
+      .from('machinery')
+      .select('id, status, created_by, appraised_by, municipality, location_municipality')
+      .eq('id', recordId)
+      .single();
+
+    if (currentError || !currentRecord) {
+      return NextResponse.json(
+        { success: false, message: 'Record not found', error: currentError?.message ?? 'No record found with the specified ID' },
+        { status: 404 }
+      );
+    }
+
+    if (!canAccessFaasRecord(userCtx, currentRecord)) {
+      return NextResponse.json(
+        { success: false, message: 'Forbidden', error: 'You do not have access to update this record' },
+        { status: 403 }
+      );
+    }
+
+    if (currentRecord.status === 'approved' && !userCtx.isAdmin) {
+      return NextResponse.json(
+        { success: false, message: 'This form has been approved and can no longer be edited.' },
+        { status: 403 }
+      );
+    }
+
+    if (!userCtx.isAdmin && userCtx.municipality) {
+      updateData.municipality = userCtx.municipality;
+      updateData.location_municipality = userCtx.municipality;
+    }
+
     const { data: updatedRecord, error } = await supabase
       .from('machinery')
       .update(updateData)
-      .eq('id', id)
+      .eq('id', recordId)
       .select()
       .single();
 
