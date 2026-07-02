@@ -1,5 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createClient as createAdminClient } from '@supabase/supabase-js';
+
+function getAdminClient() {
+  return createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  );
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -62,8 +71,9 @@ export async function POST(request: NextRequest) {
     if (profileError) {
       console.error('User profile not found in users table:', profileError);
       
-      // Create user profile manually if trigger failed
-      const { error: manualError } = await supabase
+      // Create user profile manually if the auth trigger failed.
+      const admin = getAdminClient();
+      const { error: manualError } = await admin
         .from('users')
         .insert({
           id: data.user.id,

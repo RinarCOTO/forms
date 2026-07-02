@@ -55,6 +55,8 @@ Acceptance checks:
 
 ## Stage 2 - Remove Direct Privilege Escalation Paths
 
+Status: completed. See `SECURITY_STAGE2_COMPLETION.md`.
+
 Priority: critical/high.
 
 Findings covered:

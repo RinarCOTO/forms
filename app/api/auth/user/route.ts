@@ -2,6 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
 
+function getAdminClient() {
+  return createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  );
+}
+
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient();
@@ -51,16 +59,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Use admin client to bypass RLS and fetch user profile
-    const supabaseAdmin = createAdminClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
-    );
+    const supabaseAdmin = getAdminClient();
 
     // Fetch user profile from users table using admin client
     const { data: userProfile, error: profileError } = await supabaseAdmin
@@ -140,8 +139,11 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json();
     const { full_name, department, position, phone } = body;
 
-    // Update user profile (users can't change their own role or is_active status)
-    const { data: updatedProfile, error: updateError } = await supabase
+    // Update user profile through the server-side admin client. Users still
+    // cannot change their own role or active status because this allow-list
+    // never forwards those fields.
+    const supabaseAdmin = getAdminClient();
+    const { data: updatedProfile, error: updateError } = await supabaseAdmin
       .from('users')
       .update({
         full_name,
@@ -173,4 +175,3 @@ export async function PATCH(request: NextRequest) {
     );
   }
 }
-
