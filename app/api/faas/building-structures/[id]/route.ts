@@ -171,23 +171,17 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
 }
 
 export async function DELETE(req: NextRequest, context: { params: Promise<{ id: string }> | { id: string } }) {
-  console.log('=== DELETE /api/building-other-structure/[id] - Route Hit ===');
-  
   try {
     const params = await Promise.resolve(context.params);
     const id = params.id;
-    
-    console.log('DELETE - Resolved ID:', id);
-    
+
     if (!id) {
-      console.log('DELETE - No ID in params, returning 400');
       return NextResponse.json(
         { success: false, message: 'No ID provided', error: 'Missing ID parameter' },
         { status: 400 }
       );
     }
 
-    console.log('DELETE - Creating Supabase client with service role...');
     const supabase = createSupabaseClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -244,8 +238,6 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ id: 
       .eq('id', id)
       .select()
       .single();
-
-    console.log('DELETE - Supabase delete response:', { deletedRecord, error });
 
     if (error) {
       console.error('DELETE /api/building-other-structure/[id] error:', error.code);

@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { FormLockBanner } from "@/components/ui/form-lock-banner";
 import { FormSection } from "@/components/ui/form-section";
 import { RoofMaterialsForm } from "@/components/forms/RoofMaterialsForm";
+import { getStoredFaasDraftId, setStoredFaasDraftId } from "@/utils/form-draft-storage";
 
 // --- HELPER: Parse JSON Safely ---
 // This prevents the "0": "{" error if the DB returns a string instead of an object
@@ -262,10 +263,8 @@ const BuildingStructureFormFillPage3 = () => {
     try {
       const formData = collectFormData(materials, materialsOtherText, flooringGrid, wallsGrid);
 
-      console.log('Saving Step 3 form data:', formData);
-
       let response;
-      const currentDraftId = draftId || localStorage.getItem('draft_id');
+      const currentDraftId = draftId || getStoredFaasDraftId(localStorage, "building");
       if (!currentDraftId) formData.status = 'draft';
       
       if (currentDraftId) {
@@ -288,7 +287,7 @@ const BuildingStructureFormFillPage3 = () => {
         
         if (finalId) {
           setIsDirty(false);
-          localStorage.setItem('draft_id', finalId.toString());
+          setStoredFaasDraftId(localStorage, "building", finalId.toString());
           router.push(`/building-other-structure/fill/step-4?id=${finalId}`);
         }
       } else {
@@ -308,7 +307,7 @@ const BuildingStructureFormFillPage3 = () => {
     setIsSavingDraft(true);
     try {
       const formData = collectFormData(materials, materialsOtherText, flooringGrid, wallsGrid);
-      const currentDraftId = draftId || localStorage.getItem('draft_id');
+      const currentDraftId = draftId || getStoredFaasDraftId(localStorage, "building");
       if (!currentDraftId) formData.status = 'draft';
       let response;
       if (currentDraftId) {
@@ -323,7 +322,7 @@ const BuildingStructureFormFillPage3 = () => {
       if (response.ok) {
         const result = await response.json();
         const finalId = result.data?.id || currentDraftId;
-        if (finalId) localStorage.setItem('draft_id', finalId.toString());
+        if (finalId) setStoredFaasDraftId(localStorage, "building", finalId.toString());
         setIsDirty(false);
         toast.success('Draft saved successfully.');
       } else {

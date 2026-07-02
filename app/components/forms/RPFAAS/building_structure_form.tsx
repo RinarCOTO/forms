@@ -8,8 +8,17 @@ import { useRPFAASData } from "./hooks/useRPFAASData";
 import { STRUCTURAL_MATERIAL_ROWS } from "./constants/structuralMaterials";
 import type { RoofMaterials } from "@/app/types/rpfaas";
 import { DEDUCTION_CHOICES, ADDITIONAL_PERCENT_CHOICES, ADDITIONAL_FLAT_RATE_CHOICES } from "@/config/form-options";
+import {
+    formatBuildingActualUse,
+    formatCurrencyAmount as formatCurrency,
+    hasDisplayValue,
+} from "@/utils/form-helpers";
 
-const BuildingStructureForm = ({ serverData }: { serverData?: Record<string, any> }) => {
+const BuildingStructureForm = ({
+    serverData,
+}: {
+    serverData?: Record<string, any>;
+}) => {
     const {
         transactionCode,
         tdNo,
@@ -91,6 +100,13 @@ const BuildingStructureForm = ({ serverData }: { serverData?: Record<string, any
     const ordSuffix = (n: number) => n === 1 ? 'st' : n === 2 ? 'nd' : n === 3 ? 'rd' : 'th';
     const displayLevels = Math.max(4, storeys);
     const levelColPct = `${Math.floor(20 / displayLevels)}%`;
+    const typeOfBuildingDisplay =
+        typeOfBuilding === "Residential Houses"
+            ? "Residential"
+            : typeOfBuilding
+            ? typeOfBuilding.split(" - ")[0]
+            : "";
+    const actualUseDisplay = formatBuildingActualUse(actualUse);
 
     // Get the deductions with their percentages and calculated values
     const getSelectedDeductionsWithData = () => {
@@ -147,37 +163,6 @@ const BuildingStructureForm = ({ serverData }: { serverData?: Record<string, any
             return { id: itemId, name: itemId, pricePerSqm: 0, area, calculatedValue: 0 };
         });
     };
-
-    const formatCurrency = (value: number) =>
-        value.toLocaleString(undefined, {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-        });
-
-    // Debug: Log the data to console to see what's being loaded
-    console.log('RPFAAS Data Debug:', {
-        ownerName,
-        adminCareOfName,
-        typeOfBuilding,
-        structuralType,
-        buildingPermitNo,
-        totalFloorArea,
-        landOwner,
-        landTdNo,
-        landArpNo,
-        landTdArpNo,
-        landArea
-    });
-
-    // Debug deductions specifically
-    console.log('Deductions Debug:', {
-        selectedDeductions,
-        deductionComments,
-        assessmentLevel,
-        p4DataRaw: typeof window !== 'undefined' ? localStorage.getItem("p4") : null,
-        selectedDeductionsWithData: getSelectedDeductionsWithData(),
-        availableDeductions: DEDUCTION_CHOICES
-    });
 
     return (
         <div className="rpfaas-print print:mt-2 flex flex-col min-h-full" style={{ backgroundColor: 'white' }} data-print-ready={isLoaded ? "true" : undefined}>
@@ -247,7 +232,7 @@ const BuildingStructureForm = ({ serverData }: { serverData?: Record<string, any
                     <tr className="border-b-2">
                         <td>Address:</td>
                         <td colSpan={3}>
-                             {[adminBarangayName, adminMunicipalityName, adminProvinceName].filter(Boolean).join(", ") || ''}
+                             {hasDisplayValue(adminCareOfName) ? [adminBarangayName, adminMunicipalityName, adminProvinceName].filter(Boolean).join(", ") : ''}
                         </td>
                     </tr>
                 </tbody>
@@ -299,7 +284,7 @@ const BuildingStructureForm = ({ serverData }: { serverData?: Record<string, any
                         <td >Type of Bldg:</td>
                         <td>
                             <div className="rpfaas-inner-grid grid grid-cols-3 divide-x divide-black items-stretch h-full">
-                                <div className="rpfaas-field-value self-stretch">{typeOfBuilding ? typeOfBuilding.split(" - ")[0] : ''}</div>
+                                <div className="rpfaas-field-value self-stretch">{typeOfBuildingDisplay}</div>
                                 <div className="flex items-center self-stretch font-medium floor-area-print whitespace-nowrap">Bldg. Age:</div>
                                 <div className="flex items-center self-stretch font-bold rpfaas-print-small whitespace-nowrap">
                                   {buildingAge
@@ -422,12 +407,6 @@ const BuildingStructureForm = ({ serverData }: { serverData?: Record<string, any
                         <span>₱{formatCurrency(unitCost)}</span>
                     </SectionHeader>
 
-                    <tr>
-                        <td colSpan={3}>
-                            Attach the building plan or sketch of floor plan. A photograph may also be
-                            attached if necessary.
-                        </td>
-                    </tr>
                 </tbody>
             </table>
 
@@ -675,7 +654,7 @@ const BuildingStructureForm = ({ serverData }: { serverData?: Record<string, any
                     </tr>
 
                     <tr data-field="actual_use market_value assessment_level assessed_value text-center">
-                        <td className="font-bold capitalize text-center">{actualUse || ''}</td>
+                        <td className="font-bold capitalize text-center">{actualUseDisplay}</td>
                         <td className="font-bold text-center">₱{formatCurrency(netUnitCost)}</td>
                         <td className="font-bold text-center">{assessmentLevel}</td>
                         <td className="font-bold text-center">₱{formatCurrency(assessedValue)}</td>

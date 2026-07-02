@@ -9,7 +9,6 @@ import "@/app/styles/forms-fill.css";
 
 // Third-party
 import { Loader2, Save, Send, RotateCcw, MessageSquare, User, Clock, FileText } from "lucide-react";
-import { toast } from "sonner";
 
 // UI components
 import { AppSidebar } from "@/components/app-sidebar";
@@ -18,15 +17,23 @@ import {
   BreadcrumbPage, BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
+import { FaasPhotoImage } from "@/components/faas/FaasPhotoImage";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { FormStatusBanner } from "@/components/ui/form-status-banner";
 import { Separator } from "@/components/ui/separator";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { SuccessModal } from "@/components/ui/success-modal";
+import { FaasCommentHighlightScope } from "@/hooks/useFaasCommentHighlight";
+import { type FaasPhotoRecord, useFaasPhotos } from "@/hooks/useFaasPhotos";
+import { useMachineryPreviewActions } from "@/hooks/useMachineryPreviewActions";
+import { useFaasUserPermissions } from "@/hooks/useFaasUserPermissions";
+import { useMachineryPreviewData } from "@/hooks/useMachineryPreviewData";
+import { usePrintBlocker } from "@/hooks/usePrintBlocker";
+import { getStoredFaasDraftId } from "@/utils/form-draft-storage";
 
 // RPFAAS components
-import MachineryForm, { MachineryFormData } from "@/app/components/forms/RPFAAS/machinery";
+import MachineryForm from "@/app/components/forms/RPFAAS/machinery";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -34,13 +41,7 @@ import MachineryForm, { MachineryFormData } from "@/app/components/forms/RPFAAS/
 
 type PhotoType = "machinery_photo" | "nameplate" | "purchase_receipt" | "other_document";
 
-interface PhotoRecord {
-  id: string;
-  photo_type: PhotoType;
-  storage_path: string;
-  original_name: string;
-  signedUrl: string | null;
-}
+type PhotoRecord = FaasPhotoRecord<PhotoType>;
 
 interface ReviewComment {
   id: string;
@@ -77,21 +78,6 @@ const LOCKED_STATUSES = ["submitted", "under_review", "approved"];
 // Helpers
 // ---------------------------------------------------------------------------
 
-function toPreviewUrl(signedUrl: string): string {
-  try {
-    const url = new URL(signedUrl);
-    url.pathname = url.pathname.replace(
-      "/storage/v1/object/sign/",
-      "/storage/v1/render/image/sign/"
-    );
-    url.searchParams.set("width", "480");
-    url.searchParams.set("quality", "40");
-    return url.toString();
-  } catch {
-    return signedUrl;
-  }
-}
-
 function fmtCommentDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-PH", {
     month: "short", day: "numeric", year: "numeric",
@@ -119,8 +105,7 @@ function SupportingDocuments({ photos }: { photos: PhotoRecord[] }) {
               <div key={type} className="space-y-2">
                 <p className="text-sm font-medium">{PHOTO_LABELS[type]}</p>
                 <div className="border rounded-md overflow-hidden bg-muted/20">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={toPreviewUrl(photo.signedUrl)} alt={PHOTO_LABELS[type]} className="w-full max-h-64 object-contain" />
+                  <FaasPhotoImage signedUrl={photo.signedUrl} alt={PHOTO_LABELS[type]} mode="preview" className="w-full max-h-64 object-contain" />
                 </div>
                 <p className="text-xs text-muted-foreground truncate">{photo.original_name}</p>
               </div>
@@ -137,8 +122,7 @@ function SupportingDocuments({ photos }: { photos: PhotoRecord[] }) {
           return (
             <div key={type} className="photo-page">
               <p className="photo-page-title">{PHOTO_LABELS[type]}</p>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={photo.signedUrl} alt={PHOTO_LABELS[type]} />
+              <FaasPhotoImage signedUrl={photo.signedUrl} alt={PHOTO_LABELS[type]} mode="print" />
               <p className="photo-page-filename">{photo.original_name}</p>
             </div>
           );
@@ -162,157 +146,48 @@ function MachineryPreviewContent() {
 
   useEffect(() => {
     if (!urlId) {
-      const stored = localStorage.getItem("draft_id");
+      const stored = getStoredFaasDraftId(localStorage, "machinery");
       if (stored) setDraftId(stored);
     }
   }, [urlId]);
 
-  const [isSaving, setIsSaving] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formStatus, setFormStatus] = useState("draft");
-  const [statusLoading, setStatusLoading] = useState(false);
-  const [formData, setFormData] = useState<MachineryFormData | null>(null);
+  const { formData, formStatus, statusLoading } = useMachineryPreviewData({ draftId });
 
-  const [photos, setPhotos] = useState<PhotoRecord[]>([]);
-  const [photosLoading, setPhotosLoading] = useState(false);
+  const { photos, photosLoading } = useFaasPhotos<PhotoType>({
+    draftId,
+    apiPath: "/api/faas/machinery/photos",
+    parentIdQueryParam: "machineryId",
+  });
 
   const [comments, setComments] = useState<ReviewComment[]>([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
   const [activeComment, setActiveComment] = useState<ReviewComment | null>(null);
 
-  const [canSubmit, setCanSubmit] = useState(false);
-  const [canPrint, setCanPrint] = useState(false);
+  const { canSubmit, canPrint } = useFaasUserPermissions({
+    submitRoles: SUBMIT_ALLOWED_ROLES,
+    printRoles: PRINT_ALLOWED_ROLES,
+  });
+  usePrintBlocker(canPrint);
 
-  const [successModal, setSuccessModal] = useState<{
-    open: boolean; title: string; description?: string; onConfirm: () => void;
-  }>({ open: false, title: "", onConfirm: () => {} });
-  const [confirmSubmitOpen, setConfirmSubmitOpen] = useState(false);
+  const {
+    confirmSubmitOpen,
+    handleSaveDraft,
+    handleSubmit,
+    isSaving,
+    isSubmitting,
+    setConfirmSubmitOpen,
+    successModal,
+  } = useMachineryPreviewActions(draftId);
 
   const isLocked = LOCKED_STATUSES.includes(formStatus);
 
-  // ── Permissions ──
-  useEffect(() => {
-    fetch("/api/users/permissions")
-      .then((r) => r.json())
-      .then((d) => {
-        if (d?.role && SUBMIT_ALLOWED_ROLES.includes(d.role)) setCanSubmit(true);
-        if (d?.role && PRINT_ALLOWED_ROLES.includes(d.role)) setCanPrint(true);
-      })
-      .catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Block print for non-allowed roles
-  useEffect(() => {
-    if (canPrint) return;
-    const style = document.createElement("style");
-    style.id = "print-blocked";
-    style.textContent = `@media print { body { display: none !important; } }`;
-    document.head.appendChild(style);
-    return () => document.getElementById("print-blocked")?.remove();
-  }, [canPrint]);
-
-  // ── Load form data ──
-  useEffect(() => {
-    if (!draftId) return;
-    setStatusLoading(true);
-    fetch(`/api/faas/machinery/${draftId}`, { cache: "no-store" })
-      .then((r) => r.json())
-      .then((result) => {
-        if (result.success && result.data) {
-          setFormData(result.data as MachineryFormData);
-          if (result.data.status) setFormStatus(result.data.status);
-        }
-      })
-      .catch(() => {})
-      .finally(() => setStatusLoading(false));
-  }, [draftId]);
-
-  // ── Load photos ──
-  useEffect(() => {
-    if (!draftId) return;
-    setPhotosLoading(true);
-    fetch(`/api/faas/machinery/photos?machineryId=${draftId}`)
-      .then((r) => r.json())
-      .then((result) => { if (result.success) setPhotos(result.data as PhotoRecord[]); })
-      .catch(() => {})
-      .finally(() => setPhotosLoading(false));
-  }, [draftId]);
-
-  // ── Field highlight on active comment ──
-  useEffect(() => {
-    document.querySelectorAll(".faas-field-highlight").forEach((el) =>
-      el.classList.remove("faas-field-highlight")
-    );
-    if (!activeComment?.field_name) return;
-    activeComment.field_name.split(",").map((f) => f.trim()).filter(Boolean).forEach((field) => {
-      document.querySelectorAll(`[data-field~="${field}"]`).forEach((el) => {
-        el.classList.add("faas-field-highlight");
-      });
-    });
-  }, [activeComment]);
-
-  // ── Save Draft ──
-  const handleSaveDraft = useCallback(async () => {
-    if (!draftId) return;
-    setIsSaving(true);
-    try {
-      const res = await fetch(`/api/faas/machinery/${draftId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "draft" }),
-      });
-      if (res.ok) {
-        setSuccessModal({
-          open: true,
-          title: "Draft saved",
-          description: "Your draft has been saved successfully.",
-          onConfirm: () => router.push("/machinery/dashboard"),
-        });
-      } else {
-        const error = await res.json();
-        toast.error("Failed to save: " + (error.message ?? "Unknown error"));
-      }
-    } catch {
-      toast.error("Error saving. Please try again.");
-    } finally {
-      setIsSaving(false);
-    }
-  }, [draftId, router]);
-
-  // ── Submit ──
-  const handleSubmit = useCallback(async () => {
-    if (!draftId) return;
-    setIsSubmitting(true);
-    try {
-      const res = await fetch(`/api/faas/machinery/${draftId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "submitted" }),
-      });
-      if (res.ok) {
-        setConfirmSubmitOpen(false);
-        setSuccessModal({
-          open: true,
-          title: "Form submitted!",
-          description: "Your form has been submitted for review.",
-          onConfirm: () => router.push("/machinery/dashboard"),
-        });
-      } else {
-        const error = await res.json();
-        toast.error("Failed to submit: " + (error.message ?? "Unknown error"));
-      }
-    } catch {
-      toast.error("Error submitting. Please try again.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  }, [draftId, router]);
-
   // ── PDF print ──
-  const handleDownloadPdf = useCallback(() => {
+  const openPrintPdf = useCallback((includeAttachments: boolean) => {
     if (!draftId) return;
-    window.open(`/api/print/machinery/${draftId}`, "_blank");
+    window.open(
+      `/api/print/machinery/${draftId}${includeAttachments ? "" : "?attachments=0"}`,
+      "_blank"
+    );
   }, [draftId]);
 
   // ── Render ──
@@ -350,9 +225,14 @@ function MachineryPreviewContent() {
                 </div>
                 <div className="hidden sm:flex items-center gap-2">
                   {canPrint && (
-                    <Button variant="outline" onClick={handleDownloadPdf} className="flex items-center gap-2">
-                      <FileText className="h-4 w-4" /> Print
-                    </Button>
+                    <>
+                      <Button variant="outline" onClick={() => openPrintPdf(true)} className="flex items-center gap-2">
+                        <FileText className="h-4 w-4" /> Print With Attachments
+                      </Button>
+                      <Button variant="outline" onClick={() => openPrintPdf(false)} className="flex items-center gap-2">
+                        <FileText className="h-4 w-4" /> Print Form Only
+                      </Button>
+                    </>
                   )}
                 </div>
               </header>
@@ -365,7 +245,12 @@ function MachineryPreviewContent() {
                   <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                 </div>
               ) : (
-                <MachineryForm data={formData ?? undefined} />
+                <FaasCommentHighlightScope
+                  activeComment={activeComment}
+                  scrollToField={false}
+                >
+                  <MachineryForm data={formData ?? undefined} />
+                </FaasCommentHighlightScope>
               )}
 
               {/* ── Supporting Documents ── */}

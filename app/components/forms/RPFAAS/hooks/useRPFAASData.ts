@@ -263,12 +263,6 @@ export const useRPFAASData = (serverData?: Record<string, any>) => {
 
     const loadDataFromStorage = useCallback(() => {
         try {
-            // Debug: Log all localStorage keys for RPFAAS
-            console.log('localStorage data check:');
-            console.log('rpfaas_owner_name:', localStorage.getItem("rpfaas_owner_name"));
-            console.log('p2 data:', localStorage.getItem("p2"));
-            console.log('p3 data:', localStorage.getItem("p3"));
-            
             // Property Identification from Step 1
             const transactionCode = localStorage.getItem("rpfaas_transaction_code") || "";
             const tdNo = localStorage.getItem("rpfaas_td_no") || "";
@@ -430,10 +424,6 @@ export const useRPFAASData = (serverData?: Record<string, any>) => {
 
             // If no p4 localStorage data exists, try to get it from the URL draft ID or check for existing database entry
             if (!p4Data && window.location.search.includes('id=')) {
-                const urlParams = new URLSearchParams(window.location.search);
-                const draftId = urlParams.get('id');
-                console.log("No p4 localStorage found, checking database for draft ID:", draftId);
-                
                 // In a real app, you'd fetch from API here
                 // For now, just log that we need to get this data
                 console.warn("Missing p4 localStorage data. Please go back to Step 4 and save again, or this data needs to be restored from the database.");

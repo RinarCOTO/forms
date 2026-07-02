@@ -30,8 +30,6 @@ export function saveDraftToLocal(formType: string, step: number, data: FormData)
     
     localStorage.setItem(key, JSON.stringify(data));
     localStorage.setItem(`${key}_metadata`, JSON.stringify(metadata));
-    
-    console.log(`✅ Draft saved for ${formType} - Step ${step}`);
   } catch (error) {
     console.error('Error saving draft to localStorage:', error);
     throw error;
@@ -91,8 +89,6 @@ export function clearDraft(formType: string, step?: number): void {
         }
       });
     }
-    
-    console.log(`🗑️ Draft cleared for ${formType}${step ? ` - Step ${step}` : ''}`);
   } catch (error) {
     console.error('Error clearing draft:', error);
   }
@@ -133,9 +129,6 @@ export async function saveFormToDatabase(
       
       throw new Error(errorMsg);
     }
-    
-    console.log(`✅ Form saved to database: ${formType}`);
-    
     return {
       success: true,
       data: result.data,
@@ -192,9 +185,6 @@ export async function updateFormInDatabase(
     if (!response.ok) {
       throw new Error(result.message || 'Failed to update form');
     }
-    
-    console.log(`✅ Form updated in database: ${formType}`);
-    
     return {
       success: true,
       data: result.data,

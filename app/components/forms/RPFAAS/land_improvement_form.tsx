@@ -3,6 +3,7 @@
 import "@/app/components/forms/RPFAAS/faas_table_forms.css";
 import FaasFooter from "./faas-footer";
 import { SectionHeader } from "./components/SectionHeader";
+import { formatValueWhenPresent } from "@/utils/form-helpers";
 
 // ─── Adjustment factor choices (mirrors step-4 page) ─────────────────────────
 const ADDITIONAL_FLAT_RATE_CHOICES = [
@@ -206,7 +207,7 @@ const LandImprovementForm = ({ data }: { data: LandImprovementFormData }) => {
           {/* Admin address — spans remaining cols */}
           <tr>
             <td>Address:</td>
-            <td>{fmt(data.admin_address)}</td>
+            <td>{formatValueWhenPresent(data.admin_address, data.admin_care_of)}</td>
             <td>Tel No.</td>
             <td>090202</td>
           </tr>

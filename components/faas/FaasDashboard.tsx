@@ -27,6 +27,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { createClient } from "@/lib/supabase/client";
 import { getStatusBadgeVariant, getStatusLabel } from "@/lib/faas/status-utils";
+import { isFaasSubmittableStatus } from "@/lib/faas/workflow";
 
 export interface FaasDashboardConfig {
   label: string;
@@ -71,7 +72,6 @@ interface FormSubmission {
 }
 
 const PAGE_SIZE = 10;
-const SUBMITTABLE_STATUSES = ['draft', 'returned', 'returned_to_municipal'];
 const EDITABLE_STATUSES = ['draft', 'returned', 'returned_to_municipal'];
 const EXPORT_PRESETS = [
   { label: 'Last 7 days',   value: '7d'  },
@@ -242,7 +242,7 @@ export function FaasDashboard({ config }: { config: FaasDashboardConfig }) {
 
   const handleView = useCallback((id: number, status: string) => {
     if (config.previewPath && config.printPreviewPath) {
-      router.push(SUBMITTABLE_STATUSES.includes(status)
+      router.push(isFaasSubmittableStatus(status)
         ? `${config.previewPath}?id=${id}`
         : `${config.printPreviewPath}?id=${id}`
       );
@@ -307,6 +307,11 @@ export function FaasDashboard({ config }: { config: FaasDashboardConfig }) {
   };
 
   const canPrint = user && (user.permissions[`${permissionKey}.view`] ?? false);
+
+  const getPrintUrl = (id: number, includeAttachments: boolean) => {
+    if (!config.printApiPath) return "";
+    return `${config.printApiPath}/${id}${includeAttachments ? "" : "?attachments=0"}`;
+  };
 
   const handleExportSingle = useCallback(async (submission: FormSubmission) => {
     if (!config.printApiPath) return;
@@ -604,7 +609,7 @@ export function FaasDashboard({ config }: { config: FaasDashboardConfig }) {
                                     >
                                       <Edit className="h-4 w-4 mr-2" /> Edit
                                     </DropdownMenuItem>
-                                    {config.previewPath && SUBMITTABLE_STATUSES.includes(submission.status) && (
+                                    {config.previewPath && isFaasSubmittableStatus(submission.status) && (
                                       <DropdownMenuItem onClick={() => handleSubmitForReview(submission.id)}>
                                         <Send className="h-4 w-4 mr-2" /> Submit to Municipal Assessor
                                       </DropdownMenuItem>
@@ -612,8 +617,11 @@ export function FaasDashboard({ config }: { config: FaasDashboardConfig }) {
                                     {config.printApiPath && submission.status === 'approved' && canPrint && (
                                       <>
                                         <DropdownMenuSeparator />
-                                        <DropdownMenuItem onClick={() => window.open(`${config.printApiPath}/${submission.id}`, '_blank')}>
-                                          <FileText className="h-4 w-4 mr-2" /> Print
+                                        <DropdownMenuItem onClick={() => window.open(getPrintUrl(submission.id, true), '_blank')}>
+                                          <FileText className="h-4 w-4 mr-2" /> Print With Attachments
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => window.open(getPrintUrl(submission.id, false), '_blank')}>
+                                          <FileText className="h-4 w-4 mr-2" /> Print Form Only
                                         </DropdownMenuItem>
                                         <DropdownMenuItem onClick={() => handleExportSingle(submission)}>
                                           <Download className="h-4 w-4 mr-2" /> Export

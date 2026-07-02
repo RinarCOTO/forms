@@ -24,6 +24,7 @@ import { StepPagination } from "@/components/ui/step-pagination";
 // Hooks
 import { useFormLock } from "@/hooks/useFormLock";
 import { useLocationSelect, safeSetLS } from "@/hooks/useLocationSelect";
+import { getStoredFaasDraftId, setStoredFaasDraftId } from "@/utils/form-draft-storage";
 
 // RPFAAS components
 import { ArpNoField } from "@/components/rpfaas/arp-no-field";
@@ -321,7 +322,7 @@ function MachineryFillPageContent() {
 
   const saveFormData = useCallback(async (): Promise<string | null> => {
     const formData = collectFormData(ownerName, adminCareOf, propertyStreet, ownerLoc, adminLoc, propLoc, transactionCode, tdNo, arpNo, titleType, titleNo, pin, surveyNo, lotNo, blk, previousTdNo, previousOwner, previousAv, previousMv, previousArea, landOwner, landPin, landArpNo, landArea, buildingOwner, buildingPin, buildingTdArpNo, actualUse);
-    const currentDraftId = draftId || localStorage.getItem('draft_id');
+    const currentDraftId = draftId || getStoredFaasDraftId(localStorage, "machinery");
     if (!currentDraftId) formData.status = 'draft';
     try {
       const response = await fetch(
@@ -331,7 +332,7 @@ function MachineryFillPageContent() {
       if (response.ok) {
         const result = await response.json();
         if (result.data?.id) {
-          localStorage.setItem('draft_id', result.data.id.toString());
+          setStoredFaasDraftId(localStorage, "machinery", result.data.id.toString());
           return result.data.id.toString();
         }
         toast.error('Save completed but no ID returned. Please try again.');

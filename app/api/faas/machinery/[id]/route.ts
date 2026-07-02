@@ -10,8 +10,6 @@ const getSupabaseAdmin = () =>
   );
 
 export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> | { id: string } }) {
-  console.log('=== GET /api/machinery/[id] - Route Hit ===');
-
   try {
     const params = await Promise.resolve(context.params);
     const id = params.id;
@@ -49,8 +47,6 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
 }
 
 export async function PUT(req: NextRequest, context: { params: Promise<{ id: string }> | { id: string } }) {
-  console.log('=== PUT /api/machinery/[id] - Route Hit ===');
-
   try {
     const params = await Promise.resolve(context.params);
     const id = params.id;
@@ -64,10 +60,6 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
 
     const body = await req.json();
     const { id: _bodyId, ...updateData } = body;
-
-    console.log('[PUT machinery] id:', id);
-    console.log('[PUT machinery] updateData keys:', Object.keys(updateData));
-    console.log('[PUT machinery] updateData:', JSON.stringify(updateData, null, 2));
 
     const supabase = getSupabaseAdmin();
 
@@ -104,8 +96,6 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
 }
 
 export async function DELETE(req: NextRequest, context: { params: Promise<{ id: string }> | { id: string } }) {
-  console.log('=== DELETE /api/machinery/[id] - Route Hit ===');
-
   try {
     const params = await Promise.resolve(context.params);
     const id = params.id;

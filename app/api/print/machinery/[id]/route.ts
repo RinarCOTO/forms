@@ -48,8 +48,9 @@ export async function GET(
     const cookieHeader = request.headers.get('cookie') || '';
 
     // 4. Build print URL
-    const { origin } = new URL(request.url);
-    const printUrl = `${origin}/machinery/print-only?id=${id}`;
+    const requestUrl = new URL(request.url);
+    const includeAttachments = requestUrl.searchParams.get('attachments') !== '0';
+    const printUrl = `${requestUrl.origin}/machinery/print-only?id=${id}${includeAttachments ? '' : '&attachments=0'}`;
 
     // 5. Get shared browser instance
     const browser = await getBrowser();
@@ -65,8 +66,8 @@ export async function GET(
         await page.setCookie(...cookies);
       }
 
-      await page.goto(printUrl, { waitUntil: 'networkidle2', timeout: 30000 });
-      await page.waitForSelector('[data-print-ready="true"]', { timeout: 15000 });
+      await page.goto(printUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
+      await page.waitForSelector('[data-all-ready="true"]', { timeout: 25000 });
       await new Promise((r) => setTimeout(r, 500));
 
       await page.addStyleTag({
@@ -75,6 +76,8 @@ export async function GET(
 
       const pdf = await page.pdf({
         format: 'A4',
+        landscape: false,
+        preferCSSPageSize: true,
         printBackground: true,
         margin: { top: '6mm', bottom: '8mm', left: '8mm', right: '8mm' },
       });

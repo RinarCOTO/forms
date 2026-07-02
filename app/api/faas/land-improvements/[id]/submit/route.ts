@@ -1,6 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
+import {
+  canSubmitFaasRole,
+  getLandSubmitTargetStatus,
+  getSubmitHistoryNote,
+  isFaasSubmittableStatus,
+  shouldStampLaooReview,
+  shouldStampMunicipalReview,
+  shouldStampProvincialReview,
+} from '@/lib/faas/workflow';
+import { notifyFaasStatusChange } from '@/lib/faas/notification-rules';
 
 function getAdminClient() {
   return createAdminClient(
@@ -8,34 +18,6 @@ function getAdminClient() {
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     { auth: { autoRefreshToken: false, persistSession: false } }
   );
-}
-
-const SUBMIT_ALLOWED_ROLES = [
-  'municipal_tax_mapper',
-  'municipal_assessor',
-  'laoo',
-  'provincial_assessor',
-  'assistant_provincial_assessor',
-  'admin',
-  'super_admin',
-];
-const SUBMITTABLE_STATUSES = ['draft', 'returned', 'returned_to_municipal'];
-
-// Higher-level roles bypass lower approval steps when they create/submit forms themselves
-function getBypassStatus(role: string): string {
-  switch (role) {
-    case 'municipal_assessor':
-      return 'municipal_signed'; // they are the municipal reviewer
-    case 'laoo':
-      return 'laoo_approved';    // they clear municipal + laoo
-    case 'provincial_assessor':
-    case 'assistant_provincial_assessor':
-    case 'admin':
-    case 'super_admin':
-      return 'approved';         // they clear all stages
-    default:
-      return 'submitted';        // normal flow for municipal_tax_mapper
-  }
 }
 
 export async function POST(
@@ -68,7 +50,7 @@ export async function POST(
       return NextResponse.json({ success: false, message: 'User profile not found' }, { status: 401 });
     }
 
-    if (!SUBMIT_ALLOWED_ROLES.includes(profile.role)) {
+    if (!canSubmitFaasRole(profile.role)) {
       return NextResponse.json(
         { success: false, message: 'Your role is not allowed to submit forms' },
         { status: 403 }
@@ -85,7 +67,7 @@ export async function POST(
       return NextResponse.json({ success: false, message: 'Form not found' }, { status: 404 });
     }
 
-    if (!SUBMITTABLE_STATUSES.includes(record.status)) {
+    if (!isFaasSubmittableStatus(record.status)) {
       return NextResponse.json(
         {
           success: false,
@@ -97,7 +79,7 @@ export async function POST(
 
     const fromStatus = record.status;
     const now = new Date().toISOString();
-    const targetStatus = getBypassStatus(profile.role);
+    const targetStatus = getLandSubmitTargetStatus(profile.role);
 
     // If re-submitting from 'returned', generate change-tracking response comments
     let fullRecord: Record<string, unknown> | null = null;
@@ -129,15 +111,15 @@ export async function POST(
     }
 
     // Stamp reviewer fields for bypassed stages
-    if (targetStatus === 'municipal_signed' || targetStatus === 'laoo_approved' || targetStatus === 'approved') {
+    if (shouldStampMunicipalReview(targetStatus)) {
       updatePayload.municipal_reviewer_id = authUser.id;
       updatePayload.municipal_signed_at   = now;
     }
-    if (targetStatus === 'laoo_approved' || targetStatus === 'approved') {
+    if (shouldStampLaooReview(targetStatus)) {
       updatePayload.laoo_reviewer_id  = authUser.id;
       updatePayload.laoo_approved_at  = now;
     }
-    if (targetStatus === 'approved') {
+    if (shouldStampProvincialReview(targetStatus)) {
       updatePayload.provincial_reviewer_id = authUser.id;
       updatePayload.provincial_signed_at   = now;
     }
@@ -234,12 +216,27 @@ export async function POST(
         to_status: targetStatus,
         actor_id: authUser.id,
         actor_role: profile.role,
-        note: targetStatus === 'submitted'
-          ? (fromStatus === 'returned' ? 'Re-submitted after addressing review comments' : 'Initial submission for LAOO review')
-          : `Auto-approved by ${profile.role} (creator bypass — stages up to "${targetStatus}" cleared)`,
+        note: getSubmitHistoryNote({
+          formType: 'land_improvements',
+          fromStatus,
+          targetStatus,
+          role: profile.role,
+        }),
       });
     } catch (historyErr) {
       console.warn('form_review_history insert failed:', historyErr);
+    }
+
+    try {
+      await notifyFaasStatusChange({
+        formType: 'land_improvements',
+        record: updated,
+        fromStatus,
+        toStatus: targetStatus,
+        actorId: authUser.id,
+      });
+    } catch (notificationErr) {
+      console.warn('Notification creation failed:', notificationErr);
     }
 
     // ── Broadcast status change for live dashboard updates ────────────────────

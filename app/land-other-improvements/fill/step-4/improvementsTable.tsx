@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button as ShadButton } from "@/components/ui/button";
 import { SelectOption as BaseSelectOption } from "@/components/dynamicSelectButton";
+import { formatCurrencyAmount as formatCurrency } from "@/utils/form-helpers";
 
 export interface SelectOption extends BaseSelectOption {
   pricePerSqm?: number;
@@ -69,9 +70,6 @@ export default function TotalImprovements({
   baseMarketValue,
   adjustedMarketValue,
 }: TotalImprovementsProps) {
-  const formatCurrency = (val: number) =>
-    val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
   const { standardRows, percentRows, flatRows, finalMarketValue, baseCost } =
     useMemo(() => {
       const sRows: CalculatedRow[] = [];
@@ -221,9 +219,6 @@ export const DeductionsTable = ({
   deductionChoices,
   error,
 }: DeductionsTableProps) => {
-  const formatCurrency = (value: number) =>
-    value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
   const [pendingRemoveIndex, setPendingRemoveIndex] = useState<number | null>(null);
 
   const addRow = () => {
@@ -422,15 +417,20 @@ export const AdjustmentTable = ({
   isTitled = false,
   onMarketValueChange,
 }: AdjustmentTableProps) => {
-  const totalPercent = values.reduce<number>((acc, id) => {
+  const adjustmentPercent = values.reduce<number>((acc, id) => {
     if (!id) return acc;
     const opt = options.find((o) => String(o.id) === String(id));
-    return acc + Math.abs(opt?.percentage ?? 0);
+    return acc + (opt?.percentage ?? 0);
   }, 0);
 
   const titleBonus = isTitled ? 35 : 0;
-  const effectiveRate = 100 + titleBonus - totalPercent;
+  const effectiveRate = 100 + titleBonus + adjustmentPercent;
   const marketValue = Math.round(((baseMarketValue * effectiveRate) / 100) / 10) * 10;
+  const adjustmentText = adjustmentPercent > 0
+    ? ` + ${adjustmentPercent}%`
+    : adjustmentPercent < 0
+      ? ` - ${Math.abs(adjustmentPercent)}%`
+      : "";
 
   useEffect(() => {
     onMarketValueChange?.(marketValue);
@@ -574,10 +574,10 @@ export const AdjustmentTable = ({
           <div className="flex justify-between items-center text-sm">
             <span className="text-muted-foreground">
               Adjustment <span className="font-mono">
-                (100%{isTitled ? ` + 35%` : ""}{totalPercent > 0 ? ` − ${totalPercent}%` : ""})
+                (100%{isTitled ? ` + 35%` : ""}{adjustmentText})
               </span>:
             </span>
-            <span className="font-mono font-medium text-destructive">
+            <span className={`font-mono font-medium ${effectiveRate >= 100 ? "text-emerald-600" : "text-destructive"}`}>
               {effectiveRate}%
             </span>
           </div>

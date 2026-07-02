@@ -25,6 +25,7 @@ import { TdNoField } from "@/components/rpfaas/td-no-field";
 import { TitleNoField } from "@/components/rpfaas/title-no-field";
 import { PreviousTdBlock } from "@/components/rpfaas/previous-td-block";
 import { TransactionCodeSelect, type TransactionCode } from "@/components/rpfaas/transaction-code-select";
+import { getStoredFaasDraftId, setStoredFaasDraftId } from "@/utils/form-draft-storage";
 
 const TRANSACTION_CODES: TransactionCode[] = [
   { code: "DC", label: "DC – Discovery / Newly Discovered", description: "Used for newly constructed buildings, or for existing structures that were previously undeclared and are being assessed for the very first time." },
@@ -244,7 +245,7 @@ function LandOtherImprovementsFillPageContent() {
   const saveData = useCallback(async (): Promise<string | null> => {
     const formData = collectFormData(ownerName, adminCareOf, propertyStreet, ownerLoc, adminLoc, propLoc, transactionCode, tdNo, arpNo, titleType, titleNo, pin, surveyNo, lotNo, blk, previousTdNo, previousOwner, previousAv, previousMv, previousArea);
     formData.status = 'draft';
-    const currentDraftId = draftId || localStorage.getItem('land_draft_id');
+    const currentDraftId = draftId || getStoredFaasDraftId(localStorage, "land");
     const method = currentDraftId ? 'PUT' : 'POST';
     const url = currentDraftId ? `/api/faas/land-improvements/${currentDraftId}` : '/api/faas/land-improvements';
     const response = await fetch(url, {
@@ -253,7 +254,7 @@ function LandOtherImprovementsFillPageContent() {
     if (!response.ok) throw new Error(`Server error (${response.status})`);
     const result = await response.json();
     const id = result.data?.id?.toString() ?? null;
-    if (id) localStorage.setItem('land_draft_id', id);
+    if (id) setStoredFaasDraftId(localStorage, "land", id);
     return id;
   }, [ownerName, adminCareOf, propertyStreet, ownerLoc, adminLoc, propLoc, transactionCode, tdNo, arpNo, titleType, titleNo, pin, surveyNo, lotNo, blk, previousTdNo, previousOwner, previousAv, previousMv, previousArea, draftId]);
 
@@ -274,7 +275,7 @@ function LandOtherImprovementsFillPageContent() {
     try {
       const id = await saveData();
       if (id) {
-        localStorage.setItem('draft_id', id);
+        setStoredFaasDraftId(localStorage, "land", id);
         router.push(`/land-other-improvements/fill/step-2?id=${id}`);
       } else {
         toast.error('Save completed but no ID returned. Please try again.');

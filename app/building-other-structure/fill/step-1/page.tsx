@@ -26,6 +26,7 @@ import { TdNoField } from "@/components/rpfaas/td-no-field";
 import { TitleNoField } from "@/components/rpfaas/title-no-field";
 import { PreviousTdBlock } from "@/components/rpfaas/previous-td-block";
 import { TransactionCodeSelect, type TransactionCode } from "@/components/rpfaas/transaction-code-select";
+import { getStoredFaasDraftId, setStoredFaasDraftId } from "@/utils/form-draft-storage";
 
 const TRANSACTION_CODES: TransactionCode[] = [
   { code: "DC", label: "DC – Discovery / Newly Discovered", description: "Used for newly constructed buildings, or for existing structures that were previously undeclared and are being assessed for the very first time." },
@@ -271,7 +272,7 @@ function BuildingOtherStructureFillPageContent() {
     setIsSaving(true);
     try {
       const formData = collectFormData(ownerName, adminCareOf, propertyStreet, ownerLoc, adminLoc, propLoc, transactionCode, tdNo, arpNo, titleType, titleNo, pin, surveyNo, lotNo, blk, previousTdNo, previousOwner, previousAv, previousMv, previousArea);
-      const currentDraftId = draftId || localStorage.getItem('draft_id');
+      const currentDraftId = draftId || getStoredFaasDraftId(localStorage, "building");
       if (!currentDraftId) formData.status = 'draft';
       let response;
       if (currentDraftId) {
@@ -287,7 +288,7 @@ function BuildingOtherStructureFillPageContent() {
         const result = await response.json();
         if (result.data?.id) {
           setIsDirty(false);
-          localStorage.setItem('draft_id', result.data.id.toString());
+          setStoredFaasDraftId(localStorage, "building", result.data.id.toString());
           router.push(`/building-other-structure/fill/step-2?id=${result.data.id}`);
         } else {
           toast.error('Save completed but no ID returned. Please try again.');
@@ -314,7 +315,7 @@ function BuildingOtherStructureFillPageContent() {
     setIsSavingDraft(true);
     try {
       const formData = collectFormData(ownerName, adminCareOf, propertyStreet, ownerLoc, adminLoc, propLoc, transactionCode, tdNo, arpNo, titleType, titleNo, pin, surveyNo, lotNo, blk, previousTdNo, previousOwner, previousAv, previousMv, previousArea);
-      const currentDraftId = draftId || localStorage.getItem('draft_id');
+      const currentDraftId = draftId || getStoredFaasDraftId(localStorage, "building");
       if (!currentDraftId) formData.status = 'draft';
       let response;
       if (currentDraftId) {
@@ -328,7 +329,7 @@ function BuildingOtherStructureFillPageContent() {
       }
       if (response.ok) {
         const result = await response.json();
-        if (result.data?.id) localStorage.setItem('draft_id', result.data.id.toString());
+        if (result.data?.id) setStoredFaasDraftId(localStorage, "building", result.data.id.toString());
         setIsDirty(false);
         toast.success('Draft saved successfully.');
       } else {

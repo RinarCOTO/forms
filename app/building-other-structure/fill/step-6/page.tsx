@@ -14,13 +14,19 @@ import { Input } from "@/components/ui/input";
 import { FormFillLayout } from "@/components/ui/form-fill-layout";
 import { toast } from "sonner";
 import { TextArea } from "react-aria-components";
-import { Button } from "@/components/ui/button";
 import { SaveDraftButton } from "@/components/SaveDraftButton";
 import { useSaveDraftShortcut } from "@/hooks/useSaveDraftShortcut";
 import { FormLockBanner } from "@/components/ui/form-lock-banner";
 import { FormSection } from "@/components/ui/form-section";
 import { useFormLock } from "@/hooks/useFormLock";
-import { generateEffectivityYears } from "@/utils/form-helpers";
+import {
+  formatBuildingActualUse,
+  formatCurrencyAmount as formatCurrency,
+  formatNumberWithCommas,
+  generateEffectivityYears,
+  numberToWords,
+} from "@/utils/form-helpers";
+import { getStoredFaasDraftId, setStoredFaasDraftId } from "@/utils/form-draft-storage";
 
 // Helper function to collect form data from ONLY this step (step 5)
 function collectFormData(
@@ -40,66 +46,8 @@ function collectFormData(
 
   return data;
 }
-    const formatCurrency = (value: number) =>
-        value.toLocaleString(undefined, {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-        });
 const FORM_NAME = "building-structure-form-fill-page-6";
 const PAGE_DESCRIPTION = "Final notes and summary of the property assessment.";
-
-// Pure helper at module scope — no state/props, never recreated on render
-function formatNumberWithCommas(num: number): string {
-  return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-}
-
-// Function to convert number to words
-function numberToWords(num: number): string {
-  if (num === 0) return "Zero";
-
-  const ones = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine"];
-  const teens = ["Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"];
-  const tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
-  const thousands = ["", "Thousand", "Million", "Billion"];
-
-  function convertHundreds(n: number): string {
-    let result = "";
-
-    if (n >= 100) {
-      result += ones[Math.floor(n / 100)] + " Hundred ";
-      n %= 100;
-    }
-
-    if (n >= 10 && n < 20) {
-      result += teens[n - 10] + " ";
-    } else {
-      if (n >= 20) {
-        result += tens[Math.floor(n / 10)] + " ";
-        n %= 10;
-      }
-      if (n > 0) {
-        result += ones[n] + " ";
-      }
-    }
-
-    return result.trim();
-  }
-
-  let word = "";
-  let scale = 0;
-
-  while (num > 0) {
-    const chunk = num % 1000;
-    if (chunk !== 0) {
-      const chunkWord = convertHundreds(chunk);
-      word = chunkWord + (thousands[scale] ? " " + thousands[scale] : "") + (word ? " " + word : "");
-    }
-    num = Math.floor(num / 1000);
-    scale++;
-  }
-
-  return word.trim();
-}
 
 function BuildingStructureFormFillPage6() {
   const router = useRouter();
@@ -178,6 +126,8 @@ function BuildingStructureFormFillPage6() {
   // Extracts the category label for actual_use: "Commercial - Apt" → "Commercial", "Residential" → "Residential"
   function toBuildingCategory(typeOfBuilding: string): string {
     if (!typeOfBuilding) return "Residential";
+    const normalized = formatBuildingActualUse(typeOfBuilding);
+    if (normalized !== typeOfBuilding) return normalized;
     const dashIdx = typeOfBuilding.indexOf(" - ");
     return dashIdx !== -1 ? typeOfBuilding.slice(0, dashIdx) : typeOfBuilding;
   }
@@ -249,7 +199,7 @@ function BuildingStructureFormFillPage6() {
         const data = result.data;
 
         // Fields owned by this step
-        if (data.actual_use) setActualUse(data.actual_use);
+        if (data.actual_use) setActualUse(formatBuildingActualUse(data.actual_use));
         if (data.effectivity_of_assessment != null) setEffectivityYear(String(data.effectivity_of_assessment));
         if (data.appraised_by) setAppraisedBy(data.appraised_by);
         if (data.memoranda) setMemoranda(data.memoranda);
@@ -298,10 +248,11 @@ function BuildingStructureFormFillPage6() {
         formData.appraised_by = appraisedBy;
         localStorage.setItem("appraised_by_p5", appraisedBy);
       }
-      if (memoranda) {
+      if (memoranda.trim()) {
         formData.memoranda = memoranda;
         localStorage.setItem("memoranda_p5", memoranda);
       } else {
+        formData.memoranda = null;
         localStorage.removeItem("memoranda_p5");
       }
       localStorage.setItem("assessment_level_p5", assessmentLevel);
@@ -310,7 +261,7 @@ function BuildingStructureFormFillPage6() {
       localStorage.setItem("tax_status_p5", taxStatus);
       formData.tax_status = taxStatus;
 
-      const currentDraftId = draftId || localStorage.getItem('draft_id');
+      const currentDraftId = draftId || getStoredFaasDraftId(localStorage, "building");
       if (!currentDraftId) formData.status = 'draft';
       const endpoint = currentDraftId
         ? `/api/faas/building-structures/${currentDraftId}`
@@ -324,7 +275,7 @@ function BuildingStructureFormFillPage6() {
       });
       if (response.ok) {
         const result = await response.json();
-        if (result.data?.id) localStorage.setItem('draft_id', result.data.id.toString());
+        if (result.data?.id) setStoredFaasDraftId(localStorage, "building", result.data.id.toString());
         toast.success('Draft saved successfully.');
       } else {
         const raw = await response.text();
@@ -354,10 +305,11 @@ function BuildingStructureFormFillPage6() {
         localStorage.setItem("appraised_by_p5", appraisedBy);
       }
 
-      if (memoranda) {
+      if (memoranda.trim()) {
         formData.memoranda = memoranda;
         localStorage.setItem("memoranda_p5", memoranda);
       } else {
+        formData.memoranda = null;
         localStorage.removeItem("memoranda_p5");
       }
 
@@ -368,10 +320,8 @@ function BuildingStructureFormFillPage6() {
       localStorage.setItem("tax_status_p5", taxStatus);
       formData.tax_status = taxStatus;
 
-      console.log('Saving Step 5 form data to Supabase:', formData);
-
       let response;
-      const currentDraftId = draftId || localStorage.getItem('draft_id');
+      const currentDraftId = draftId || getStoredFaasDraftId(localStorage, "building");
       if (!currentDraftId) formData.status = 'draft';
 
       if (currentDraftId) {
@@ -390,9 +340,8 @@ function BuildingStructureFormFillPage6() {
 
       if (response.ok) {
         const result = await response.json();
-        console.log('Save result:', result);
         if (result.data?.id) {
-          localStorage.setItem('draft_id', result.data.id.toString());
+          setStoredFaasDraftId(localStorage, "building", result.data.id.toString());
           router.push(`/building-other-structure/fill/preview-form?id=${result.data.id}`);
         }
       } else {

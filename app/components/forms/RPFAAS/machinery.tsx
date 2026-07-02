@@ -3,6 +3,11 @@
 import "@/app/components/forms/RPFAAS/faas_table_forms.css";
 import FaasFooter from "./faas-footer";
 import { SectionHeader } from "./components/SectionHeader";
+import {
+  formatCurrencyAmount as formatCurrency,
+  formatDisplayValue as fmt,
+  formatValueWhenPresent,
+} from "@/utils/form-helpers";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -87,15 +92,6 @@ const KIND_LABELS: Record<string, string> = {
   special_pollution_control: "Special – Pollution Control",
 };
 
-const formatCurrency = (val: string | number | undefined | null): string => {
-  const n = parseFloat(String(val ?? ""));
-  if (isNaN(n)) return "";
-  return n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-};
-
-const fmt = (val: string | number | undefined | null): string =>
-  val !== undefined && val !== null && val !== "" ? String(val) : "";
-
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
@@ -174,7 +170,7 @@ export default function MachineryForm({ data }: { data?: MachineryFormData }) {
 
           <tr className="border-b-2">
             <td>Address:</td>
-            <td colSpan={3}>{fmt(data.admin_address)}</td>
+            <td colSpan={3}>{formatValueWhenPresent(data.admin_address, data.admin_care_of)}</td>
           </tr>
         </tbody>
       </table>

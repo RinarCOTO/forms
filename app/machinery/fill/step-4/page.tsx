@@ -26,6 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { getStoredFaasDraftId } from "@/utils/form-draft-storage";
 import { StepPagination } from "@/components/ui/step-pagination";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -35,6 +36,10 @@ import { useFormLock } from "@/hooks/useFormLock";
 // RPFAAS components
 import { ReviewCommentsFloat } from "@/components/review-comments-float";
 import { ACTUAL_USE_OPTIONS } from "@/app/machinery/components/machinery-item-card";
+import {
+  formatCurrencyAmount as formatWithCommas,
+  numberToWords,
+} from "@/utils/form-helpers";
 
 // Constants
 import { MACHINERY_STEPS } from "@/app/machinery/fill/constants";
@@ -60,37 +65,6 @@ function getMachineryAssessmentLevel(actualUseCode: string): string {
     case "SG":    return "10%";
     default:      return "";
   }
-}
-
-function numberToWords(num: number): string {
-  if (num === 0) return "Zero";
-  const ones = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine"];
-  const teens = ["Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"];
-  const tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
-  const thousands = ["", "Thousand", "Million", "Billion"];
-
-  function convertHundreds(n: number): string {
-    let result = "";
-    if (n >= 100) { result += ones[Math.floor(n / 100)] + " Hundred "; n %= 100; }
-    if (n >= 10 && n < 20) { result += teens[n - 10] + " "; }
-    else { if (n >= 20) { result += tens[Math.floor(n / 10)] + " "; n %= 10; } if (n > 0) result += ones[n] + " "; }
-    return result.trim();
-  }
-
-  let word = ""; let scale = 0;
-  while (num > 0) {
-    const chunk = num % 1000;
-    if (chunk !== 0) {
-      const chunkWord = convertHundreds(chunk);
-      word = chunkWord + (thousands[scale] ? " " + thousands[scale] : "") + (word ? " " + word : "");
-    }
-    num = Math.floor(num / 1000); scale++;
-  }
-  return word.trim();
-}
-
-function formatWithCommas(num: number): string {
-  return num.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 // ---------------------------------------------------------------------------
@@ -211,7 +185,7 @@ function MachineryStep4Content() {
 
   // ── Save logic ──
   const saveData = useCallback(async (): Promise<boolean> => {
-    const currentDraftId = draftId || localStorage.getItem("draft_id");
+    const currentDraftId = draftId || getStoredFaasDraftId(localStorage, "machinery");
     if (!currentDraftId) {
       toast.error("No draft found. Go back to step 1 and save first.");
       return false;
@@ -254,7 +228,7 @@ function MachineryStep4Content() {
     setIsSaving(true);
     const ok = await saveData();
     if (ok) {
-      const id = draftId || localStorage.getItem("draft_id");
+      const id = draftId || getStoredFaasDraftId(localStorage, "machinery");
       router.push(`/machinery/fill/preview-form${id ? `?id=${id}` : ""}`);
     }
     setIsSaving(false);

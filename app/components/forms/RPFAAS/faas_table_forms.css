@@ -7,14 +7,7 @@
   margin-bottom: 0.25rem;
 }
 
-/* Field highlight — applied via JS when a reviewer comment is clicked */
-.faas-field-highlight {
-  background-color: #fef9c3 !important;
-  outline: 2px solid #f59e0b;
-  outline-offset: -2px;
-}
-
-/* Inline comment row injected after the highlighted field */
+/* Inline reviewer note shown after the highlighted field */
 .faas-inline-comment-row td {
   background: #fff7ed !important;
   border-left: 3px solid #f97316 !important;
@@ -179,6 +172,11 @@
 @page {
   size: A4 portrait;
   margin: 3mm 5mm 5mm 5mm;
+}
+
+@page plan-landscape-page {
+  size: A4 landscape;
+  margin: 5mm;
 }
 
 @media print {
@@ -400,6 +398,11 @@
     box-sizing: border-box;
   }
 
+  .photo-page.plan-landscape {
+    page: plan-landscape-page;
+    min-height: 190mm;
+  }
+
   .photo-page-title {
     font-size: 14pt;
     font-weight: bold;
@@ -416,6 +419,11 @@
     max-height: 240mm;
     object-fit: contain;
     margin: 0 auto;
+  }
+
+  .photo-page.plan-landscape img {
+    max-width: 275mm;
+    max-height: 165mm;
   }
 
   .photo-page-filename {

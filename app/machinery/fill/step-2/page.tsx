@@ -21,6 +21,7 @@ import { StepPagination } from "@/components/ui/step-pagination";
 
 // Hooks
 import { useFormLock } from "@/hooks/useFormLock";
+import { getStoredFaasDraftId } from "@/utils/form-draft-storage";
 
 // RPFAAS components
 import {
@@ -108,7 +109,7 @@ function MachineryStep2Content() {
 
   // ── Save logic ──
   const saveItems = useCallback(async (): Promise<boolean> => {
-    const currentDraftId = draftId || localStorage.getItem("draft_id");
+    const currentDraftId = draftId || getStoredFaasDraftId(localStorage, "machinery");
     if (!currentDraftId) {
       toast.error("No draft found. Go back to step 1 and save first.");
       return false;
@@ -134,7 +135,7 @@ function MachineryStep2Content() {
     const ok = await saveItems();
     if (ok) {
       setIsDirty(false);
-      const id = draftId || localStorage.getItem("draft_id");
+      const id = draftId || getStoredFaasDraftId(localStorage, "machinery");
       router.push(`/machinery/fill/step-3${id ? `?id=${id}` : ""}`);
     }
     setIsSaving(false);

@@ -5,7 +5,8 @@ import Link from "next/link"
 import { usePathname } from "next/navigation";
 import "./sidebar-active.css";
 import { UserProfile } from "@/components/user-profile"
-import { ChevronRight, ChevronDown, ClipboardList, ListChecks, Calculator, Users, ShieldCheck, StickyNote, Settings, ScrollText, BookOpen } from "lucide-react"
+import { NotificationBell } from "@/components/notifications/NotificationBell"
+import { ChevronRight, ChevronDown, ClipboardList, ListChecks, Calculator, Users, ShieldCheck, StickyNote, Settings, ScrollText, BookOpen, UserCheck, Home } from "lucide-react"
 import { usePermissions } from "@/app/contexts/permissions-context"
 
 import {
@@ -35,6 +36,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { role, permissions: perms, loading: isLoading } = usePermissions();
 
   const can = (feature: string) => perms[feature] === true;
+  const canAssignLaoo = role
+    ? ['super_admin', 'admin', 'provincial_assessor', 'assistant_provincial_assessor'].includes(role)
+    : false;
 
   // Land Assessor section is shown if the user can view any RPFAAS form
   const showLandAssessor =
@@ -45,9 +49,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar {...props}>
       <SidebarHeader>
-        <div>
-          <h2 className="text-lg font-semibold">Forms</h2>
-          <p className="text-xs text-muted-foreground">Select a form to fill or review.</p>
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <h2 className="text-lg font-semibold">Forms</h2>
+            <p className="text-xs text-muted-foreground">Select a form to fill or review.</p>
+          </div>
+          <NotificationBell />
         </div>
       </SidebarHeader>
 
@@ -60,6 +67,21 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 <div className="h-4 bg-muted rounded w-1/2" />
                 <div className="h-4 bg-muted rounded w-3/5" />
               </div>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
+        {!isLoading && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Main</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <Link href="/dashboard" className={pathname === "/dashboard" ? "sidebar-active" : ""}><Home className="w-4 h-4 shrink-0" />Home</Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
         )}
@@ -264,23 +286,30 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </SidebarGroup>
         )}
 
-        {/* Super Admin group — role hard-check keeps this locked to super_admin */}
-        {!isLoading && role === 'super_admin' && (
+        {/* Admin settings */}
+        {!isLoading && (role === 'super_admin' || canAssignLaoo) && (
           <SidebarGroup>
-            <SidebarGroupLabel>Super Admin</SidebarGroupLabel>
+            <SidebarGroupLabel>Admin</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {can('user_management.view') && (
+                {role === 'super_admin' && can('user_management.view') && (
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild>
                       <Link href="/manage-users" className={pathname.startsWith("/manage-users") ? "sidebar-active" : ""}><Users className="w-4 h-4 shrink-0" />Manage Users</Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 )}
-                {can('role_management.view') && (
+                {role === 'super_admin' && can('role_management.view') && (
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild>
                       <Link href="/manage-roles" className={pathname.startsWith("/manage-roles") ? "sidebar-active" : ""}><ShieldCheck className="w-4 h-4 shrink-0" />Manage Roles</Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )}
+                {canAssignLaoo && (
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <Link href="/admin/assign-laoo" className={pathname.startsWith("/admin/assign-laoo") ? "sidebar-active" : ""}><UserCheck className="w-4 h-4 shrink-0" />Assign LAOO</Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 )}

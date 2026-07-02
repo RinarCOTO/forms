@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
+import { notifyFaasAssignment } from '@/lib/faas/notification-rules';
 
 function getAdmin() {
   return createAdminClient(
@@ -48,10 +49,21 @@ export async function PATCH(
         updated_at: new Date().toISOString(),
       })
       .eq('id', id)
-      .select('id, assigned_to, appraised_by')
+      .select('id, assigned_to, appraised_by, created_by, owner_name, location_municipality, municipality')
       .single();
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+    try {
+      await notifyFaasAssignment({
+        formType: 'building_structures',
+        record: data,
+        assignedTo: assigned_to ?? null,
+        actorId: authUser.id,
+      });
+    } catch (notificationErr) {
+      console.warn('Notification creation failed:', notificationErr);
+    }
 
     return NextResponse.json({ success: true, data });
   } catch (err) {

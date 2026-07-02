@@ -2,6 +2,11 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import { toast } from "sonner";
+import {
+  type FaasDraftFormType,
+  getStoredFaasDraftId,
+  setStoredFaasDraftId,
+} from "@/utils/form-draft-storage";
 
 interface UseSaveDraftOptions {
   /** A function that returns the current form data to save */
@@ -12,6 +17,8 @@ interface UseSaveDraftOptions {
   apiEndpoint: string;
   /** Optional callback fired after a successful save */
   onSaved?: (id: string) => void;
+  /** Namespaced localStorage key group for FAAS drafts. */
+  draftFormType?: FaasDraftFormType;
 }
 
 interface UseSaveDraftReturn {
@@ -26,6 +33,7 @@ export function useSaveDraft({
   draftId,
   apiEndpoint,
   onSaved,
+  draftFormType = "building",
 }: UseSaveDraftOptions): UseSaveDraftReturn {
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<string | null>(null);
@@ -37,7 +45,7 @@ export function useSaveDraft({
 
     try {
       const formData = { ...getFormData(), status: "draft" };
-      const currentDraftId = draftId || localStorage.getItem("draft_id");
+      const currentDraftId = draftId || getStoredFaasDraftId(localStorage, draftFormType);
 
       let response: Response;
 
@@ -58,8 +66,9 @@ export function useSaveDraft({
       if (response.ok) {
         const result = await response.json();
         if (result.data?.id) {
-          localStorage.setItem("draft_id", result.data.id.toString());
-          onSaved?.(result.data.id.toString());
+          const savedId = result.data.id.toString();
+          setStoredFaasDraftId(localStorage, draftFormType, savedId);
+          onSaved?.(savedId);
         }
         setLastSaved(new Date().toISOString());
         toast.success("Saved", { description: "Your progress has been saved." });
@@ -80,7 +89,7 @@ export function useSaveDraft({
     } finally {
       setIsSaving(false);
     }
-  }, [getFormData, draftId, apiEndpoint, onSaved]);
+  }, [getFormData, draftId, apiEndpoint, onSaved, draftFormType]);
 
   const handleSaveRef = useRef(handleSave);
   handleSaveRef.current = handleSave;

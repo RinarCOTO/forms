@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
+import { notifyFaasStatusChange } from '@/lib/faas/notification-rules';
 
 function getAdmin() {
   return createAdminClient(
@@ -22,13 +23,12 @@ const ACTION_CONFIG: Record<ReviewAction, {
   fromStatuses: string[];
   toStatus: string;
   requiresNote?: boolean;
-  requiresSignature?: boolean;
 }> = {
-  sign_forward:      { roles: MUNICIPAL_ROLES,  fromStatuses: ['submitted', 'returned_to_municipal'], toStatus: 'municipal_signed', requiresSignature: true },
+  sign_forward:      { roles: MUNICIPAL_ROLES,  fromStatuses: ['submitted', 'returned_to_municipal'], toStatus: 'municipal_signed' },
   return_to_mapper:  { roles: MUNICIPAL_ROLES,  fromStatuses: ['submitted', 'returned_to_municipal'], toStatus: 'returned',         requiresNote: true },
   laoo_approve:      { roles: LAOO_ROLES,       fromStatuses: ['municipal_signed'],                   toStatus: 'laoo_approved' },
   laoo_return:       { roles: LAOO_ROLES,       fromStatuses: ['municipal_signed'],                   toStatus: 'returned_to_municipal', requiresNote: true },
-  sign_approve:      { roles: PROVINCIAL_ROLES, fromStatuses: ['laoo_approved'],                      toStatus: 'approved',         requiresSignature: true },
+  sign_approve:      { roles: PROVINCIAL_ROLES, fromStatuses: ['laoo_approved'],                      toStatus: 'approved' },
   provincial_return: { roles: PROVINCIAL_ROLES, fromStatuses: ['laoo_approved'],                      toStatus: 'returned_to_municipal', requiresNote: true },
 };
 
@@ -60,7 +60,6 @@ export async function POST(
     if (!config) return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
     if (!config.roles.includes(profile.role)) return NextResponse.json({ error: 'Forbidden for your role' }, { status: 403 });
     if (config.requiresNote && !note?.trim()) return NextResponse.json({ error: 'A note is required for this action' }, { status: 422 });
-    if (config.requiresSignature && !profile.signature_path) return NextResponse.json({ error: 'You must upload a signature before signing' }, { status: 422 });
 
     const { data: record, error: fetchError } = await admin
       .from('land_improvements')
@@ -80,12 +79,12 @@ export async function POST(
     if (action === 'sign_forward') {
       updatePayload.municipal_reviewer_id    = authUser.id;
       updatePayload.municipal_signed_at      = now;
-      updatePayload.municipal_signature_path = profile.signature_path;
+      updatePayload.municipal_signature_path = profile.signature_path ?? null;
     }
     if (action === 'sign_approve') {
       updatePayload.provincial_reviewer_id    = authUser.id;
       updatePayload.provincial_signed_at      = now;
-      updatePayload.provincial_signature_path = profile.signature_path;
+      updatePayload.provincial_signature_path = profile.signature_path ?? null;
     }
 
     const { data: updated, error: updateError } = await admin
@@ -127,6 +126,18 @@ export async function POST(
       });
     } catch (histErr) {
       console.warn('form_review_history insert failed:', histErr);
+    }
+
+    try {
+      await notifyFaasStatusChange({
+        formType: 'land_improvements',
+        record: updated,
+        fromStatus: record.status,
+        toStatus: config.toStatus,
+        actorId: authUser.id,
+      });
+    } catch (notificationErr) {
+      console.warn('Notification creation failed:', notificationErr);
     }
 
     // ── Broadcast status change for live dashboard/queue updates ─────────────

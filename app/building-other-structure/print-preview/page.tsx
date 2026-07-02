@@ -46,6 +46,14 @@ function PrintPreviewPage() {
   const [isExporting, setIsExporting] = useState(false);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
 
+  const openPrintPdf = (includeAttachments: boolean) => {
+    if (!formId) return;
+    window.open(
+      `/api/print/building-structures/${formId}${includeAttachments ? "" : "?attachments=0"}`,
+      '_blank'
+    );
+  };
+
   const handleExport = async () => {
     if (!formId) return;
     setIsExporting(true);
@@ -144,11 +152,20 @@ function PrintPreviewPage() {
             <>
               <Button
                 size="sm"
-                onClick={() => { window.open(`/api/print/building-structures/${formId}`, '_blank'); }}
+                onClick={() => openPrintPdf(true)}
                 className="gap-1.5"
               >
                 <Printer className="h-4 w-4" />
-                Print
+                Print With Attachments
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => openPrintPdf(false)}
+                className="gap-1.5"
+              >
+                <Printer className="h-4 w-4" />
+                Print Form Only
               </Button>
               <Button
                 size="sm"

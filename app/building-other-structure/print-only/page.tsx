@@ -4,6 +4,8 @@ import "@/app/components/forms/RPFAAS/faas_table_forms.css";
 import { useState, useEffect, useRef, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import BuildingStructureForm from "@/app/components/forms/RPFAAS/building_structure_form";
+import { FaasPhotoImage } from "@/components/faas/FaasPhotoImage";
+import { useFaasPrintFooterReady } from "@/hooks/useFaasPrintFooterReady";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -22,6 +24,15 @@ const PHOTO_LABELS: Record<PhotoType, string> = {
   other_certificate: "Sworn Statement",
 };
 
+const PHOTO_ORDER: PhotoType[] = [
+  "sketch_plan",
+  "perspective_view",
+  "barangay_certificate",
+  "other_certificate",
+];
+
+const LANDSCAPE_PLAN_TYPES: PhotoType[] = ["sketch_plan", "perspective_view"];
+
 interface PhotoRecord {
   id: string;
   photo_type: PhotoType;
@@ -38,41 +49,32 @@ interface PhotoRecord {
 interface PhotoPageProps {
   photo: PhotoRecord;
   onLoad: () => void;
-  onError: () => void;
 }
 
-function PhotoAttachmentPage({ photo, onLoad, onError }: PhotoPageProps) {
-  const [isLandscape, setIsLandscape] = useState(false);
+function PhotoAttachmentPage({ photo, onLoad }: PhotoPageProps) {
   const label = PHOTO_LABELS[photo.photo_type] ?? photo.photo_type;
-
-  const handleLoad = useCallback(
-    (e: React.SyntheticEvent<HTMLImageElement>) => {
-      const img = e.currentTarget;
-      setIsLandscape(img.naturalWidth > img.naturalHeight);
-      onLoad();
-    },
-    [onLoad]
-  );
+  const isLandscapePlan = LANDSCAPE_PLAN_TYPES.includes(photo.photo_type);
 
   return (
     <div
-      className={isLandscape ? "photo-attachment-page landscape" : "photo-attachment-page"}
+      className={isLandscapePlan ? "photo-attachment-page plan-landscape" : "photo-attachment-page"}
       style={{ pageBreakBefore: "always" }}
     >
       <p style={{ fontFamily: "Arial, sans-serif", fontSize: "11pt", fontWeight: "bold", marginBottom: "6mm" }}>
         {label}
       </p>
       {photo.signedUrl && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={photo.signedUrl}
+        <FaasPhotoImage
+          signedUrl={photo.signedUrl}
           alt={label}
-          onLoad={handleLoad}
-          onError={onError}
+          mode="print"
+          onReady={onLoad}
           style={{
             display: "block",
-            maxWidth: "100%",
-            maxHeight: isLandscape ? "160mm" : "220mm",
+            width: "auto",
+            height: "auto",
+            maxWidth: isLandscapePlan ? "275mm" : "180mm",
+            maxHeight: isLandscapePlan ? "165mm" : "240mm",
             objectFit: "contain",
             margin: "0 auto",
           }}
@@ -102,10 +104,12 @@ function PhotoAttachmentPage({ photo, onLoad, onError }: PhotoPageProps) {
 function PrintOnlyPage() {
   const searchParams = useSearchParams();
   const id = searchParams.get("id");
+  const includeAttachments = searchParams.get("attachments") !== "0";
 
   const [data, setData] = useState<any>(null);
   const [photos, setPhotos] = useState<PhotoRecord[]>([]);
   const [photosReady, setPhotosReady] = useState(false);
+  const footerReady = useFaasPrintFooterReady(Boolean(data));
 
   // Count images that have finished (loaded or errored) so we know when all are done
   const loadedRef = useRef(0);
@@ -129,6 +133,14 @@ function PrintOnlyPage() {
       })
       .catch(() => {});
 
+    if (!includeAttachments) {
+      loadedRef.current = 0;
+      totalRef.current = 0;
+      setPhotos([]);
+      setPhotosReady(true);
+      return;
+    }
+
     // Fetch photos
     fetch(`/api/faas/building-structures/photos?buildingStructureId=${id}`, {
       cache: "no-store",
@@ -146,14 +158,16 @@ function PrintOnlyPage() {
         }
       })
       .catch(() => setPhotosReady(true));
-  }, [id]);
+  }, [id, includeAttachments]);
 
   // Signal Puppeteer via body attribute — avoids adding a wrapper div to the document flow
   useEffect(() => {
-    if (data && photosReady) {
+    if (data && photosReady && footerReady) {
       document.body.setAttribute("data-all-ready", "true");
+    } else {
+      document.body.removeAttribute("data-all-ready");
     }
-  }, [data, photosReady]);
+  }, [data, photosReady, footerReady]);
 
   if (!data) return <div style={{ padding: "2rem" }}>Loading…</div>;
 
@@ -161,9 +175,16 @@ function PrintOnlyPage() {
     <>
       <style>{`
         html, body { background: white !important; margin: 0; padding: 0; }
-        @page landscape-page { size: A4 landscape; margin: 4mm 8mm; }
-        .photo-attachment-page { padding: 4mm 8mm 0 8mm; }
-        .photo-attachment-page.landscape { page: landscape-page; }
+        .photo-attachment-page {
+          box-sizing: border-box;
+          min-height: 270mm;
+          padding: 4mm 8mm 0 8mm;
+        }
+        .photo-attachment-page.plan-landscape {
+          page: plan-landscape-page;
+          min-height: 190mm;
+          padding: 4mm 8mm 0 8mm;
+        }
       `}</style>
 
       {/* Main RPFAAS form — sets data-print-ready internally */}
@@ -172,12 +193,11 @@ function PrintOnlyPage() {
       </div>
 
       {/* Photo attachment pages */}
-      {photos.map((photo) => (
+      {includeAttachments && photos.map((photo) => (
         <PhotoAttachmentPage
           key={photo.id}
           photo={photo}
           onLoad={markOneImageDone}
-          onError={markOneImageDone}
         />
       ))}
     </>

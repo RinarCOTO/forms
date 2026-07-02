@@ -159,11 +159,7 @@ export function useSaveForm({
 
   // Auto-save functionality
   useEffect(() => {
-    if (autoSaveInterval > 0) {
-      // Auto-save is currently not implemented but can be added
-      // Would need to watch form data changes
-      console.log('Auto-save enabled with interval:', autoSaveInterval);
-    }
+    // Auto-save is currently not implemented but can be added here.
   }, [autoSaveInterval]);
 
   return {

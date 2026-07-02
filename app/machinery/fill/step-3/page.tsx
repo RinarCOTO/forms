@@ -29,6 +29,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { getStoredFaasDraftId } from "@/utils/form-draft-storage";
 
 // Hooks
 import { useFormLock } from "@/hooks/useFormLock";
@@ -235,7 +236,7 @@ function MachineryStep3Content() {
 
   useEffect(() => {
     if (!urlId) {
-      const stored = localStorage.getItem("draft_id");
+      const stored = getStoredFaasDraftId(localStorage, "machinery");
       if (stored) setDraftId(stored);
     }
   }, [urlId]);

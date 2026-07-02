@@ -26,6 +26,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import React from "react";
+import { getStoredFaasDraftId, setStoredFaasDraftId } from "@/utils/form-draft-storage";
 import {
   FORM_CONSTANTS,
   DEDUCTION_CHOICES,
@@ -336,7 +337,7 @@ if (loadedData?.additional_flat_rate_areas?.length > 0) {
         market_value: financialSummary.netMarketValue,
       };
 
-      const currentDraftId = draftId || localStorage.getItem("draft_id");
+      const currentDraftId = draftId || getStoredFaasDraftId(localStorage, "building");
       const method = currentDraftId ? "PUT" : "POST";
       if (!currentDraftId) formData.status = 'draft';
       const url = currentDraftId
@@ -353,7 +354,7 @@ if (loadedData?.additional_flat_rate_areas?.length > 0) {
         const result = await response.json();
         if (result.data?.id) {
           setIsDirty(false);
-          localStorage.setItem("draft_id", result.data.id.toString());
+          setStoredFaasDraftId(localStorage, "building", result.data.id.toString());
           router.push(`/building-other-structure/fill/step-5?id=${result.data.id}`);
         }
       }
@@ -403,7 +404,7 @@ if (loadedData?.additional_flat_rate_areas?.length > 0) {
         additional_flat_rate_areas: additionalFlatRateAreas,
         market_value: financialSummary.netMarketValue,
       };
-      const currentDraftId = draftId || localStorage.getItem('draft_id');
+      const currentDraftId = draftId || getStoredFaasDraftId(localStorage, "building");
       const method = currentDraftId ? 'PUT' : 'POST';
       if (!currentDraftId) formData.status = 'draft';
       const url = currentDraftId
@@ -412,7 +413,7 @@ if (loadedData?.additional_flat_rate_areas?.length > 0) {
       const response = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(formData) });
       if (response.ok) {
         const result = await response.json();
-        if (result.data?.id) localStorage.setItem('draft_id', result.data.id.toString());
+        if (result.data?.id) setStoredFaasDraftId(localStorage, "building", result.data.id.toString());
         setIsDirty(false);
         toast.success('Draft saved successfully.');
       } else {

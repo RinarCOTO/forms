@@ -11,6 +11,39 @@ function getAdmin() {
 }
 
 const REVIEW_ROLES = ['municipal_tax_mapper', 'municipal_assessor', 'laoo', 'assistant_provincial_assessor', 'provincial_assessor', 'admin', 'super_admin'];
+const MUNICIPAL_ROLES = ['municipal_tax_mapper', 'municipal_assessor'];
+const LAOO_ROLES = ['laoo'];
+const PROVINCIAL_ROLES = ['assistant_provincial_assessor', 'provincial_assessor'];
+const ADMIN_ROLES = ['admin', 'super_admin'];
+const ALL_REVIEW_STATUSES = ['submitted', 'municipal_signed', 'laoo_approved', 'approved', 'returned', 'returned_to_municipal'];
+const MUNICIPALITY_LABELS: Record<string, string> = {
+  barlig: 'Barlig',
+  bauko: 'Bauko',
+  besao: 'Besao',
+  bontoc: 'Bontoc',
+  natonin: 'Natonin',
+  paracellis: 'Paracellis',
+  sabangan: 'Sabangan',
+  sagada: 'Sagada',
+  sadanga: 'Sadanga',
+  tadian: 'Tadian',
+};
+
+function getAllowedStatusesForRole(role: string) {
+  if (ADMIN_ROLES.includes(role)) return ALL_REVIEW_STATUSES;
+  if (MUNICIPAL_ROLES.includes(role)) return ['submitted', 'returned_to_municipal'];
+  if (LAOO_ROLES.includes(role)) return ['municipal_signed'];
+  if (PROVINCIAL_ROLES.includes(role)) return ['laoo_approved'];
+  return [];
+}
+
+function getMunicipalityScopeFilter(municipality: string) {
+  const label = MUNICIPALITY_LABELS[municipality.toLowerCase()];
+  const values = [...new Set([municipality, municipality.toLowerCase(), label].filter(Boolean))];
+  return values
+    .flatMap(value => [`location_municipality.eq.${value}`, `municipality.eq.${value}`])
+    .join(',');
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -35,11 +68,21 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const statusFilter  = searchParams.getAll('status');
     const formTypeFilter = searchParams.get('form_type'); // 'building' | 'land' | null = all
-    const ALL_ACTIVE = ['submitted', 'municipal_signed', 'laoo_approved', 'approved', 'returned', 'returned_to_municipal'];
-    const statusesToQuery = statusFilter.length > 0 ? statusFilter : ALL_ACTIVE;
+    const allowedStatuses = getAllowedStatusesForRole(profile.role);
+    const requestedStatuses = statusFilter.length > 0 ? statusFilter : allowedStatuses;
+    const statusesToQuery = requestedStatuses.filter(status => allowedStatuses.includes(status));
+
+    if (statusesToQuery.length === 0) {
+      return NextResponse.json({ success: true, data: [] });
+    }
 
     const results: Record<string, unknown>[] = [];
-    const isLaooScoped = profile.role === 'laoo' && !!profile.municipality;
+    const isLaoo = profile.role === 'laoo';
+    const isLaooScoped = isLaoo && !!profile.municipality;
+
+    if (isLaoo && !profile.municipality) {
+      return NextResponse.json({ success: true, data: [] });
+    }
 
     // ── Building Structures ────────────────────────────────────────────────────
     if (!formTypeFilter || formTypeFilter === 'building') {
@@ -49,7 +92,7 @@ export async function GET(request: NextRequest) {
         .in('status', statusesToQuery)
         .order('submitted_at', { ascending: true });
 
-      if (isLaooScoped) q = q.eq('location_municipality', profile.municipality);
+      if (isLaooScoped) q = q.or(getMunicipalityScopeFilter(profile.municipality));
 
       const { data } = await q;
       if (data) {
@@ -65,7 +108,7 @@ export async function GET(request: NextRequest) {
         .in('status', statusesToQuery)
         .order('submitted_at', { ascending: true });
 
-      if (isLaooScoped) q = q.eq('location_municipality', profile.municipality);
+      if (isLaooScoped) q = q.or(getMunicipalityScopeFilter(profile.municipality));
 
       const { data } = await q;
       if (data) {

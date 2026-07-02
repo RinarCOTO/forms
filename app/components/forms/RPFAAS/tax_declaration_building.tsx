@@ -2,7 +2,15 @@
 
 import "@/app/components/forms/RPFAAS/faas_table_forms.css";
 import "@/app/components/forms/RPFAAS/components/taxDec.css";
-import { TaxDecFooter } from "@/app/components/forms/RPFAAS/components";
+import { MemorandaText, TaxDecFooter, TaxDeclarationNote } from "@/app/components/forms/RPFAAS/components";
+import {
+  formatAssessmentLevel as fmtAssessmentLevel,
+  formatBuildingActualUse,
+  formatDisplayValue as fmt,
+  formatNumberWithCommas as fmtNumber,
+  formatTaxDeclarationDate as fmtDate,
+  formatValueWhenPresent,
+} from "@/utils/form-helpers";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -35,41 +43,7 @@ export interface BuildingTaxDecFormData {
   amount_in_words?: string;
   effectivity_of_assessment?: string;
   tax_status?: string;
-}
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function fmt(val: string | number | undefined | null): string {
-  if (val == null || val === "") return "";
-  return String(val);
-}
-
-function fmtNumber(val: string | number | undefined | null): string {
-  if (val == null || val === "") return "";
-  const raw = String(val).replace(/,/g, "");
-  const n = Number(raw);
-  if (!Number.isFinite(n)) return String(val);
-  const decimals = raw.includes(".") ? raw.split(".")[1]?.length ?? 0 : 0;
-  return n.toLocaleString("en-US", {
-    minimumFractionDigits: decimals,
-    maximumFractionDigits: Math.max(decimals, 0),
-  });
-}
-
-function fmtAssessmentLevel(val: string | number | undefined | null): string {
-  if (val == null || val === "") return "";
-  const text = String(val);
-  return text.includes("%") ? text : `${text}%`;
-}
-
-function fmtDate(val: string | undefined): string {
-  if (!val) return "";
-  const date = new Date(val.includes("T") ? val : `${val}T00:00:00`);
-  if (Number.isNaN(date.getTime())) return val;
-  const month = date.getMonth() + 1;
-  const day = String(date.getDate()).padStart(2, "0");
-  const year = date.getFullYear();
-  return `${month}/${day}/${year}`;
+  memoranda?: string;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -85,6 +59,13 @@ export default function TaxDeclarationBuilding({
 }) {
   const isTaxable = data.tax_status === "taxable";
   const isExempt  = data.tax_status === "exempt";
+  const typeOfBuildingDisplay =
+    data.type_of_building === "Residential Houses"
+      ? "Residential"
+      : data.type_of_building?.startsWith("Commercial - ")
+      ? "Commercial"
+      : fmt(data.type_of_building);
+  const actualUseDisplay = formatBuildingActualUse(data.actual_use);
 
   return (
     <div className="rpfaas-print space-y-3 tax-dec-body" style={{ backgroundColor: "white" }}>
@@ -119,12 +100,12 @@ export default function TaxDeclarationBuilding({
         </div>
         <div className="flex gap-2">
           <div className="w-52 shrink-0">Address:</div>
-          <div className="border-b border-black flex-1">{fmt(data.admin_address)}</div>
+          <div className="border-b border-black flex-1">{formatValueWhenPresent(data.admin_address, data.admin_care_of)}</div>
         </div>
       </div>
 
       {/* Location of Property */}
-      <section className="space-y-1">
+      <section className="space-y-1 tax-dec-appraisal-table">
         <div className="font-bold italic">Location of Property</div>
         <div className="grid grid-cols-4 text-center gap-3">
           <div>
@@ -150,12 +131,12 @@ export default function TaxDeclarationBuilding({
         </div>
         <div className="grid grid-cols-2">
           <div className="flex gap-2">
-            <div className="w-36 shrink-0">OCT / TCT / CLOA No:</div>
-            <div className="border-b border-black flex-1 font-bold">{fmt(data.oct_tct_cloa_no)}</div>
-          </div>
-          <div className="flex gap-2">
             <div className="w-36 shrink-0">Dated:</div>
             <div className="border-b border-black flex-1 font-bold">{fmtDate(datedDate)}</div>
+          </div>
+          <div className="flex gap-2">
+            <div className="w-36 shrink-0">OCT / TCT / CLOA No:</div>
+            <div className="border-b border-black flex-1 font-bold">{fmt(data.oct_tct_cloa_no)}</div>
           </div>
         </div>
       </section>
@@ -169,19 +150,19 @@ export default function TaxDeclarationBuilding({
           </div>
           <div className="flex gap-2">
             <div className="font-bold">ACTUAL USE:</div>
-            <div className="border-b border-black flex-1 capitalize text-center">{fmt(data.actual_use)}</div>
+            <div className="border-b border-black flex-1 capitalize text-center">{actualUseDisplay}</div>
           </div>
         </div>
 
-        <div className="grid grid-cols-5 text-center mt-4 print:py-1" style={{ borderTop: "1.5px solid black", borderBottom: "1.5px solid black" }}>
+        <div className="grid grid-cols-5 text-center mt-4 print:py-1 tax-dec-appraisal-head" style={{ borderTop: "1.5px solid black", borderBottom: "1.5px solid black" }}>
           <div>TYPE OF BUILDING</div>
           <div>FLOOR AREA</div>
           <div>MARKET VALUE</div>
           <div>ASSESSMENT LEVEL</div>
           <div>ASSESSED VALUE</div>
         </div>
-        <div className="grid grid-cols-5 gap-3 text-center">
-          <div className="border-b border-black w-full mx-auto capitalize">{fmt(data.type_of_building)}</div>
+        <div className="grid grid-cols-5 gap-3 text-center tax-dec-appraisal-row">
+          <div className="border-b border-black w-full mx-auto capitalize">{typeOfBuildingDisplay}</div>
           <div className="border-b border-black w-full mx-auto">{fmtNumber(data.total_floor_area)}</div>
           <div className="border-b border-black w-full mx-auto">{fmtNumber(data.market_value)}</div>
           <div className="border-b border-black w-full mx-auto">
@@ -189,21 +170,21 @@ export default function TaxDeclarationBuilding({
           </div>
           <div className="border-b border-black w-full mx-auto font-bold">{data.assessed_value ? `Php ${fmtNumber(data.assessed_value)}` : ""}</div>
         </div>
-        <div className="grid grid-cols-5 gap-3 text-center">
+        <div className="grid grid-cols-5 gap-3 text-center tax-dec-appraisal-row">
           <div className="border-b border-black w-full mx-auto capitalize">{fmt(data.structure_type)}</div>
           <div className="border-b border-black w-full mx-auto"></div>
           <div className="border-b border-black w-full mx-auto"></div>
           <div className="border-b border-black w-full mx-auto"></div>
           <div className="border-b border-black w-full mx-auto"></div>
         </div>
-        <div className="grid grid-cols-5 gap-3 text-center">
+        <div className="grid grid-cols-5 gap-3 text-center tax-dec-appraisal-row">
           <div className="border-b border-black w-full mx-auto"></div>
           <div className="border-b border-black w-full mx-auto"></div>
           <div className="border-b border-black w-full mx-auto"></div>
           <div className="border-b border-black w-full mx-auto"></div>
           <div className="border-b border-black w-full mx-auto"></div>
         </div>
-        <div className="grid grid-cols-5 gap-3 text-center font-semibold">
+        <div className="grid grid-cols-5 gap-3 text-center font-semibold tax-dec-appraisal-row">
           <div className="border-b border-black w-full mx-auto">Total</div>
           <div className="border-b border-black w-full mx-auto font-bold">{fmtNumber(data.total_floor_area)}</div>
           <div className="border-b border-black w-full mx-auto font-bold">{fmtNumber(data.market_value)}</div>
@@ -249,14 +230,10 @@ export default function TaxDeclarationBuilding({
       {/* Memoranda */}
       <section className="space-y-2">
         <div className="italic">Memoranda:</div>
-        <div className="flex gap-2">
-          <div className="font-bold shrink-0">RE-ASSESSMENT —</div>
-          <div>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</div>
+        <div className="min-h-16 whitespace-pre-line">
+          <MemorandaText value={data.memoranda} />
         </div>
-        <div className="flex gap-2 mt-24 print:mt-2">
-          <div className="font-bold shrink-0 tax-dec-note">NOTE:</div>
-          <div>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</div>
-        </div>
+        <TaxDeclarationNote />
       </section>
     </div>
   );

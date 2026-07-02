@@ -25,25 +25,22 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { getStoredFaasDraftId } from "@/utils/form-draft-storage";
+import {
+  getAttachmentConfigForTransaction,
+  type AttachmentConfig,
+  type LandAttachmentType,
+} from "@/utils/faas-attachment-rules";
+import {
+  buildMemorandaFromAttachments,
+  mergeAttachmentMemoranda,
+} from "@/utils/faas-memoranda";
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
-type PhotoType =
-  | "barangay_certificate"
-  | "ncip_certificate"
-  | "sketch_plan"
-  | "affidavit_of_ownership"
-  | "endorsement_of_assessor"
-  | "tax_declaration"
-  | "survey_plan"
-  | "letter_request"
-  | "deed_of_sale"
-  | "deed_of_donation"
-  | "extra_judicial_settlement"
-  | "bir_certificate"
-  | "inspection_report";
+type PhotoType = LandAttachmentType;
 
 interface PhotoRecord {
   id: string;
@@ -57,61 +54,7 @@ interface PhotoRecord {
 // Photo config per transaction scenario
 // ---------------------------------------------------------------------------
 
-type PhotoConfig = { type: PhotoType; label: string; description: string };
-
-const PHOTO_DEFS: Record<PhotoType, PhotoConfig> = {
-  barangay_certificate:      { type: "barangay_certificate",      label: "Barangay Certificate",                    description: "Official barangay certificate issued for the property." },
-  ncip_certificate:          { type: "ncip_certificate",          label: "NCIP Certificate",                        description: "National Commission on Indigenous Peoples certificate." },
-  sketch_plan:               { type: "sketch_plan",               label: "Sketch Plan",                             description: "Survey sketch plan of the land." },
-  affidavit_of_ownership:    { type: "affidavit_of_ownership",    label: "Affidavit of Ownership",                  description: "Notarized affidavit attesting to ownership of the property." },
-  endorsement_of_assessor:   { type: "endorsement_of_assessor",   label: "Endorsement of Assessor",                 description: "Written endorsement from the municipal assessor." },
-  tax_declaration:           { type: "tax_declaration",           label: "Tax Declaration",                         description: "Copy of the existing tax declaration for this property." },
-  survey_plan:               { type: "survey_plan",               label: "Survey Plan",                             description: "Approved survey plan of the lot." },
-  letter_request:            { type: "letter_request",            label: "Letter Request",                          description: "Formal letter request from the property owner." },
-  deed_of_sale:              { type: "deed_of_sale",              label: "Deed of Sale",                            description: "Notarized deed of sale transferring ownership." },
-  deed_of_donation:          { type: "deed_of_donation",          label: "Deed of Donation",                        description: "Notarized deed of donation transferring ownership." },
-  extra_judicial_settlement: { type: "extra_judicial_settlement", label: "Extra Judicial Settlement",               description: "Notarized extra judicial settlement of estate." },
-  bir_certificate:           { type: "bir_certificate",           label: "Certificate of Authorizing Registration (BIR)", description: "BIR certificate confirming payment/clearance for transfer." },
-  inspection_report:         { type: "inspection_report",         label: "Inspection Report",                       description: "Field inspection report prepared by the assessor." },
-};
-
-function p(...types: PhotoType[]): PhotoConfig[] {
-  return types.map(t => PHOTO_DEFS[t]);
-}
-
-// ---------------------------------------------------------------------------
-// Determine required photos from draft data
-// Returns null = no documents required for this transaction code
-// ---------------------------------------------------------------------------
-
-function getPhotoConfig(
-  transactionCode: string,
-  octTctCloaNo: string | null
-): PhotoConfig[] | null {
-  switch (transactionCode) {
-    case "DC": {
-      const isTitled = !!octTctCloaNo;
-      return isTitled
-        ? p("barangay_certificate", "ncip_certificate", "sketch_plan", "affidavit_of_ownership", "endorsement_of_assessor")
-        : p("sketch_plan", "tax_declaration");
-    }
-    case "SD":
-      return p("survey_plan", "letter_request");
-    case "CS":
-      return p("letter_request", "survey_plan");
-    case "TR":
-      return p("deed_of_sale", "deed_of_donation", "extra_judicial_settlement", "bir_certificate");
-    case "PC":
-      return p("inspection_report", "sketch_plan", "letter_request");
-    case "RC":
-      return p("inspection_report", "letter_request", "sketch_plan");
-    case "DP":
-    case "GR":
-      return null;
-    default:
-      return null;
-  }
-}
+type PhotoConfig = AttachmentConfig<PhotoType>;
 
 // ---------------------------------------------------------------------------
 // PhotoUploadCard
@@ -292,14 +235,14 @@ function LandImprovementsFormFillPage5() {
 
   useEffect(() => {
     if (!urlId) {
-      const stored = localStorage.getItem("land_draft_id");
+      const stored = getStoredFaasDraftId(localStorage, "land");
       if (stored) setDraftId(stored);
     }
   }, [urlId]);
 
   // Load draft to get transaction_code and oct_tct_cloa_no
   useEffect(() => {
-    const id = urlId || localStorage.getItem("land_draft_id");
+    const id = urlId || getStoredFaasDraftId(localStorage, "land");
     if (!id) { setDraftLoading(false); return; }
     fetch(`/api/faas/land-improvements/${id}`)
       .then(r => r.json())
@@ -313,7 +256,11 @@ function LandImprovementsFormFillPage5() {
       .finally(() => setDraftLoading(false));
   }, [urlId]);
 
-  const photoConfig = getPhotoConfig(transactionCode, octTctCloaNo);
+  const photoConfig = getAttachmentConfigForTransaction({
+    rpfaasType: "land",
+    transactionCode,
+    octTctCloaNo,
+  }) as PhotoConfig[] | null;
 
   const [photos, setPhotos] = useState<Partial<Record<PhotoType, PhotoRecord>>>({});
   const [uploading, setUploading] = useState<Partial<Record<PhotoType, boolean>>>({});
@@ -351,6 +298,66 @@ function LandImprovementsFormFillPage5() {
     }
   }, [draftId, loadPhotos]);
 
+  const updateMemorandaAfterUpload = useCallback(async (photoType: PhotoType) => {
+    if (!draftId || !photoConfig) return;
+
+    const uploadedTypes = photoConfig
+      .map((config) => config.type)
+      .filter((type) => type === photoType || photos[type]);
+
+    let existingMemoranda = "";
+    try {
+      existingMemoranda = localStorage.getItem("land_memoranda_p6")?.trim() ?? "";
+    } catch {
+      existingMemoranda = "";
+    }
+
+    let memoTransactionCode = transactionCode;
+    try {
+      const draftRes = await fetch(`/api/faas/land-improvements/${draftId}`);
+      if (draftRes.ok) {
+        const draftResult = await draftRes.json();
+        const draftData = draftResult?.data;
+        existingMemoranda ||= String(draftData?.memoranda ?? "").trim();
+        memoTransactionCode ||= draftData?.transaction_code ?? "";
+      }
+    } catch {
+      // A failed read should not block the local draft suggestion.
+    }
+
+    const memorandaDraft = buildMemorandaFromAttachments({
+      transactionCode: memoTransactionCode,
+      attachmentConfigs: photoConfig,
+      uploadedTypes,
+    });
+    const nextMemoranda = mergeAttachmentMemoranda({
+      attachmentMemoranda: memorandaDraft,
+      existingMemoranda,
+    });
+    if (!nextMemoranda || nextMemoranda === existingMemoranda) return;
+
+    try {
+      localStorage.setItem("land_memoranda_p6", nextMemoranda);
+    } catch {
+      // Saving to the record below is still enough for direct step navigation.
+    }
+
+    try {
+      const saveRes = await fetch(`/api/faas/land-improvements/${draftId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ memoranda: nextMemoranda }),
+      });
+      toast.success(
+        saveRes.ok
+          ? "Memoranda attachment line updated."
+          : "Memoranda draft prepared for step 6."
+      );
+    } catch {
+      toast.info("Memoranda draft prepared for step 6.");
+    }
+  }, [draftId, photoConfig, photos, transactionCode]);
+
   const handleFileSelect = useCallback(
     async (photoType: PhotoType, file: File) => {
       if (!draftId) {
@@ -382,6 +389,7 @@ function LandImprovementsFormFillPage5() {
               ? `Image compressed from ${formatFileSize(prepared.originalSize)} to ${formatFileSize(prepared.file.size)} and uploaded.`
               : "File uploaded successfully."
           );
+          await updateMemorandaAfterUpload(photoType);
           await loadPhotos(draftId);
         } else {
           toast.error("Upload failed: " + (result.error ?? "Unknown error"));
@@ -394,7 +402,7 @@ function LandImprovementsFormFillPage5() {
         if (input) input.value = "";
       }
     },
-    [draftId, loadPhotos]
+    [draftId, loadPhotos, updateMemorandaAfterUpload]
   );
 
   const handleRemove = useCallback((photoType: PhotoType) => {

@@ -144,6 +144,7 @@ const baseMarketValue = (() => {
         getFormData: () => ({ classification, sub_classification: subClassification, land_area: landArea, unit_value: unitValue, land_class: landClass, base_market_value: baseMarketValue }),
         draftId,
         apiEndpoint: "/api/faas/land-improvements",
+        draftFormType: "land",
     });
 
     const handleSubmit = useCallback((e: { preventDefault(): void }) => {

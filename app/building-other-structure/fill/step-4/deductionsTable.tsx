@@ -2,6 +2,7 @@
 
 import { Label } from "@/components/ui/label";
 import { DynamicSelectGroup, SelectOption } from "@/components/dynamicSelectButton";
+import { formatCurrencyAmount as formatCurrency } from "@/utils/form-helpers";
 
 interface DeductionsTableProps {
   unitCost: number;
@@ -28,12 +29,6 @@ export const DeductionsTable = ({
 
   // Subtotal = total reproduction cost (main + all additions), passed directly as depreciatedUnitCost prop
   const subtotal = depreciatedUnitCost;
-
-  const formatCurrency = (value: number) =>
-    value.toLocaleString(undefined, {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
 
   return (
     <section className="bg-card rounded-lg border p-6 shadow-sm">

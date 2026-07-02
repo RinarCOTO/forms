@@ -5,8 +5,6 @@ export async function POST(request: NextRequest) {
   try {
     const { email, password, fullName } = await request.json();
 
-    console.log('Signup attempt:', { email, fullName });
-
     // Validate input
     if (!email || !password) {
       return NextResponse.json(
@@ -25,7 +23,6 @@ export async function POST(request: NextRequest) {
     const supabase = await createClient();
 
     // Sign up with Supabase
-    console.log('Attempting Supabase signup...');
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -52,13 +49,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('Supabase signup successful:', { userId: data.user.id, email: data.user.email });
-
     // Wait a moment for the trigger to execute
     await new Promise(resolve => setTimeout(resolve, 1000));
 
     // Check if user profile was created in users table
-    const { data: userProfile, error: profileError } = await supabase
+    const { error: profileError } = await supabase
       .from('users')
       .select('*')
       .eq('id', data.user.id)
@@ -66,10 +61,9 @@ export async function POST(request: NextRequest) {
 
     if (profileError) {
       console.error('User profile not found in users table:', profileError);
-      console.log('Attempting to create user profile manually...');
       
       // Create user profile manually if trigger failed
-      const { data: manualProfile, error: manualError } = await supabase
+      const { error: manualError } = await supabase
         .from('users')
         .insert({
           id: data.user.id,
@@ -89,10 +83,6 @@ export async function POST(request: NextRequest) {
           { status: 201 } // Still return success because auth user was created
         );
       }
-
-      console.log('User profile created manually:', manualProfile);
-    } else {
-      console.log('User profile found in users table:', userProfile);
     }
 
     // Return success response

@@ -26,8 +26,6 @@ export function getPool(): Pool {
       console.error('Unexpected error on idle client', err);
       pool = null; // Reset pool on error
     });
-    
-    console.log('✅ PostgreSQL connection pool created');
   }
   
   return pool;
@@ -49,14 +47,6 @@ export async function query<T extends QueryResultRow = any>(
     const res = await pool.query<T>(text, params);
     const duration = Date.now() - start;
     
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Executed query', { 
-        text: text.substring(0, 100), 
-        duration: `${duration}ms`, 
-        rows: res.rowCount 
-      });
-    }
-    
     return res;
   } catch (error) {
     console.error('Database query error:', error);
@@ -72,7 +62,6 @@ export async function closePool(): Promise<void> {
   if (pool) {
     await pool.end();
     pool = null;
-    console.log('✅ PostgreSQL connection pool closed');
   }
 }
 
@@ -81,8 +70,7 @@ export async function closePool(): Promise<void> {
  */
 export async function testConnection(): Promise<boolean> {
   try {
-    const result = await query('SELECT NOW() as current_time');
-    console.log('✅ Database connection successful at:', result.rows[0].current_time);
+    await query('SELECT NOW() as current_time');
     return true;
   } catch (error) {
     console.error('❌ Database connection failed:', error);

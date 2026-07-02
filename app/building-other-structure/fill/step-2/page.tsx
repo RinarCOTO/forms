@@ -22,6 +22,7 @@ import { useFormLock } from "@/hooks/useFormLock";
 import { toast } from "sonner";
 import { FormLockBanner } from "@/components/ui/form-lock-banner";
 import { FormSection } from "@/components/ui/form-section";
+import { getStoredFaasDraftId, setStoredFaasDraftId } from "@/utils/form-draft-storage";
 // Pure helper — lives at module scope so it's never recreated on render
 function formatPeso(value: string | number) {
   if (value === "" || value === undefined) return "";
@@ -73,7 +74,7 @@ const BuildingStructureFormFillPage2 = () => {
   // Derived value saved to DB: "Residential" or "Commercial - <subtype>"
   const typeOfBuilding =
     buildingCategory === "Residential"
-      ? "Residential Houses"
+      ? "Residential"
       : buildingSubType
       ? `Commercial - ${buildingSubType}`
       : "";
@@ -174,8 +175,6 @@ const handleCostOfConstructionChange = useCallback((e: React.ChangeEvent<HTMLInp
 
   useEffect(() => {
     if (loadedData) {
-      console.log("DB Data:", loadedData); // Keep this for debugging
-
       // HELPER: Extract Year from "YYYY-MM-DD" or just return the number
       const getYear = (val: any) => {
         if (!val) return "";
@@ -333,7 +332,7 @@ const handleNext = useCallback(async () => {
 
       // ... rest of your fetch logic remains the same ...
       let response;
-      const currentDraftId = draftId || localStorage.getItem('draft_id');
+      const currentDraftId = draftId || getStoredFaasDraftId(localStorage, "building");
       const method = currentDraftId ? 'PUT' : 'POST';
       if (!currentDraftId) formData.status = 'draft';
       const endpoint = currentDraftId 
@@ -350,7 +349,7 @@ const handleNext = useCallback(async () => {
         const result = await response.json();
         if (result.data?.id) {
           setIsDirty(false);
-          localStorage.setItem('draft_id', result.data.id.toString());
+          setStoredFaasDraftId(localStorage, "building", result.data.id.toString());
           router.push(`/building-other-structure/fill/step-3?id=${result.data.id}`);
         }
       } else {
@@ -391,14 +390,14 @@ const handleNext = useCallback(async () => {
         land_area: landArea,
         cost_of_construction: rawCostValue === '0' ? null : rawCostValue,
       };
-      const currentDraftId = draftId || localStorage.getItem('draft_id');
+      const currentDraftId = draftId || getStoredFaasDraftId(localStorage, "building");
       const method = currentDraftId ? 'PUT' : 'POST';
       if (!currentDraftId) formData.status = 'draft';
       const endpoint = currentDraftId ? `/api/faas/building-structures/${currentDraftId}` : '/api/faas/building-structures';
       const response = await fetch(endpoint, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(formData) });
       if (response.ok) {
         const result = await response.json();
-        if (result.data?.id) localStorage.setItem('draft_id', result.data.id.toString());
+        if (result.data?.id) setStoredFaasDraftId(localStorage, "building", result.data.id.toString());
         setIsDirty(false);
         toast.success('Draft saved successfully.');
       } else {
@@ -451,7 +450,7 @@ const handleNext = useCallback(async () => {
                         className="rpfaas-fill-input appearance-none"
                       >
                         <option value="">Select Category</option>
-                        <option value="Residential">Residential Houses</option>
+                        <option value="Residential">Residential</option>
                         <option value="Commercial">Commercial</option>
                       </select>
                     </div>

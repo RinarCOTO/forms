@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { MemorandaText } from "./components";
 // import Image from "next/image"; // preserved for signature feature
 
 
@@ -14,6 +15,19 @@ const ROLE_LABELS: Record<string, string> = {
   assistant_provincial_assessor:           'Asst. Provincial Assessor',
   admin:                                   'Admin',
   super_admin:                             'Super Admin',
+};
+
+type UserLookup = {
+  full_name?: string | null;
+  position?: string | null;
+  role?: string | null;
+};
+
+const firstUserFromLookup = async (url: string): Promise<UserLookup | undefined> => {
+  const res = await fetch(url, { cache: "no-store" });
+  if (!res.ok) return undefined;
+  const data = await res.json();
+  return data.users?.[0];
 };
 
 type Props = {
@@ -48,6 +62,7 @@ const FaasFooter = ({
   memoranda,
   className,
   municipalReviewerId,
+  provincialReviewerId,
   previousTdNo,
   previousOwner,
   previousAv,
@@ -76,75 +91,139 @@ const FaasFooter = ({
   const [appraisedByName, setAppraisedByName] = useState('');
   const [appraisedByPosition, setAppraisedByPosition] = useState('');
   const [appraisedByRole, setAppraisedByRole] = useState('');
+  const [provincialLookupReady, setProvincialLookupReady] = useState(false);
+  const [municipalLookupReady, setMunicipalLookupReady] = useState(false);
+  const [appraisedByLookupReady, setAppraisedByLookupReady] = useState(false);
+  const footerLookupReady = provincialLookupReady && municipalLookupReady && appraisedByLookupReady;
 
   // Signatures hidden — preserved for future use
   // const [taxMapperSignatureUrl, setTaxMapperSignatureUrl] = useState<string | null>(null);
   // const [municipalSignatureUrl, setMunicipalSignatureUrl] = useState<string | null>(null);
   // const [provincialSignatureUrl, setProvincialSignatureUrl] = useState<string | null>(null);
 
-  // Provincial assessor name — fetched by role
+  // Provincial assessor name — use reviewer ID if available, else fetch by role.
   useEffect(() => {
-    fetch('/api/users/by-role?role=provincial_assessor')
-      .then(res => res.json())
-      .then(data => { if (data.users?.[0]?.full_name) setProvincialAssessorName(data.users[0].full_name); });
-  }, []);
+    let cancelled = false;
+    setProvincialLookupReady(false);
+    setProvincialAssessorName('');
+
+    const url = provincialReviewerId
+      ? `/api/users/by-role?id=${encodeURIComponent(provincialReviewerId)}`
+      : '/api/users/by-role?role=provincial_assessor';
+
+    firstUserFromLookup(url)
+      .then(user => {
+        if (!cancelled && user) {
+          setProvincialAssessorName(user.full_name || '');
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setProvincialLookupReady(true);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [provincialReviewerId]);
 
   // Municipal assessor name — use reviewer ID if available, else look up by municipality
   useEffect(() => {
+    let cancelled = false;
+    setMunicipalLookupReady(false);
+    setMunicipalAssessorName('');
+    setMunicipalAssessorPosition('');
+
     if (municipalReviewerId) {
-      fetch(`/api/users/by-role?id=${municipalReviewerId}`)
-        .then(res => res.json())
-        .then(data => {
-          const user = data.users?.[0];
-          if (user) {
+      firstUserFromLookup(`/api/users/by-role?id=${encodeURIComponent(municipalReviewerId)}`)
+        .then(user => {
+          if (!cancelled && user) {
             setMunicipalAssessorName(user.full_name || '');
             setMunicipalAssessorPosition(user.position || '');
           }
+        })
+        .catch(() => {})
+        .finally(() => {
+          if (!cancelled) setMunicipalLookupReady(true);
         });
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    if (!locationMunicipality) {
+      setMunicipalLookupReady(true);
       return;
     }
-    if (!locationMunicipality) return;
+
     const normalized = locationMunicipality.toLowerCase();
     const municipality = MUNICIPALITY_MAP[normalized] ?? normalized;
-    fetch(`/api/users/by-role?role=municipal_assessor&municipality=${municipality}`)
-      .then(res => res.json())
-      .then(data => {
-        const user = data.users?.[0];
-        if (user) {
+    firstUserFromLookup(`/api/users/by-role?role=municipal_assessor&municipality=${encodeURIComponent(municipality)}`)
+      .then(user => {
+        if (!cancelled && user) {
           setMunicipalAssessorName(user.full_name || '');
           setMunicipalAssessorPosition(user.position || '');
         }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setMunicipalLookupReady(true);
       });
+
+    return () => {
+      cancelled = true;
+    };
   }, [municipalReviewerId, locationMunicipality]);
 
   // Appraised by name — use reviewer ID if set, else fall back to municipal_tax_mapper for municipality
   useEffect(() => {
+    let cancelled = false;
+    setAppraisedByLookupReady(false);
+    setAppraisedByName('');
+    setAppraisedByPosition('');
+    setAppraisedByRole('');
+
     if (appraisedById) {
-      fetch(`/api/users/by-role?id=${appraisedById}`)
-        .then(res => res.json())
-        .then(data => {
-          const user = data.users?.[0];
-          if (user) {
+      firstUserFromLookup(`/api/users/by-role?id=${encodeURIComponent(appraisedById)}`)
+        .then(user => {
+          if (!cancelled && user) {
             setAppraisedByName(user.full_name || '');
             setAppraisedByPosition(user.position || '');
             setAppraisedByRole(user.role || '');
           }
+        })
+        .catch(() => {})
+        .finally(() => {
+          if (!cancelled) setAppraisedByLookupReady(true);
         });
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    if (!locationMunicipality) {
+      setAppraisedByLookupReady(true);
       return;
     }
-    if (!locationMunicipality) return;
+
     const normalized = locationMunicipality.toLowerCase();
     const municipality = MUNICIPALITY_MAP[normalized] ?? normalized;
-    fetch(`/api/users/by-role?role=municipal_assessor&municipality=${municipality}`)
-      .then(res => res.json())
-      .then(data => {
-        const user = data.users?.[0];
-        if (user) {
+    firstUserFromLookup(`/api/users/by-role?role=municipal_tax_mapper&municipality=${encodeURIComponent(municipality)}`)
+      .then(user => {
+        if (!cancelled && user) {
           setAppraisedByName(user.full_name || '');
           setAppraisedByPosition(user.position || '');
           setAppraisedByRole(user.role || '');
         }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setAppraisedByLookupReady(true);
       });
+
+    return () => {
+      cancelled = true;
+    };
   }, [appraisedById, locationMunicipality]);
 
   // Signature images — hidden, preserved for future use
@@ -170,7 +249,7 @@ const FaasFooter = ({
   // }, [provincialReviewerId]);
 
   return (
-    <div className={className}>
+    <div className={className} data-faas-footer-ready={footerLookupReady ? "true" : "false"}>
       <div className="w-full flex gap-4">
         <div>Amount in Words:</div>
         <div className="uppercase underline" style={{ minWidth: "75%" }}>{amountInWords ? `${amountInWords} Pesos Only` : '—'}</div>
@@ -228,7 +307,7 @@ const FaasFooter = ({
         <div>Municipal Assessor</div>
         <div>Provincial Assessor</div>
       </div>
-      <div className="grid grid-cols-3 text-center text-sm mt-1">
+      <div className="grid grid-cols-3 text-center text-[11px] print:text-[9px] leading-tight mt-0.5">
         <div>{fmtDate(submittedAt)}</div>
         <div>{fmtDate(municipalSignedAt)}</div>
         <div>{fmtDate(provincialSignedAt)}</div>
@@ -247,7 +326,7 @@ const FaasFooter = ({
           <tbody>
             <tr data-field="memoranda">
               <td className="font-bold rpfaas-table-header whitespace-nowrap" style={{ borderRight: 'none' }}>Memoranda:</td>
-              <td colSpan={5} style={{ minHeight: '1.5rem', borderLeft: 'none' }}>{memoranda || ''}</td>
+              <td colSpan={5} className="whitespace-pre-line" style={{ minHeight: '1.5rem', borderLeft: 'none' }}><MemorandaText value={memoranda} /></td>
             </tr>
             <tr data-field="previous_td_no previous_av previous_area">
               <td>Prev. TD:</td><td className="font-bold">{previousTdNo || ''}</td>

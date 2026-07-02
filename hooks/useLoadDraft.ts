@@ -1,6 +1,7 @@
 // Utility hook to load draft data from API when editing
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { setStoredFaasDraftId } from '@/utils/form-draft-storage';
 
 export function useLoadDraft() {
   const searchParams = useSearchParams();
@@ -66,9 +67,7 @@ export function useLoadDraft() {
             });
             
             // Store the draft ID for later use
-            localStorage.setItem('draft_id', draftId);
-            
-            console.log('Draft loaded successfully:', result.data);
+            setStoredFaasDraftId(localStorage, 'building', draftId);
           } else {
             setError('Failed to load draft');
           }

@@ -17,7 +17,12 @@ import { FormLockBanner } from "@/components/ui/form-lock-banner";
 import { FormSection } from "@/components/ui/form-section";
 import { toast } from "sonner";
 import { useFormLock } from "@/hooks/useFormLock";
-import { generateEffectivityYears } from "@/utils/form-helpers";
+import {
+  formatNumberWithCommas as formatWithCommas,
+  generateEffectivityYears,
+  numberToWords,
+} from "@/utils/form-helpers";
+import { getStoredFaasDraftId, setStoredFaasDraftId } from "@/utils/form-draft-storage";
 
 const API_ENDPOINT = "/api/faas/land-improvements";
 
@@ -35,39 +40,6 @@ function getLandAssessmentLevel(classification: string): string {
   }
 }
 
-function numberToWords(num: number): string {
-  if (num === 0) return "Zero";
-  const ones = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine"];
-  const teens = ["Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"];
-  const tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
-  const thousands = ["", "Thousand", "Million", "Billion"];
-
-  function convertHundreds(n: number): string {
-    let result = "";
-    if (n >= 100) { result += ones[Math.floor(n / 100)] + " Hundred "; n %= 100; }
-    if (n >= 10 && n < 20) { result += teens[n - 10] + " "; }
-    else { if (n >= 20) { result += tens[Math.floor(n / 10)] + " "; n %= 10; } if (n > 0) result += ones[n] + " "; }
-    return result.trim();
-  }
-
-  let word = "";
-  let scale = 0;
-  while (num > 0) {
-    const chunk = num % 1000;
-    if (chunk !== 0) {
-      const chunkWord = convertHundreds(chunk);
-      word = chunkWord + (thousands[scale] ? " " + thousands[scale] : "") + (word ? " " + word : "");
-    }
-    num = Math.floor(num / 1000);
-    scale++;
-  }
-  return word.trim();
-}
-
-function formatWithCommas(num: number): string {
-  return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-}
-
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : String(error);
 }
@@ -77,6 +49,14 @@ function safeSetLocalStorage(key: string, value: string) {
     localStorage.setItem(key, value);
   } catch (error) {
     console.warn(`Skipping localStorage write for ${key}:`, error);
+  }
+}
+
+function safeRemoveLocalStorage(key: string) {
+  try {
+    localStorage.removeItem(key);
+  } catch (error) {
+    console.warn(`Skipping localStorage remove for ${key}:`, error);
   }
 }
 
@@ -164,6 +144,8 @@ function LandImprovementsFormFillPage6() {
       if (savedMarketValue) setMarketValue(savedMarketValue);
       const savedAppraisedBy = localStorage.getItem("land_appraised_by_p5");
       if (savedAppraisedBy) setAppraisedBy(savedAppraisedBy);
+      const savedMemoranda = localStorage.getItem("land_memoranda_p6");
+      if (savedMemoranda) setMemoranda(savedMemoranda);
     } catch {
       // ignore
     }
@@ -219,12 +201,12 @@ function LandImprovementsFormFillPage6() {
     };
 
     if (appraisedBy) formData.appraised_by = appraisedBy;
-    if (memoranda) formData.memoranda = memoranda;
+    formData.memoranda = memoranda.trim() ? memoranda : null;
     if (effectivityYear) {
       formData.effectivity_of_assessment = yearToDateString(effectivityYear);
     }
 
-    const currentDraftId = draftId || localStorage.getItem("land_draft_id");
+    const currentDraftId = draftId || getStoredFaasDraftId(localStorage, "land");
     const method = currentDraftId ? "PUT" : "POST";
     const url = currentDraftId ? `${API_ENDPOINT}/${currentDraftId}` : API_ENDPOINT;
 
@@ -246,13 +228,18 @@ function LandImprovementsFormFillPage6() {
     }
     const result = await response.json();
     const id = result.data?.id?.toString() ?? currentDraftId ?? null;
-    if (id) safeSetLocalStorage("land_draft_id", id);
+    if (id) setStoredFaasDraftId(localStorage, "land", id);
     if (effectivityYear) safeSetLocalStorage("land_effectivity_of_assessment_p5", effectivityYear);
     safeSetLocalStorage("land_assessment_level_p5", assessmentLevel);
     safeSetLocalStorage("land_assessed_value_p5", assessedValue.toString());
     safeSetLocalStorage("land_actual_use_p5", classification);
     safeSetLocalStorage("land_tax_status_p5", taxStatus);
     if (appraisedBy) safeSetLocalStorage("land_appraised_by_p5", appraisedBy);
+    if (memoranda.trim()) {
+      safeSetLocalStorage("land_memoranda_p6", memoranda);
+    } else {
+      safeRemoveLocalStorage("land_memoranda_p6");
+    }
     return id;
   }, [classification, taxStatus, marketValue, assessmentLevel, assessedValue, amountInWords, effectivityYear, appraisedBy, memoranda, draftId]);
 

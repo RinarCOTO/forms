@@ -48,8 +48,9 @@ export async function GET(
     const cookieHeader = request.headers.get('cookie') || '';
 
     // 4. Derive the base URL from the incoming request
-    const { origin } = new URL(request.url);
-    const printUrl = `${origin}/building-other-structure/print-only?id=${id}`;
+    const requestUrl = new URL(request.url);
+    const includeAttachments = requestUrl.searchParams.get('attachments') !== '0';
+    const printUrl = `${requestUrl.origin}/building-other-structure/print-only?id=${id}${includeAttachments ? '' : '&attachments=0'}`;
 
     // 5. Get shared browser instance
     const browser = await getBrowser();
@@ -66,7 +67,7 @@ export async function GET(
         await page.setCookie(...cookies);
       }
 
-      await page.goto(printUrl, { waitUntil: 'networkidle2', timeout: 30000 });
+      await page.goto(printUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
 
       // Wait until the form + all photo images have finished rendering
       await page.waitForSelector('[data-all-ready="true"]', { timeout: 25000 });
@@ -79,6 +80,8 @@ export async function GET(
 
       const pdf = await page.pdf({
         format: 'A4',
+        landscape: false,
+        preferCSSPageSize: true,
         printBackground: true,
         margin: { top: '6mm', bottom: '8mm', left: '8mm', right: '8mm' },
       });

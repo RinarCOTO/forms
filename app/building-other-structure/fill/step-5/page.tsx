@@ -27,16 +27,21 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { getStoredFaasDraftId } from "@/utils/form-draft-storage";
+import {
+  BUILDING_ATTACHMENT_CONFIG,
+  type BuildingAttachmentType,
+} from "@/utils/faas-attachment-rules";
+import {
+  buildMemorandaFromAttachments,
+  mergeAttachmentMemoranda,
+} from "@/utils/faas-memoranda";
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
-type PhotoType =
-  | "sketch_plan"
-  | "perspective_view"
-  | "barangay_certificate"
-  | "other_certificate";
+type PhotoType = BuildingAttachmentType;
 
 interface PhotoRecord {
   id: string;
@@ -51,32 +56,7 @@ interface PhotoRecord {
 // Config
 // ---------------------------------------------------------------------------
 
-const PHOTO_CONFIG: { type: PhotoType; label: string; description: string }[] =
-  [
-    {
-      type: "sketch_plan",
-      label: "Sketch Plan",
-      description:
-        "Architectural or engineering sketch plan of the property.",
-    },
-    {
-      type: "perspective_view",
-      label: "Perspective View",
-      description:
-        "Visual perspective drawing or photograph of the building.",
-    },
-    {
-      type: "barangay_certificate",
-      label: "Barangay Certificate",
-      description:
-        "Official barangay certificate issued for the property.",
-    },
-    {
-      type: "other_certificate",
-      label: "Sworn Statement",
-      description: "Upload Sworn Statement or other relevant certificates for this property.",
-    },
-  ];
+const PHOTO_CONFIG = BUILDING_ATTACHMENT_CONFIG;
 
 // ---------------------------------------------------------------------------
 // PhotoUploadCard
@@ -281,7 +261,7 @@ function BuildingStructureFormFillPage5() {
 
   useEffect(() => {
     if (!urlId) {
-      const stored = localStorage.getItem("draft_id");
+      const stored = getStoredFaasDraftId(localStorage, "building");
       if (stored) setDraftId(stored);
     }
   }, [urlId]);
@@ -334,6 +314,72 @@ function BuildingStructureFormFillPage5() {
     }
   }, [draftId, loadPhotos]);
 
+  const updateMemorandaAfterUpload = useCallback(async (photoType: PhotoType) => {
+    if (!draftId) return;
+
+    const uploadedTypes = PHOTO_CONFIG
+      .map((config) => config.type)
+      .filter((type) => type === photoType || photos[type]);
+
+    let existingMemoranda = "";
+    try {
+      existingMemoranda = localStorage.getItem("memoranda_p5")?.trim() ?? "";
+    } catch {
+      existingMemoranda = "";
+    }
+
+    let transactionCode = "";
+    try {
+      transactionCode = localStorage.getItem("rpfaas_transaction_code") || "";
+    } catch {
+      transactionCode = "";
+    }
+
+    try {
+      const draftRes = await fetch(`/api/faas/building-structures/${draftId}`);
+      if (draftRes.ok) {
+        const draftResult = await draftRes.json();
+        const draftData = draftResult?.data;
+        existingMemoranda ||= String(draftData?.memoranda ?? "").trim();
+        transactionCode ||= draftData?.transaction_code ?? "";
+      }
+    } catch {
+      // A failed read should not block the local draft suggestion.
+    }
+
+    const memorandaDraft = buildMemorandaFromAttachments({
+      transactionCode,
+      attachmentConfigs: PHOTO_CONFIG,
+      uploadedTypes,
+    });
+    const nextMemoranda = mergeAttachmentMemoranda({
+      attachmentMemoranda: memorandaDraft,
+      existingMemoranda,
+    });
+    if (!nextMemoranda || nextMemoranda === existingMemoranda) return;
+
+    try {
+      localStorage.setItem("memoranda_p5", nextMemoranda);
+    } catch {
+      // Saving to the record below is still enough for direct step navigation.
+    }
+
+    try {
+      const saveRes = await fetch(`/api/faas/building-structures/${draftId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ memoranda: nextMemoranda }),
+      });
+      toast.success(
+        saveRes.ok
+          ? "Memoranda attachment line updated."
+          : "Memoranda draft prepared for step 6."
+      );
+    } catch {
+      toast.info("Memoranda draft prepared for step 6.");
+    }
+  }, [draftId, photos]);
+
   // ── Upload handler ──
   const handleFileSelect = useCallback(
     async (photoType: PhotoType, file: File) => {
@@ -370,6 +416,7 @@ function BuildingStructureFormFillPage5() {
               : "Image uploaded successfully."
           );
           // Refresh the photo list to get the new signed URL
+          await updateMemorandaAfterUpload(photoType);
           await loadPhotos(draftId);
         } else {
           toast.error("Upload failed: " + (result.error ?? "Unknown error"));
@@ -383,7 +430,7 @@ function BuildingStructureFormFillPage5() {
         if (input) input.value = "";
       }
     },
-    [draftId, loadPhotos]
+    [draftId, loadPhotos, updateMemorandaAfterUpload]
   );
 
   // ── Remove handler ──

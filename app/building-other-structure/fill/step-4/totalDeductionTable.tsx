@@ -3,6 +3,7 @@
 import React, { useMemo } from "react";
 import { Separator } from "@/components/ui/separator";
 import { SelectOption } from "./additionalTable"; 
+import { formatCurrencyAmount as formatCurrency } from "@/utils/form-helpers";
 
 interface TotalDeductionTableProps {
   label?: string;
@@ -42,10 +43,6 @@ export default function TotalDeductionTable({
   addFlatAreas,
   addFlatOptions,
 }: TotalDeductionTableProps) {
-  
-  const formatCurrency = (val: number) =>
-    val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
   const {
     standardRows,
     percentRows,

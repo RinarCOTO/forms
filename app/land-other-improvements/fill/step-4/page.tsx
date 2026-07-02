@@ -21,6 +21,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useFormData } from "@/hooks/useFormData";
 import { municipalityData } from "@/app/smv/land-other-improvements/data";
+import { getStoredFaasDraftId, setStoredFaasDraftId } from "@/utils/form-draft-storage";
 
 // ─── Empty choice arrays — data to be added later ────────────────────────────
 const DEDUCTION_CHOICES: SelectOption[] = [];
@@ -302,7 +303,7 @@ const LandImprovementsFormFillPage4 = () => {
         market_value: adjustedMarketValue,
       };
 
-      const currentDraftId = draftId || localStorage.getItem("land_draft_id");
+      const currentDraftId = draftId || getStoredFaasDraftId(localStorage, "land");
       const method = currentDraftId ? "PUT" : "POST";
       const url = currentDraftId ? `${API_ENDPOINT}/${currentDraftId}` : API_ENDPOINT;
 
@@ -317,7 +318,7 @@ const LandImprovementsFormFillPage4 = () => {
         if (result.data?.id) {
           setIsDirty(false);
           safeSetLocalStorage("land_market_value_p4", adjustedMarketValue.toString());
-          safeSetLocalStorage("land_draft_id", result.data.id.toString());
+          setStoredFaasDraftId(localStorage, "land", result.data.id.toString());
           router.push(`/land-other-improvements/fill/step-5?id=${result.data.id}`);
         }
       }
@@ -347,7 +348,7 @@ const LandImprovementsFormFillPage4 = () => {
         market_value: adjustedMarketValue,
       };
 
-      const currentDraftId = draftId || localStorage.getItem("land_draft_id");
+      const currentDraftId = draftId || getStoredFaasDraftId(localStorage, "land");
       const method = currentDraftId ? "PUT" : "POST";
       const url = currentDraftId ? `${API_ENDPOINT}/${currentDraftId}` : API_ENDPOINT;
 
@@ -359,7 +360,7 @@ const LandImprovementsFormFillPage4 = () => {
 
       if (response.ok) {
         const result = await response.json();
-        if (result.data?.id) safeSetLocalStorage("land_draft_id", result.data.id.toString());
+        if (result.data?.id) setStoredFaasDraftId(localStorage, "land", result.data.id.toString());
         safeSetLocalStorage("land_market_value_p4", adjustedMarketValue.toString());
         setIsDirty(false);
         toast.success("Draft saved successfully.");

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export type LocationOption = { code: string; name: string };
 
@@ -23,25 +23,52 @@ export async function fetchLocations(type: string, parent: string): Promise<Loca
 export function useLocationSelect(storagePrefix: string, initialProvinceCode = "") {
   const pendingMunicipalityRef = useRef("");
   const pendingBarangayRef = useRef("");
+  const municipalityRequestRef = useRef(0);
+  const barangayRequestRef = useRef(0);
 
-  const [provinceCode, setProvinceCode] = useState(initialProvinceCode);
-  const [municipalityCode, setMunicipalityCode] = useState("");
-  const [barangayCode, setBarangayCode] = useState("");
+  const [provinceCode, setProvinceCodeState] = useState(initialProvinceCode);
+  const [municipalityCode, setMunicipalityCodeState] = useState("");
+  const [barangayCode, setBarangayCodeState] = useState("");
 
   const [municipalities, setMunicipalities] = useState<LocationOption[]>([]);
   const [barangays, setBarangays] = useState<LocationOption[]>([]);
   const [isLoadingMun, setIsLoadingMun] = useState(false);
   const [isLoadingBar, setIsLoadingBar] = useState(false);
 
+  const setProvinceCode = useCallback((nextProvinceCode: string) => {
+    pendingMunicipalityRef.current = "";
+    pendingBarangayRef.current = "";
+    setProvinceCodeState(nextProvinceCode);
+    setMunicipalityCodeState("");
+    setBarangayCodeState("");
+    setBarangays([]);
+    if (!nextProvinceCode) setMunicipalities([]);
+  }, []);
+
+  const setMunicipalityCode = useCallback((nextMunicipalityCode: string) => {
+    pendingBarangayRef.current = "";
+    setMunicipalityCodeState(nextMunicipalityCode);
+    setBarangayCodeState("");
+    if (!nextMunicipalityCode) setBarangays([]);
+  }, []);
+
+  const setBarangayCode = useCallback((nextBarangayCode: string) => {
+    setBarangayCodeState(nextBarangayCode);
+  }, []);
+
   // 1. Province changes → load municipalities from API
   useEffect(() => {
+    const requestId = ++municipalityRequestRef.current;
+
     if (!pendingMunicipalityRef.current) {
-      setMunicipalityCode("");
-      setBarangayCode("");
+      setMunicipalityCodeState("");
+      setBarangayCodeState("");
+      setBarangays([]);
     }
 
     if (!provinceCode) {
       setMunicipalities([]);
+      setIsLoadingMun(false);
       pendingMunicipalityRef.current = "";
       return;
     }
@@ -49,33 +76,44 @@ export function useLocationSelect(storagePrefix: string, initialProvinceCode = "
     const pending = pendingMunicipalityRef.current;
     setIsLoadingMun(true);
     fetchLocations('municipality', provinceCode).then(items => {
+      if (requestId !== municipalityRequestRef.current) return;
+
       setMunicipalities(items);
-      if (pending) {
-        setMunicipalityCode(pending);
-        pendingMunicipalityRef.current = "";
+      if (pending && items.some(item => item.code === pending)) {
+        setMunicipalityCodeState(pending);
+      } else {
+        setMunicipalityCodeState("");
+        setBarangayCodeState("");
+        pendingBarangayRef.current = "";
       }
+      pendingMunicipalityRef.current = "";
       setIsLoadingMun(false);
     });
   }, [provinceCode]);
 
   // 2. Municipality changes → load barangays from API
   useEffect(() => {
+    const requestId = ++barangayRequestRef.current;
+
     if (!municipalityCode) {
       setBarangays([]);
-      if (!pendingBarangayRef.current) setBarangayCode("");
+      setIsLoadingBar(false);
+      if (!pendingBarangayRef.current) setBarangayCodeState("");
       return;
     }
 
     const pending = pendingBarangayRef.current;
     setIsLoadingBar(true);
     fetchLocations('barangay', municipalityCode).then(items => {
+      if (requestId !== barangayRequestRef.current) return;
+
       setBarangays(items);
-      if (pending) {
-        setBarangayCode(pending);
-        pendingBarangayRef.current = "";
+      if (pending && items.some(item => item.code === pending)) {
+        setBarangayCodeState(pending);
       } else {
-        setBarangayCode("");
+        setBarangayCodeState("");
       }
+      pendingBarangayRef.current = "";
       setIsLoadingBar(false);
     });
   }, [municipalityCode]);
@@ -92,9 +130,9 @@ export function useLocationSelect(storagePrefix: string, initialProvinceCode = "
     pendingBarangayRef.current = barCode;
     if (provCode !== provinceCode) {
       pendingMunicipalityRef.current = munCode;
-      setProvinceCode(provCode);
+      setProvinceCodeState(provCode);
     } else {
-      setMunicipalityCode(munCode);
+      setMunicipalityCodeState(munCode);
     }
   }
 

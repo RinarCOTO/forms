@@ -17,7 +17,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import "@/app/styles/forms-fill.css";
-import { useState, useCallback, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Loader2, Save, Send, RotateCcw,
@@ -26,67 +26,19 @@ import {
 import { FormStatusBanner } from "@/components/ui/form-status-banner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import LandImprovementForm from "@/app/components/forms/RPFAAS/land_improvement_form";
+import { FaasCommentHighlightScope } from "@/hooks/useFaasCommentHighlight";
+import { type FaasReviewComment, useFaasReviewComments } from "@/hooks/useFaasReviewComments";
+import { useFaasUserPermissions } from "@/hooks/useFaasUserPermissions";
+import { useLandImprovementPreviewActions } from "@/hooks/useLandImprovementPreviewActions";
+import { useLandImprovementPreviewData } from "@/hooks/useLandImprovementPreviewData";
+import { usePrintBlocker } from "@/hooks/usePrintBlocker";
+import { getStoredFaasDraftId } from "@/utils/form-draft-storage";
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
-interface ReviewComment {
-  id: string;
-  field_name?: string | null;
-  comment_text: string;
-  suggested_value?: string | null;
-  author_name: string;
-  created_at: string;
-}
-
-interface LandImprovementData {
-  id: number;
-  status: string;
-  // Step 1 — identification & owner
-  transaction_code?: string;
-  arp_no?: string;
-  oct_tct_cloa_no?: string;
-  pin?: string;
-  survey_no?: string;
-  lot_no?: string;
-  blk?: string;
-  previous_td_no?: string;
-  previous_owner?: string;
-  owner_name?: string;
-  admin_care_of?: string;
-  owner_address?: string;
-  admin_address?: string;
-  // Step 1 — property location
-  property_address?: string;
-  location_province?: string;
-  location_municipality?: string;
-  location_barangay?: string;
-  // Step 2 — boundaries
-  north_property?: string;
-  south_property?: string;
-  east_property?: string;
-  west_property?: string;
-  // Step 3 — land appraisal
-  classification?: string;
-  sub_classification?: string;
-  land_class?: string;
-  unit_value?: string | number;
-  land_area?: string | number;
-  base_market_value?: string | number;
-  // Step 4 — adjustments
-  additional_flat_rate_choice?: string;
-  market_value?: string | number;
-  // Step 5 — assessment
-  actual_use?: string;
-  tax_status?: string;
-  assessment_level?: string | number;
-  assessed_value?: string | number;
-  amount_in_words?: string;
-  effectivity_of_assessment?: string;
-  appraised_by?: string;
-  memoranda?: string;
-}
+type ReviewComment = FaasReviewComment;
 
 // ---------------------------------------------------------------------------
 // Field labels (for comments panel)
@@ -147,50 +99,31 @@ function PreviewFormPage() {
 
   useEffect(() => {
     if (!urlId) {
-      const stored = localStorage.getItem("land_draft_id");
+      const stored = getStoredFaasDraftId(localStorage, "land");
       if (stored) setLocalDraftId(stored);
     }
   }, [urlId]);
 
-  const [isSaving, setIsSaving] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formStatus, setFormStatus] = useState<string>("draft");
-  const [statusLoading, setStatusLoading] = useState(false);
-  const [data, setData] = useState<LandImprovementData | null>(null);
+  const { handleSaveDraft, handleSubmit, isSaving, isSubmitting } =
+    useLandImprovementPreviewActions(draftId);
+  const { data, formStatus, statusLoading } = useLandImprovementPreviewData({ draftId });
 
-  const [comments, setComments] = useState<ReviewComment[]>([]);
-  const [commentsLoading, setCommentsLoading] = useState(false);
+  const { comments, commentsLoading } = useFaasReviewComments({
+    draftId,
+    apiBasePath: "/api/faas/land-improvements",
+  });
   const [activeComment, setActiveComment] = useState<ReviewComment | null>(null);
 
   const SUBMIT_ALLOWED_ROLES = ["municipal_tax_mapper", "municipal_assessor", "laoo", "assistant_provincial_assessor", "provincial_assessor", "admin", "super_admin"];
   const HISTORY_ALLOWED_ROLES = ["provincial_assessor", "assistant_provincial_assessor", "admin", "super_admin"];
   const PRINT_ALLOWED_ROLES = ["provincial_assessor", "assistant_provincial_assessor"];
-  const [canSubmit, setCanSubmit] = useState(false);
-  const [canViewHistory, setCanViewHistory] = useState(false);
-  const [canPrint, setCanPrint] = useState(false);
-  useEffect(() => {
-    fetch("/api/users/permissions")
-      .then((r) => r.json())
-      .then((d) => {
-        console.log('[preview] permissions:', d);
-        console.log('[preview] canViewHistory:', HISTORY_ALLOWED_ROLES.includes(d?.role));
-        if (d?.role && SUBMIT_ALLOWED_ROLES.includes(d.role)) setCanSubmit(true);
-        if (d?.role && HISTORY_ALLOWED_ROLES.includes(d.role)) setCanViewHistory(true);
-        if (d?.role && PRINT_ALLOWED_ROLES.includes(d.role)) setCanPrint(true);
-      })
-      .catch((e) => console.error('[preview] permissions fetch failed:', e));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Block print for everyone except allowed roles
-  useEffect(() => {
-    if (canPrint) return;
-    const style = document.createElement("style");
-    style.id = "print-blocked";
-    style.textContent = `@media print { body { display: none !important; } }`;
-    document.head.appendChild(style);
-    return () => document.getElementById("print-blocked")?.remove();
-  }, [canPrint]);
+  const { canSubmit, canPrint, canViewHistory } = useFaasUserPermissions({
+    submitRoles: SUBMIT_ALLOWED_ROLES,
+    printRoles: PRINT_ALLOWED_ROLES,
+    historyRoles: HISTORY_ALLOWED_ROLES,
+    logErrors: true,
+  });
+  usePrintBlocker(canPrint);
 
   // Activity log — only fetched for roles that can view it
   interface HistoryEntry {
@@ -205,13 +138,11 @@ function PreviewFormPage() {
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   useEffect(() => {
-    console.log('[preview] history effect — draftId:', draftId, 'canViewHistory:', canViewHistory);
     if (!draftId || !canViewHistory) return;
     setHistoryLoading(true);
     fetch(`/api/faas/land-improvements/${draftId}/history`)
       .then(r => r.json())
       .then(result => {
-        console.log('[preview] history result:', result);
         if (result.success) setHistory(result.data);
       })
       .catch((e) => console.error('[preview] history fetch failed:', e))
@@ -220,128 +151,6 @@ function PreviewFormPage() {
 
   const LOCKED_STATUSES = ["submitted", "under_review", "approved"];
   const isLocked = LOCKED_STATUSES.includes(formStatus);
-
-  // Load form data from API
-  useEffect(() => {
-    if (!draftId) return;
-    setStatusLoading(true);
-    fetch(`/api/faas/land-improvements/${draftId}`, { cache: 'no-store' })
-      .then((r) => r.json())
-      .then((result) => {
-        if (result.success && result.data) {
-          const dbData = result.data;
-          // Supplement null/empty step-1 fields from localStorage (written by step 1)
-          const p1Fields = [
-            'pin', 'arp_no', 'transaction_code', 'oct_tct_cloa_no', 'survey_no',
-            'lot_no', 'blk', 'owner_name', 'owner_address', 'admin_care_of',
-            'admin_address', 'property_address', 'location_province',
-            'location_municipality', 'location_barangay',
-          ];
-          const merged = { ...dbData };
-          p1Fields.forEach((field) => {
-            if (merged[field] === undefined) {
-              const fromLS = localStorage.getItem(`${field}_p1`);
-              if (fromLS) merged[field] = fromLS;
-            }
-          });
-          setData(merged);
-          if (dbData.status) setFormStatus(dbData.status);
-        }
-      })
-      .catch(() => {})
-      .finally(() => setStatusLoading(false));
-  }, [draftId]);
-
-  // Load comments
-  useEffect(() => {
-    if (!draftId) return;
-    setCommentsLoading(true);
-    fetch(`/api/faas/land-improvements/${draftId}/comments`)
-      .then((r) => r.json())
-      .then((result) => {
-        if (result.data) setComments(result.data as ReviewComment[]);
-      })
-      .catch(() => {})
-      .finally(() => setCommentsLoading(false));
-  }, [draftId]);
-
-  // Field highlight when a comment is active
-  useEffect(() => {
-    document.querySelectorAll(".faas-field-highlight").forEach((el) =>
-      el.classList.remove("faas-field-highlight")
-    );
-    document.getElementById("faas-inline-comment")?.remove();
-
-    if (!activeComment?.field_name) return;
-
-    const fields = activeComment.field_name.split(",").map((f) => f.trim()).filter(Boolean);
-    let firstEl: Element | null = null;
-
-    fields.forEach((field) => {
-      document.querySelectorAll(`[data-field~="${field}"]`).forEach((el) => {
-        el.classList.add("faas-field-highlight");
-        if (!firstEl) firstEl = el;
-      });
-    });
-
-    if (firstEl) {
-      (firstEl as Element).scrollIntoView({ behavior: "smooth", block: "center" });
-    }
-  }, [activeComment]);
-
-  const handleSaveDraft = useCallback(async () => {
-    if (!draftId) return;
-    setIsSaving(true);
-    try {
-      const response = await fetch(`/api/faas/land-improvements/${draftId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "draft" }),
-      });
-      if (response.ok) {
-        alert("Draft saved successfully!");
-        localStorage.clear();
-        router.push("/land-other-improvements/dashboard");
-      } else {
-        const error = await response.json();
-        alert("Failed to save: " + (error.message ?? "Unknown error"));
-      }
-    } catch {
-      alert("Error saving. Please try again.");
-    } finally {
-      setIsSaving(false);
-    }
-  }, [draftId, router]);
-
-  const handleSubmit = useCallback(async () => {
-    if (!draftId) {
-      alert("No form ID found. Please go back and save first.");
-      return;
-    }
-    if (!confirm("Submit this form for LAOO review? You will not be able to edit it until the LAOO returns it.")) return;
-
-    setIsSubmitting(true);
-    try {
-      const response = await fetch(`/api/faas/land-improvements/${draftId}/submit`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
-      });
-
-      if (response.ok) {
-        localStorage.clear();
-        router.push("/land-other-improvements/dashboard");
-      } else {
-        const error = await response.json();
-        alert("Failed to submit: " + (error.message ?? "Unknown error"));
-      }
-    } catch {
-      alert("Error submitting form. Please try again.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  }, [draftId, router]);
-
 
   return (
     <SidebarProvider>
@@ -394,7 +203,9 @@ function PreviewFormPage() {
                       <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                     </div>
                   ) : data ? (
-                    <LandImprovementForm data={data} />
+                    <FaasCommentHighlightScope activeComment={activeComment}>
+                      <LandImprovementForm data={data} />
+                    </FaasCommentHighlightScope>
                   ) : (
                     <p className="text-sm text-muted-foreground text-center py-12">
                       No data found.

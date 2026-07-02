@@ -25,6 +25,19 @@
   font-family: 'Monotype Corsiva', 'Lucida Calligraphy', 'Brush Script MT', cursive;
 }
 
+.tax-dec-appraisal-head > div,
+.tax-dec-appraisal-row > div {
+  min-height: 1.35rem;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 1px;
+}
+
+.tax-dec-appraisal-head > div {
+  align-items: center;
+}
+
 @media print {
   .tax-dec-body {
     font-size: 9pt !important;
@@ -66,6 +79,13 @@
   .tax-dec-body .w-28 { width: 70pt  !important; }
   .tax-dec-body .w-40 { width: 90pt  !important; }
 
+  .tax-dec-appraisal-head > div,
+  .tax-dec-appraisal-row > div {
+    min-height: 12pt !important;
+    line-height: 1.15 !important;
+    padding-bottom: 1pt !important;
+  }
+
   /* Land tax declarations have extra boundary/title rows; keep the print density
      aligned with the building tax declaration. */
   .tax-dec-land {
@@ -83,4 +103,10 @@
   .tax-dec-land .mt-4 { margin-top: 3pt !important; }
   .tax-dec-land .mt-6 { margin-top: 4pt !important; }
   .tax-dec-land .mt-24 { margin-top: 6pt !important; }
+
+  .tax-dec-land .tax-dec-appraisal-head > div,
+  .tax-dec-land .tax-dec-appraisal-row > div {
+    min-height: 10pt !important;
+    line-height: 1.1 !important;
+  }
 }

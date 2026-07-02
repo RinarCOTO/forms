@@ -211,8 +211,6 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       return acc
     }, {} as any)
     
-    console.log('Cleaned update data:', cleanedData)
-    
     const { data, error } = await supabase
       .from('land_improvements')
       .update(cleanedData)

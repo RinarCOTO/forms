@@ -1,0 +1,174 @@
+import { createClient as createAdminClient } from '@supabase/supabase-js';
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
+
+const MAX_STORED_UPLOAD_BYTES = 10 * 1024 * 1024;
+const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+
+interface FaasPhotoRouteConfig {
+  bucket: string;
+  table: string;
+  parentIdFormField: string;
+  parentIdQueryParam: string;
+  parentIdColumn: string;
+  validPhotoTypes: readonly string[];
+}
+
+function getAdminClient() {
+  return createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false }, db: { schema: 'public' } }
+  );
+}
+
+function requiredFieldsMessage(parentIdField: string) {
+  return `file, ${parentIdField}, and photoType are required`;
+}
+
+export function createFaasPhotoRouteHandlers(config: FaasPhotoRouteConfig) {
+  async function POST(req: NextRequest) {
+    try {
+      const supabase = await createClient();
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+      if (userError || !user) {
+        return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+      }
+
+      const formData = await req.formData();
+      const file = formData.get('file') as File | null;
+      const parentId = formData.get(config.parentIdFormField) as string | null;
+      const photoType = formData.get('photoType') as string | null;
+
+      if (!file || !parentId || !photoType) {
+        return NextResponse.json(
+          { success: false, error: requiredFieldsMessage(config.parentIdFormField) },
+          { status: 400 }
+        );
+      }
+
+      if (!ALLOWED_FILE_TYPES.includes(file.type)) {
+        return NextResponse.json(
+          { success: false, error: 'Only JPG, PNG, WebP, or PDF files are allowed.' },
+          { status: 400 }
+        );
+      }
+
+      if (file.size > MAX_STORED_UPLOAD_BYTES) {
+        return NextResponse.json(
+          { success: false, error: 'File must be under 10 MB after compression.' },
+          { status: 400 }
+        );
+      }
+
+      if (!config.validPhotoTypes.includes(photoType)) {
+        return NextResponse.json(
+          { success: false, error: `Invalid photoType. Must be one of: ${config.validPhotoTypes.join(', ')}` },
+          { status: 400 }
+        );
+      }
+
+      const admin = getAdminClient();
+      const ext = (file.name.split('.').pop() ?? 'jpg').toLowerCase();
+      const photoId = crypto.randomUUID();
+      const storagePath = `${user.id}/${parentId}/${photoType}/${photoId}.${ext}`;
+
+      const arrayBuffer = await file.arrayBuffer();
+      const { error: uploadError } = await admin.storage
+        .from(config.bucket)
+        .upload(storagePath, Buffer.from(arrayBuffer), {
+          contentType: file.type || 'application/octet-stream',
+          upsert: false,
+        });
+
+      if (uploadError) {
+        console.error('[photos POST] storage upload error:', uploadError);
+        return NextResponse.json({ success: false, error: uploadError.message }, { status: 500 });
+      }
+
+      const { data: existingPhoto, error: existingErr } = await admin
+        .from(config.table)
+        .select('id, storage_path')
+        .eq(config.parentIdColumn, parseInt(parentId, 10))
+        .eq('photo_type', photoType)
+        .maybeSingle();
+
+      if (existingErr) console.warn('[photos POST] existing photo lookup error:', existingErr);
+
+      if (existingPhoto) {
+        await admin.storage.from(config.bucket).remove([existingPhoto.storage_path]);
+        await admin.from(config.table).delete().eq('id', existingPhoto.id);
+      }
+
+      const { data: photoRecord, error: dbError } = await admin
+        .from(config.table)
+        .insert({
+          [config.parentIdColumn]: parseInt(parentId, 10),
+          photo_type: photoType,
+          storage_path: storagePath,
+          original_name: file.name,
+          uploaded_by: user.id,
+        })
+        .select()
+        .single();
+
+      if (dbError) {
+        console.error('[photos POST] db insert error:', dbError);
+        await admin.storage.from(config.bucket).remove([storagePath]);
+        return NextResponse.json({ success: false, error: dbError.message }, { status: 500 });
+      }
+
+      return NextResponse.json({ success: true, data: photoRecord });
+    } catch (error) {
+      console.error('[photos POST] unexpected error:', error);
+      return NextResponse.json({ success: false, error: String(error) }, { status: 500 });
+    }
+  }
+
+  async function GET(req: NextRequest) {
+    try {
+      const { searchParams } = new URL(req.url);
+      const parentId = searchParams.get(config.parentIdQueryParam);
+
+      if (!parentId) {
+        return NextResponse.json(
+          { success: false, error: `${config.parentIdQueryParam} query param is required` },
+          { status: 400 }
+        );
+      }
+
+      const admin = getAdminClient();
+      const { data: photos, error: dbError } = await admin
+        .from(config.table)
+        .select('*')
+        .eq(config.parentIdColumn, parseInt(parentId, 10))
+        .order('created_at', { ascending: true });
+
+      if (dbError) {
+        console.error('[photos GET] db query error:', dbError);
+        return NextResponse.json({ success: false, error: dbError.message }, { status: 500 });
+      }
+
+      const photosWithUrls = await Promise.all(
+        (photos ?? []).map(async (photo) => {
+          const { data: signed, error: signErr } = await admin.storage
+            .from(config.bucket)
+            .createSignedUrl(photo.storage_path, 3600);
+          if (signErr) console.warn('[photos GET] signed URL error for', photo.id, ':', signErr);
+          return {
+            ...photo,
+            signedUrl: signErr ? null : (signed?.signedUrl ?? null),
+          };
+        })
+      );
+
+      return NextResponse.json({ success: true, data: photosWithUrls });
+    } catch (error) {
+      console.error('[photos GET] unexpected error:', error);
+      return NextResponse.json({ success: false, error: String(error) }, { status: 500 });
+    }
+  }
+
+  return { POST, GET };
+}

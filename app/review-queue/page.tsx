@@ -56,6 +56,12 @@ function getDefaultStatuses(role: string | null): string[] {
 
 const ALL_STATUSES = ['submitted', 'municipal_signed', 'laoo_approved', 'approved', 'returned', 'returned_to_municipal'];
 
+function getSelectableStatuses(role: string | null): string[] {
+  if (!role) return [];
+  if (ADMIN_ROLES.includes(role)) return ALL_STATUSES;
+  return getDefaultStatuses(role);
+}
+
 const STATUS_LABELS: Record<string, string> = {
   submitted:           'Submitted',
   municipal_signed:    'Municipal Signed',
@@ -110,7 +116,7 @@ export default function ReviewQueuePage() {
         const defaults = getDefaultStatuses(role);
         defaults.forEach(s => params.append('status', s));
       } else if (statusFilter === 'all') {
-        ALL_STATUSES.forEach(s => params.append('status', s));
+        getSelectableStatuses(role).forEach(s => params.append('status', s));
       } else {
         params.set('status', statusFilter);
       }
@@ -152,6 +158,7 @@ export default function ReviewQueuePage() {
   }, [role]);
 
   const uniqueMunicipalities = [...new Set(items.map(i => i.location_municipality).filter(Boolean) as string[])].sort();
+  const selectableStatuses = getSelectableStatuses(role);
 
   const filteredItems = items.filter(item => {
     if (municipalityFilter !== 'all' && item.location_municipality !== municipalityFilter) return false;
@@ -307,8 +314,8 @@ export default function ReviewQueuePage() {
                     <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="active">My Active Queue</SelectItem>
-                      <SelectItem value="all">All Statuses</SelectItem>
-                      {ALL_STATUSES.map(s => (
+                      <SelectItem value="all">All My Statuses</SelectItem>
+                      {selectableStatuses.map(s => (
                         <SelectItem key={s} value={s}>{STATUS_LABELS[s] ?? s}</SelectItem>
                       ))}
                     </SelectContent>

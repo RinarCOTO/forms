@@ -577,18 +577,22 @@ function ReviewDetailInner({ id }: { id: string }) {
             {/* Form view (tabs) */}
             <div className="flex-1 overflow-auto bg-[#f3f4f6]">
               {record && activeTab === "form" && (
-                <ReviewFormInline
-                  serverData={record as Record<string, any>}
-                  comments={comments.filter(c => {
-                    if (!currentUser) return true;
-                    if (LAOO_TIER.has(currentUser.role) && c.author_role && MUNICIPAL_AUTHOR_ROLES.has(c.author_role)) return false;
-                    return true;
-                  })}
-                  onCommentSection={onCommentSection}
-                />
+                formType === "building" ? (
+                  <ReviewFormInline
+                    serverData={record as Record<string, any>}
+                    comments={comments.filter(c => {
+                      if (!currentUser) return true;
+                      if (LAOO_TIER.has(currentUser.role) && c.author_role && MUNICIPAL_AUTHOR_ROLES.has(c.author_role)) return false;
+                      return true;
+                    })}
+                    onCommentSection={onCommentSection}
+                  />
+                ) : (
+                  <ReviewFaasOverlay formType={formType} serverData={record as Record<string, any>} />
+                )
               )}
               {record && activeTab === "faas" && (
-                <ReviewFaasOverlay serverData={record as Record<string, any>} />
+                <ReviewFaasOverlay formType={formType} serverData={record as Record<string, any>} />
               )}
             </div>
 

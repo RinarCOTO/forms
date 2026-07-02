@@ -68,6 +68,7 @@ const LandOtherImprovementFormFillPage2 = () => {
         }),
         draftId,
         apiEndpoint: "/api/faas/land-improvements",
+        draftFormType: "land",
     });
 
     const handleSubmit = useCallback((e: { preventDefault(): void }) => {

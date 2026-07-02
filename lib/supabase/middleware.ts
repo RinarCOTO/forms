@@ -58,6 +58,7 @@ export async function updateSession(request: NextRequest) {
     '/dashboard',
     '/rpfaas',
     '/notes',
+    '/admin',
     '/building-other-structure',
     '/manage-users',
     '/manage-roles',

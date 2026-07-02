@@ -1,221 +1,210 @@
-"use client"
+"use client";
 
-import { AppSidebar } from "@/components/app-sidebar"
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import {
+  BarChart3,
+  Building2,
+  ClipboardList,
+  FileText,
+  Home,
+  LandPlot,
+  ListChecks,
+  NotebookText,
+  Settings,
+  Tractor,
+  UserCheck,
+  Users,
+} from "lucide-react";
+import { AppSidebar } from "@/components/app-sidebar";
 import {
   Breadcrumb,
   BreadcrumbItem,
-  BreadcrumbLink,
   BreadcrumbList,
   BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb"
-import { Separator } from "@/components/ui/separator"
+} from "@/components/ui/breadcrumb";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
-} from "@/components/ui/sidebar"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
-import { Skeleton } from "@/components/ui/skeleton"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { FileText, Plus, Loader2, Eye, Edit, MoreHorizontal, ChevronLeft, ChevronRight } from "lucide-react"
-import { useState, useEffect, useCallback } from "react"
-import { useRouter } from "next/navigation"
+} from "@/components/ui/sidebar";
 
-type FormType = "building-structure" | "land-improvements" | "machinery" | "notes"
-
-interface FormSubmission {
-  id: number
-  owner_name?: string
-  title?: string
-  updated_at: string
-  status: string
+interface UserContextResponse {
+  id?: string;
+  role?: string;
+  full_name?: string;
+  municipality?: string;
+  permissions?: Record<string, boolean>;
 }
 
-const formsMenu = [
-  {
-    id: "building-structure",
-    title: "Building & Structures",
-    description: "Property assessment forms for buildings and structures",
-    icon: FileText,
-    apiEndpoint: "/api/faas/building-structures",
-    formRoute: "/building-other-structure/fill/step-1",
-    // Adding the dashboard route here
-    dashboardRoute: "/building-other-structure/dashboard",
-  },
-  {
-    id: "land-improvements",
-    title: "Land & Improvements",
-    description: "Assessment forms for land and property improvements",
-    icon: FileText,
-    apiEndpoint: "/api/faas/land-improvements",
-    formRoute: "/land-other-improvements/fill/step-1",
-    dashboardRoute: "/land-other-improvements/dashboard",
-  },
-  {
-    id: "machinery",
-    title: "Machinery",
-    description: "Equipment and machinery assessment forms",
-    icon: FileText,
-    apiEndpoint: "/api/faas/machinery",
-    formRoute: "/machinery/fill",
-  },
-  {
-    id: "notes",
-    title: "Notes",
-    description: "Additional notes and documentation",
-    icon: FileText,
-    apiEndpoint: "/api/faas/notes",
-    formRoute: "/notes/create",
-  },
-]
+type CountsResponse = Record<string, number>;
 
-const getStatusColor = (status: string) => {
-  switch (status.toLowerCase()) {
-    case "approved":
-      return "success"
-    case "pending":
-      return "warning"
-    case "draft":
-      return "secondary"
-    case "rejected":
-      return "destructive"
-    default:
-      return "default"
-  }
+interface CountCardConfig {
+  key: keyof CountsResponse;
+  label: string;
+  href: string;
+  icon: typeof Building2;
+  permission?: string;
 }
 
-export default function Page() {
-  const router = useRouter()
-  const [selectedForm, setSelectedForm] = useState<FormType | null>(null)
-  const [showForm, setShowForm] = useState(false)
-  const [submissions, setSubmissions] = useState<FormSubmission[]>([])
-  const [loading, setLoading] = useState(false)
-  const [submissionCounts, setSubmissionCounts] = useState<Record<string, number>>({})
-  const [currentPage, setCurrentPage] = useState(1)
-  const PAGE_SIZE = 10
+interface QuickLinkConfig {
+  label: string;
+  href: string;
+  icon: typeof Home;
+  permission?: string;
+  roles?: string[];
+}
 
-  // Fetch submission counts for all forms
+const ROLE_LABELS: Record<string, string> = {
+  super_admin: "Super Admin",
+  admin: "Admin",
+  municipal_tax_mapper: "Municipal Tax Mapper",
+  municipal_assessor: "Municipal Assessor",
+  laoo: "LAOO",
+  assistant_provincial_assessor: "Assistant Provincial Assessor",
+  provincial_assessor: "Provincial Assessor",
+  accountant: "Accountant",
+  user: "User",
+};
+
+const countCards: CountCardConfig[] = [
+  {
+    key: "building-structure",
+    label: "Building & Structures",
+    href: "/building-other-structure/dashboard",
+    icon: Building2,
+    permission: "building_structures.view",
+  },
+  {
+    key: "land-improvements",
+    label: "Land & Improvements",
+    href: "/land-other-improvements/dashboard",
+    icon: LandPlot,
+    permission: "land_improvements.view",
+  },
+  {
+    key: "machinery",
+    label: "Machinery",
+    href: "/machinery/dashboard",
+    icon: Tractor,
+    permission: "machinery.view",
+  },
+  {
+    key: "notes",
+    label: "Notes",
+    href: "/notes",
+    icon: NotebookText,
+  },
+];
+
+const quickLinks: QuickLinkConfig[] = [
+  {
+    label: "Review Queue",
+    href: "/review-queue",
+    icon: ListChecks,
+    permission: "review.laoo",
+  },
+  {
+    label: "Tax Declaration",
+    href: "/tax-declaration",
+    icon: FileText,
+    roles: ["laoo", "admin", "super_admin", "assistant_provincial_assessor", "provincial_assessor"],
+  },
+  {
+    label: "Assign LAOO",
+    href: "/admin/assign-laoo",
+    icon: UserCheck,
+    roles: ["super_admin", "admin", "provincial_assessor", "assistant_provincial_assessor"],
+  },
+  {
+    label: "Manage Users",
+    href: "/manage-users",
+    icon: Users,
+    permission: "user_management.view",
+  },
+  {
+    label: "SMV Building",
+    href: "/smv/building-other-structures/dashboard",
+    icon: Settings,
+    permission: "building_structures.view",
+  },
+  {
+    label: "SMV Land",
+    href: "/smv/land-other-improvements/dashboard",
+    icon: Settings,
+    permission: "land_improvements.view",
+  },
+];
+
+function canAccess(
+  item: { permission?: string; roles?: string[] },
+  user: UserContextResponse | null,
+) {
+  if (!item.permission && !item.roles) return true;
+  if (item.permission && user?.permissions?.[item.permission]) return true;
+  if (item.roles && user?.role && item.roles.includes(user.role)) return true;
+  return false;
+}
+
+function formatRole(role?: string) {
+  if (!role) return "User";
+  return ROLE_LABELS[role] ?? role.replace(/_/g, " ");
+}
+
+export default function DashboardPage() {
+  const [user, setUser] = useState<UserContextResponse | null>(null);
+  const [counts, setCounts] = useState<CountsResponse>({});
+  const [isLoading, setIsLoading] = useState(true);
+
   useEffect(() => {
-    const fetchCounts = async () => {
+    let isMounted = true;
+
+    async function loadDashboard() {
+      setIsLoading(true);
       try {
-        const response = await fetch('/api/faas/counts')
-        if (response.ok) {
-          const data = await response.json()
-          setSubmissionCounts(data)
-        }
-      } catch (error) {
-        console.error('Error fetching counts:', error)
+        const [userResponse, countsResponse] = await Promise.all([
+          fetch("/api/users/permissions"),
+          fetch("/api/faas/counts"),
+        ]);
+
+        const [userData, countsData] = await Promise.all([
+          userResponse.ok ? userResponse.json() : null,
+          countsResponse.ok ? countsResponse.json() : {},
+        ]);
+
+        if (!isMounted) return;
+        setUser(userData);
+        setCounts(countsData ?? {});
+      } finally {
+        if (isMounted) setIsLoading(false);
       }
     }
-    fetchCounts()
-  }, [])
 
-  // Fetch submissions when a form is selected
-  useEffect(() => {
-    if (selectedForm) {
-      const fetchSubmissions = async () => {
-        setLoading(true)
-        const form = formsMenu.find((f) => f.id === selectedForm)
-        if (!form) return
+    loadDashboard();
 
-        try {
-          const response = await fetch(form.apiEndpoint)
-          if (response.ok) {
-            const data = await response.json()
-            setSubmissions(data)
-          } else {
-            const errorData = await response.json().catch(() => ({}))
-            console.error('Failed to fetch submissions:', errorData)
-            setSubmissions([])
-          }
-        } catch (error) {
-          console.error('Error fetching submissions:', error)
-          setSubmissions([])
-        } finally {
-          setLoading(false)
-        }
-      }
-      fetchSubmissions()
-    } else {
-      setSubmissions([])
-    }
-  }, [selectedForm])
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
-  // UPDATED: Logic to handle dashboard redirection
-  const handleFormSelect = useCallback((formId: FormType) => {
-    const form = formsMenu.find((f) => f.id === formId)
+  const visibleCountCards = useMemo(
+    () => countCards.filter((item) => canAccess(item, user)),
+    [user],
+  );
 
-    // If the form has a specific dashboard route (like Building & Structures), redirect there
-    if (form?.dashboardRoute) {
-      router.push(form.dashboardRoute)
-      return
-    }
+  const visibleQuickLinks = useMemo(
+    () => quickLinks.filter((item) => canAccess(item, user)),
+    [user],
+  );
 
-    // Otherwise, default to the local table view
-    setSelectedForm(formId)
-    setShowForm(false)
-    setCurrentPage(1)
-  }, [router])
-
-  const handleBackToMenu = useCallback(() => {
-    setSelectedForm(null)
-    setShowForm(false)
-  }, [])
-
-  const handleNewForm = useCallback(async () => {
-    const form = formsMenu.find((f) => f.id === selectedForm)
-    if (form?.apiEndpoint && form?.formRoute) {
-      try {
-        const now = new Date().toISOString();
-        const response = await fetch(form.apiEndpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: 'draft', updated_at: now })
-        });
-        if (response.ok) {
-          const data = await response.json();
-          const newId = data?.data?.id || data?.id;
-          if (newId) {
-            router.push(`${form.formRoute}?id=${newId}`);
-          } else {
-            alert('Failed to get new record ID.');
-          }
-        } else {
-          const error = await response.json();
-          alert('Failed to create new submission: ' + (error?.message || error?.error || 'Unknown error'));
-        }
-      } catch (error) {
-        alert('Error creating new submission.');
-      }
-    }
-  }, [selectedForm, router])
-
-  const handleViewSubmission = useCallback((submissionId: number) => {
-    const form = formsMenu.find((f) => f.id === selectedForm)
-    if (form?.formRoute) {
-      router.push(`${form.formRoute}?id=${submissionId}`)
-    }
-  }, [selectedForm, router])
-
-  const currentFormData = formsMenu.find((f) => f.id === selectedForm)
-  const totalPages = Math.max(1, Math.ceil(submissions.length / PAGE_SIZE))
-  const paginatedSubmissions = submissions.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
+  const totalVisibleRecords = visibleCountCards.reduce(
+    (sum, item) => sum + Number(counts[item.key] ?? 0),
+    0,
+  );
 
   return (
     <SidebarProvider>
@@ -230,174 +219,125 @@ export default function Page() {
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem>
-                <BreadcrumbLink href="/dashboard">
-                  Dashboard
-                </BreadcrumbLink>
+                <BreadcrumbPage>Home</BreadcrumbPage>
               </BreadcrumbItem>
-              {selectedForm && (
-                <>
-                  <BreadcrumbSeparator />
-                  <BreadcrumbItem>
-                    <BreadcrumbPage>{currentFormData?.title}</BreadcrumbPage>
-                  </BreadcrumbItem>
-                </>
-              )}
             </BreadcrumbList>
           </Breadcrumb>
         </header>
 
-        <div className="flex flex-1 flex-col gap-4 p-6">
-          {!selectedForm && (
-            <>
-              <div>
-                <h1 className="text-3xl font-bold tracking-tight">Forms Dashboard</h1>
-                <p className="text-muted-foreground mt-1">
-                  Select a form type to manage submissions
-                </p>
-              </div>
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {formsMenu.map((form) => (
-                  <Card
-                    key={form.id}
-                    className="cursor-pointer select-none transition-all hover:shadow-lg hover:border-primary"
-                    onClick={() => handleFormSelect(form.id as FormType)}
-                  >
-                    <CardHeader>
-                      <div className="flex items-center gap-2">
-                        <form.icon className="h-5 w-5 text-primary" />
-                        <CardTitle>{form.title}</CardTitle>
-                      </div>
-                      <CardDescription>{form.description}</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-sm text-muted-foreground">
-                        {submissionCounts[form.id] || 0} submissions
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </>
-          )}
-
-          {selectedForm && (
-            <>
-              <div className="flex items-center justify-between">
-                <Button variant="ghost" onClick={handleBackToMenu}>
-                  <ChevronLeft className="h-4 w-4 mr-2" />
-                  Back to Menu
-                </Button>
-                <Button onClick={handleNewForm}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  New Submission
-                </Button>
-              </div>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>{currentFormData?.title}</CardTitle>
-                  <CardDescription>
-                    View and manage all submissions for this form type
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {loading ? (
-                    <div className="space-y-2">
-                      {Array.from({ length: 5 }).map((_, i) => (
-                        <div key={i} className="flex items-center gap-4 py-2">
-                          <Skeleton className="h-4 w-16" />
-                          <Skeleton className="h-4 w-40 flex-1" />
-                          <Skeleton className="h-4 w-28" />
-                          <Skeleton className="h-4 w-20" />
-                          <Skeleton className="h-4 w-16" />
-                        </div>
-                      ))}
-                    </div>
-                  ) : submissions.length === 0 ? (
-                    <div className="text-center py-12">
-                      <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                      <h3 className="text-lg font-semibold mb-2">No submissions yet</h3>
-                      <p className="text-muted-foreground mb-4">
-                        Get started by creating a new submission
-                      </p>
-                      <Button onClick={handleNewForm}>
-                        <Plus className="h-4 w-4 mr-2" />
-                        Create First Submission
-                      </Button>
-                    </div>
-                  ) : (
-                    <>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>ID</TableHead>
-                          <TableHead>Owner Name</TableHead>
-                          <TableHead>Last Updated</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {paginatedSubmissions.map((submission) => (
-                          <TableRow key={submission.id}>
-                            <TableCell className="font-medium">
-                              #{submission.id}
-                            </TableCell>
-                            <TableCell>{submission.owner_name || submission.title || 'N/A'}</TableCell>
-                            <TableCell>
-                              {new Date(submission.updated_at).toLocaleDateString()}
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant={getStatusColor(submission.status) as any}>
-                                {submission.status.charAt(0).toUpperCase() + submission.status.slice(1)}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                                    <MoreHorizontal className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem onClick={() => handleViewSubmission(submission.id)}>
-                                    <Eye className="h-4 w-4 mr-2" />
-                                    View
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => handleViewSubmission(submission.id)}>
-                                    <Edit className="h-4 w-4 mr-2" />
-                                    Edit
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                    <div className="flex items-center justify-between px-2 py-4 border-t">
-                      <p className="text-sm text-muted-foreground">
-                        {submissions.length === 0
-                          ? "0 row(s)"
-                          : `${(currentPage - 1) * PAGE_SIZE + 1}–${Math.min(currentPage * PAGE_SIZE, submissions.length)} of ${submissions.length} row(s)`}
-                      </p>
-                      <div className="flex items-center gap-1">
-                        <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
-                          <ChevronLeft className="h-4 w-4" /> Previous
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>
-                          Next <ChevronRight className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                    </>
+        <main className="min-h-[calc(100vh-4rem)] bg-muted/20">
+          <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 md:px-6 lg:px-8">
+            <section className="flex flex-col gap-4 border-b pb-6 md:flex-row md:items-end md:justify-between">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Home className="h-5 w-5 text-primary" />
+                  <h1 className="text-2xl font-semibold tracking-normal text-foreground md:text-3xl">
+                    Home
+                  </h1>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm text-muted-foreground">
+                    {user?.full_name || "Signed-in user"}
+                  </span>
+                  <Badge variant="outline">{formatRole(user?.role)}</Badge>
+                  {user?.municipality && (
+                    <Badge variant="secondary">{user.municipality}</Badge>
                   )}
-                </CardContent>
-              </Card>
-            </>
-          )}
-        </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 rounded-md border bg-background px-3 py-2">
+                <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Visible records</p>
+                  <p className="text-lg font-semibold leading-5">{totalVisibleRecords}</p>
+                </div>
+              </div>
+            </section>
+
+            <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              {visibleCountCards.map((item) => {
+                const Icon = item.icon;
+                const value = Number(counts[item.key] ?? 0);
+
+                return (
+                  <Link key={item.key} href={item.href} className="block">
+                    <Card className="h-full rounded-md transition-colors hover:bg-muted/50">
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">
+                          {item.label}
+                        </CardTitle>
+                        <Icon className="h-4 w-4 text-muted-foreground" />
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-2xl font-semibold">{isLoading ? "-" : value}</p>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                );
+              })}
+            </section>
+
+            <section className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <ClipboardList className="h-4 w-4 text-muted-foreground" />
+                  <h2 className="text-base font-semibold">Work Areas</h2>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {visibleCountCards.map((item) => {
+                    const Icon = item.icon;
+
+                    return (
+                      <Link key={item.href} href={item.href} className="block">
+                        <Card className="h-full rounded-md transition-colors hover:bg-muted/50">
+                          <CardContent className="flex items-center gap-3 p-4">
+                            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                              <Icon className="h-4 w-4" />
+                            </span>
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-medium">{item.label}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {Number(counts[item.key] ?? 0)} records
+                              </p>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <ListChecks className="h-4 w-4 text-muted-foreground" />
+                  <h2 className="text-base font-semibold">Shortcuts</h2>
+                </div>
+                <div className="grid gap-2">
+                  {visibleQuickLinks.map((item) => {
+                    const Icon = item.icon;
+
+                    return (
+                      <Button
+                        key={item.href}
+                        asChild
+                        variant="outline"
+                        className="h-10 justify-start rounded-md"
+                      >
+                        <Link href={item.href}>
+                          <Icon className="h-4 w-4" />
+                          {item.label}
+                        </Link>
+                      </Button>
+                    );
+                  })}
+                </div>
+              </div>
+            </section>
+          </div>
+        </main>
       </SidebarInset>
     </SidebarProvider>
-  )
+  );
 }

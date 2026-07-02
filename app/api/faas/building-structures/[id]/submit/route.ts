@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
+import {
+  canSubmitFaasRole,
+  getBuildingSubmitTargetStatus,
+  getSubmitHistoryNote,
+  isFaasSubmittableStatus,
+} from '@/lib/faas/workflow';
+import { notifyFaasStatusChange } from '@/lib/faas/notification-rules';
 
 function getAdminClient() {
   return createAdminClient(
@@ -9,12 +16,6 @@ function getAdminClient() {
     { auth: { autoRefreshToken: false, persistSession: false } }
   );
 }
-
-// Roles allowed to submit a FAAS form for review
-const SUBMIT_ALLOWED_ROLES = ['municipal_tax_mapper', 'municipal_assessor', 'laoo', 'assistant_provincial_assessor', 'provincial_assessor', 'admin', 'super_admin'];
-
-// Only these statuses can transition to 'submitted'
-const SUBMITTABLE_STATUSES = ['draft', 'returned', 'returned_to_municipal'];
 
 export async function POST(
   req: NextRequest,
@@ -48,7 +49,7 @@ export async function POST(
       return NextResponse.json({ success: false, message: 'User profile not found' }, { status: 401 });
     }
 
-    if (!SUBMIT_ALLOWED_ROLES.includes(profile.role)) {
+    if (!canSubmitFaasRole(profile.role)) {
       return NextResponse.json(
         { success: false, message: 'Your role is not allowed to submit forms' },
         { status: 403 }
@@ -66,7 +67,7 @@ export async function POST(
       return NextResponse.json({ success: false, message: 'Form not found' }, { status: 404 });
     }
 
-    if (!SUBMITTABLE_STATUSES.includes(record.status)) {
+    if (!isFaasSubmittableStatus(record.status)) {
       return NextResponse.json(
         {
           success: false,
@@ -79,18 +80,9 @@ export async function POST(
     const fromStatus = record.status;
     const now = new Date().toISOString();
 
-    // ── When a municipal_assessor re-submits from 'returned_to_municipal',
-    //    skip back to 'submitted' and go directly to 'municipal_signed' so LAOO
-    //    can immediately see and approve the form without a redundant sign_forward step.
-    const skipToMunicipalSigned =
-      fromStatus === 'returned_to_municipal' && profile.role === 'municipal_assessor';
-
-    if (skipToMunicipalSigned && !profile.signature_path) {
-      return NextResponse.json(
-        { success: false, message: 'You must upload a signature before re-signing this form' },
-        { status: 422 }
-      );
-    }
+    // ── Municipal assessor submissions go directly to LAOO review.
+    const toStatus = getBuildingSubmitTargetStatus({ fromStatus, role: profile.role });
+    const skipToMunicipalSigned = toStatus === 'municipal_signed';
 
     // ── If re-submitting from 'returned', fetch full form data + LAOO comments
     //    to generate change-tracking response comments ─────────────────────────
@@ -113,7 +105,6 @@ export async function POST(
     }
 
     // ── Status transition ─────────────────────────────────────────────────────
-    const toStatus = skipToMunicipalSigned ? 'municipal_signed' : 'submitted';
     const updatePayload: Record<string, unknown> = {
       status: toStatus,
       submitted_at: now,
@@ -126,7 +117,7 @@ export async function POST(
     if (skipToMunicipalSigned) {
       updatePayload.municipal_reviewer_id    = authUser.id;
       updatePayload.municipal_signed_at      = now;
-      updatePayload.municipal_signature_path = profile.signature_path;
+      updatePayload.municipal_signature_path = profile.signature_path ?? null;
     }
 
     const { data: updated, error: updateError } = await admin
@@ -212,6 +203,18 @@ export async function POST(
       }
     }
 
+    try {
+      await notifyFaasStatusChange({
+        formType: 'building_structures',
+        record: updated,
+        fromStatus,
+        toStatus,
+        actorId: authUser.id,
+      });
+    } catch (notificationErr) {
+      console.warn('Notification creation failed:', notificationErr);
+    }
+
     // ── Broadcast status change for live dashboard updates ────────────────────
     try {
       await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/realtime/v1/api/broadcast`, {
@@ -243,11 +246,12 @@ export async function POST(
         to_status: toStatus,
         actor_id: authUser.id,
         actor_role: profile.role,
-        note: skipToMunicipalSigned
-          ? 'Re-signed and forwarded to LAOO after municipal return'
-          : fromStatus === 'returned'
-          ? 'Re-submitted after addressing LAOO review comments'
-          : 'Initial submission for LAOO review',
+        note: getSubmitHistoryNote({
+          formType: 'building_structures',
+          fromStatus,
+          targetStatus: toStatus,
+          role: profile.role,
+        }),
       });
     } catch (historyErr) {
       // Audit entry failure is non-fatal; log but don't block the response
