@@ -90,6 +90,15 @@ function getMunicipality(r: TaxDecRecord) {
   return r.location_municipality || r.municipality || "";
 }
 
+function sortLatestFirst(records: TaxDecRecord[]) {
+  return [...records].sort((a, b) => {
+    const bTime = new Date(b.updated_at).getTime();
+    const aTime = new Date(a.updated_at).getTime();
+    if (bTime !== aTime) return bTime - aTime;
+    return b.id - a.id;
+  });
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function TaxDeclarationPage() {
@@ -123,7 +132,7 @@ export default function TaxDeclarationPage() {
         .then((res) => {
           const raw = res.data ?? res;
           const all: TaxDecRecord[] = Array.isArray(raw) ? raw : [];
-          setData((prev) => ({ ...prev, [key]: all }));
+          setData((prev) => ({ ...prev, [key]: sortLatestFirst(all) }));
         })
         .catch(() => setData((prev) => ({ ...prev, [key]: [] })))
         .finally(() => setLoading((prev) => ({ ...prev, [key]: false })));
@@ -166,7 +175,7 @@ export default function TaxDeclarationPage() {
   };
 
   const q = search.toLowerCase();
-  const filtered = records.filter((r) => {
+  const filtered = sortLatestFirst(records).filter((r) => {
     const muniMatch =
       selectedMunicipalities.length === 0 || selectedMunicipalities.includes(getMunicipality(r));
     const barangayMatch =
@@ -319,7 +328,7 @@ export default function TaxDeclarationPage() {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>ID</TableHead>
+                          <TableHead>No.</TableHead>
                           <TableHead>TD No.</TableHead>
                           <TableHead>Owner Name</TableHead>
                           <TableHead>Municipality</TableHead>
@@ -330,9 +339,9 @@ export default function TaxDeclarationPage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {paginated.map((record) => (
+                        {paginated.map((record, index) => (
                           <TableRow key={record.id}>
-                            <TableCell className="font-medium">#{record.id}</TableCell>
+                            <TableCell className="font-medium">{(currentPage - 1) * pageSize + index + 1}</TableCell>
                             <TableCell className="font-mono">
                               <Highlight text={String(record.td_no || record.arp_no || record.td_arp_no || "—")} query={search} />
                             </TableCell>

@@ -42,6 +42,15 @@ export default function SmvBuildingOtherStructuresDashboard() {
   const [submissionToDelete, setSubmissionToDelete] = useState<number | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
+  const sortLatestFirst = useCallback((records: FormSubmission[]) => {
+    return [...records].sort((a, b) => {
+      const bTime = new Date(b.updated_at).getTime();
+      const aTime = new Date(a.updated_at).getTime();
+      if (bTime !== aTime) return bTime - aTime;
+      return b.id - a.id;
+    });
+  }, []);
+
   useEffect(() => {
     const fetchUser = async () => {
       try {
@@ -61,7 +70,7 @@ export default function SmvBuildingOtherStructuresDashboard() {
         const response = await fetch("/api/smv/building-structures");
         if (response.ok) {
           const data = await response.json();
-          setSubmissions(data.data || data || []);
+          setSubmissions(sortLatestFirst(data.data || data || []));
         } else {
           setSubmissions([]);
         }
@@ -74,7 +83,7 @@ export default function SmvBuildingOtherStructuresDashboard() {
 
     fetchUser();
     fetchSubmissions();
-  }, []);
+  }, [sortLatestFirst]);
 
   const handleNewForm = useCallback(async () => {
     try {
@@ -155,7 +164,7 @@ export default function SmvBuildingOtherStructuresDashboard() {
     setCurrentPage(1);
   };
 
-  const filteredSubmissions = submissions.filter(s => {
+  const filteredSubmissions = sortLatestFirst(submissions).filter(s => {
     const muniMatch = selectedMunicipalities.length === 0 || selectedMunicipalities.includes(s.location_municipality || '');
     const barangayMatch = selectedBarangays.length === 0 || selectedBarangays.includes(s.location_barangay || '');
     return muniMatch && barangayMatch;
@@ -265,7 +274,7 @@ export default function SmvBuildingOtherStructuresDashboard() {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>ID</TableHead>
+                          <TableHead>No.</TableHead>
                           <TableHead>Owner Name</TableHead>
                           <TableHead>Municipality</TableHead>
                           <TableHead>Barangay</TableHead>
@@ -275,9 +284,9 @@ export default function SmvBuildingOtherStructuresDashboard() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {paginatedSubmissions.map((submission) => (
+                        {paginatedSubmissions.map((submission, index) => (
                           <TableRow key={submission.id}>
-                            <TableCell className="font-medium">#{submission.id}</TableCell>
+                            <TableCell className="font-medium">{(currentPage - 1) * PAGE_SIZE + index + 1}</TableCell>
                             <TableCell>{submission.owner_name || submission.title || 'N/A'}</TableCell>
                             <TableCell>{submission.location_municipality || 'N/A'}</TableCell>
                             <TableCell>{submission.location_barangay || 'N/A'}</TableCell>

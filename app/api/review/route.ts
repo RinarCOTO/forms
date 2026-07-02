@@ -90,7 +90,8 @@ export async function GET(request: NextRequest) {
         .from('building_structures')
         .select('id, owner_name, location_municipality, location_barangay, status, submitted_at, updated_at, laoo_reviewer_id')
         .in('status', statusesToQuery)
-        .order('submitted_at', { ascending: true });
+        .order('submitted_at', { ascending: false, nullsFirst: false })
+        .order('updated_at', { ascending: false });
 
       if (isLaooScoped) q = q.or(getMunicipalityScopeFilter(profile.municipality));
 
@@ -106,7 +107,8 @@ export async function GET(request: NextRequest) {
         .from('land_improvements')
         .select('id, owner_name, location_municipality, location_barangay, status, submitted_at, updated_at, laoo_reviewer_id')
         .in('status', statusesToQuery)
-        .order('submitted_at', { ascending: true });
+        .order('submitted_at', { ascending: false, nullsFirst: false })
+        .order('updated_at', { ascending: false });
 
       if (isLaooScoped) q = q.or(getMunicipalityScopeFilter(profile.municipality));
 
@@ -116,11 +118,14 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Sort combined list: oldest submitted first
+    // Sort combined list: newest submitted first.
     results.sort((a, b) => {
-      const tA = a.submitted_at ? new Date(a.submitted_at as string).getTime() : 0;
-      const tB = b.submitted_at ? new Date(b.submitted_at as string).getTime() : 0;
-      return tA - tB;
+      const submittedA = a.submitted_at ? new Date(a.submitted_at as string).getTime() : 0;
+      const submittedB = b.submitted_at ? new Date(b.submitted_at as string).getTime() : 0;
+      if (submittedB !== submittedA) return submittedB - submittedA;
+      const updatedA = a.updated_at ? new Date(a.updated_at as string).getTime() : 0;
+      const updatedB = b.updated_at ? new Date(b.updated_at as string).getTime() : 0;
+      return updatedB - updatedA;
     });
 
     return NextResponse.json({ success: true, data: results });

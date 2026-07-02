@@ -20,6 +20,7 @@ export async function GET(request: NextRequest) {
       .from('building_structures')
       .select('id, owner_name, updated_at, status, municipality')
       .order('updated_at', { ascending: false })
+      .order('id', { ascending: false })
 
     if (!userCtx.isAdmin && userCtx.municipality) {
       query = query.eq('municipality', userCtx.municipality)

@@ -47,6 +47,15 @@ interface FormSubmission {
   status: string
 }
 
+function sortLatestFirst(submissions: FormSubmission[]) {
+  return [...submissions].sort((a, b) => {
+    const bTime = new Date(b.updated_at).getTime()
+    const aTime = new Date(a.updated_at).getTime()
+    if (bTime !== aTime) return bTime - aTime
+    return b.id - a.id
+  })
+}
+
 const formsMenu = [
   {
     id: "building-structure",
@@ -132,7 +141,7 @@ export default function Page() {
           const response = await fetch(form.apiEndpoint)
           if (response.ok) {
             const data = await response.json()
-            setSubmissions(data)
+            setSubmissions(sortLatestFirst(data?.data ?? data ?? []))
           } else {
             const errorData = await response.json().catch(() => ({}))
             console.error('Failed to fetch submissions:', errorData)
@@ -307,7 +316,7 @@ export default function Page() {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>ID</TableHead>
+                          <TableHead>No.</TableHead>
                           <TableHead>Owner Name</TableHead>
                           <TableHead>Last Updated</TableHead>
                           <TableHead>Status</TableHead>
@@ -315,10 +324,10 @@ export default function Page() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {submissions.map((submission) => (
+                        {submissions.map((submission, index) => (
                           <TableRow key={submission.id}>
                             <TableCell className="font-medium">
-                              #{submission.id}
+                              {index + 1}
                             </TableCell>
                             <TableCell>{submission.owner_name || submission.title || 'N/A'}</TableCell>
                             <TableCell>

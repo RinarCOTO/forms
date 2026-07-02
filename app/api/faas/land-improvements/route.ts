@@ -87,6 +87,7 @@ export async function GET(request: NextRequest) {
       .from('land_improvements')
       .select('id, owner_name, updated_at, status, municipality, td_no, arp_no, location_municipality, location_barangay, created_by, assigned_to', { count: 'exact' })
       .order('updated_at', { ascending: false })
+      .order('id', { ascending: false })
 
     if (MUNICIPAL_DASHBOARD_ROLES.includes(userCtx.role)) {
       query = userCtx.municipality

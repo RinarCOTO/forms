@@ -90,6 +90,18 @@ function formatDate(d?: string | null) {
 
 const PAGE_SIZE = 12;
 
+function sortLatestFirst(items: ReviewItem[]) {
+  return [...items].sort((a, b) => {
+    const bSubmitted = b.submitted_at ? new Date(b.submitted_at).getTime() : 0;
+    const aSubmitted = a.submitted_at ? new Date(a.submitted_at).getTime() : 0;
+    if (bSubmitted !== aSubmitted) return bSubmitted - aSubmitted;
+    const bUpdated = new Date(b.updated_at).getTime();
+    const aUpdated = new Date(a.updated_at).getTime();
+    if (bUpdated !== aUpdated) return bUpdated - aUpdated;
+    return b.id - a.id;
+  });
+}
+
 export default function ReviewQueuePage() {
   const router = useRouter();
   const { role } = usePermissions();
@@ -123,7 +135,7 @@ export default function ReviewQueuePage() {
       const res = await fetch(`/api/review?${params.toString()}`);
       if (!res.ok) { toast.error('Failed to load review queue'); setItems([]); return; }
       const json = await res.json();
-      setItems(json.data ?? []);
+      setItems(sortLatestFirst(json.data ?? []));
       setCurrentPage(1);
     } catch {
       toast.error('Error loading review queue');
@@ -147,9 +159,9 @@ export default function ReviewQueuePage() {
           const exists = prev.some(r => r.id === item.id && r.form_type === item.form_type);
           if (exists) {
             if (!visibleStatuses.includes(item.status)) return prev.filter(r => !(r.id === item.id && r.form_type === item.form_type));
-            return prev.map(r => r.id === item.id && r.form_type === item.form_type ? { ...r, status: item.status, updated_at: item.updated_at } : r);
+            return sortLatestFirst(prev.map(r => r.id === item.id && r.form_type === item.form_type ? { ...r, status: item.status, updated_at: item.updated_at } : r));
           }
-          if (visibleStatuses.includes(item.status)) return [item, ...prev];
+          if (visibleStatuses.includes(item.status)) return sortLatestFirst([item, ...prev]);
           return prev;
         });
       })
@@ -369,7 +381,8 @@ export default function ReviewQueuePage() {
                 <>
                   <Table>
                     <TableHeader>
-                      <TableRow>
+                        <TableRow>
+                        <TableHead>No.</TableHead>
                         <TableHead>Owner</TableHead>
                         <TableHead>Form Type</TableHead>
                         <TableHead>Municipality</TableHead>
@@ -379,10 +392,11 @@ export default function ReviewQueuePage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {paginated.map(item => {
+                      {paginated.map((item, index) => {
                         const rowActions = getActions(item);
                         return (
                           <TableRow key={`${item.form_type}-${item.id}`}>
+                            <TableCell className="font-medium">{(currentPage - 1) * PAGE_SIZE + index + 1}</TableCell>
                             <TableCell className="font-medium">
                               {item.owner_name || <span className="text-muted-foreground italic">No owner</span>}
                             </TableCell>

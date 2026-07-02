@@ -82,6 +82,15 @@ const EXPORT_PRESETS = [
 ] as const;
 type ExportPreset = typeof EXPORT_PRESETS[number]['value'];
 
+function sortLatestFirst(submissions: FormSubmission[]) {
+  return [...submissions].sort((a, b) => {
+    const bTime = new Date(b.updated_at).getTime();
+    const aTime = new Date(a.updated_at).getTime();
+    if (bTime !== aTime) return bTime - aTime;
+    return b.id - a.id;
+  });
+}
+
 export function FaasDashboard({ config }: { config: FaasDashboardConfig }) {
   const router = useRouter();
 
@@ -129,7 +138,7 @@ export function FaasDashboard({ config }: { config: FaasDashboardConfig }) {
       const res = await fetch(`${config.apiPath}?${params}`);
       if (res.ok) {
         const json = await res.json();
-        setSubmissions(json?.data ?? json ?? []);
+        setSubmissions(sortLatestFirst(json?.data ?? json ?? []));
         setTotal(json?.total ?? 0);
       } else {
         const errorJson = await res.json().catch(() => null);
@@ -206,9 +215,9 @@ export function FaasDashboard({ config }: { config: FaasDashboardConfig }) {
           const exists = prev.some(s => s.id === updated.id);
           if (exists) {
             if (!VISIBLE_STATUSES.includes(updated.status)) return prev.filter(s => s.id !== updated.id);
-            return prev.map(s => s.id === updated.id ? { ...s, status: updated.status, updated_at: updated.updated_at } : s);
+            return sortLatestFirst(prev.map(s => s.id === updated.id ? { ...s, status: updated.status, updated_at: updated.updated_at } : s));
           }
-          if (VISIBLE_STATUSES.includes(updated.status)) return [updated, ...prev];
+          if (VISIBLE_STATUSES.includes(updated.status)) return sortLatestFirst([updated, ...prev]);
           return prev;
         });
       })
@@ -562,7 +571,7 @@ export function FaasDashboard({ config }: { config: FaasDashboardConfig }) {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>ID</TableHead>
+                          <TableHead>No.</TableHead>
                           <TableHead>Owner Name</TableHead>
                           <TableHead>Municipality</TableHead>
                           {config.hasMunicipalAssessor && <TableHead>Municipal Assessor</TableHead>}
@@ -573,11 +582,11 @@ export function FaasDashboard({ config }: { config: FaasDashboardConfig }) {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {paginatedSubmissions.map((submission) => {
+                        {paginatedSubmissions.map((submission, index) => {
                           const muni = getMunicipality(submission);
                           return (
                             <TableRow key={submission.id}>
-                              <TableCell className="font-medium">#{submission.id}</TableCell>
+                              <TableCell className="font-medium">{(currentPage - 1) * PAGE_SIZE + index + 1}</TableCell>
                               <TableCell>{submission.owner_name || submission.title || 'N/A'}</TableCell>
                               <TableCell>{muni || 'N/A'}</TableCell>
                               {config.hasMunicipalAssessor && (

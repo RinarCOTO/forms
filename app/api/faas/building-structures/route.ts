@@ -82,6 +82,7 @@ export async function GET(request: NextRequest) {
       .from('building_structures')
       .select('id, owner_name, updated_at, status, municipality, location_municipality, location_barangay, submitted_at, td_no, arp_no, td_arp_no, created_by, approved_at, assigned_to', { count: 'exact' })
       .order('updated_at', { ascending: false })
+      .order('id', { ascending: false })
 
     if (userCtx.role === 'municipal_tax_mapper') {
       query = query.or(`created_by.eq.${userCtx.userId},assigned_to.eq.${userCtx.userId}`)
