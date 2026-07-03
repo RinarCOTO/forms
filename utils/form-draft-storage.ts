@@ -1,6 +1,7 @@
 type DraftStorage = Pick<Storage, "length" | "key" | "getItem">;
 type WritableDraftStorage = Pick<Storage, "setItem" | "removeItem">;
 type ClearableDraftStorage = Pick<Storage, "length" | "key" | "removeItem">;
+type BoundDraftStorage = ClearableDraftStorage & Pick<Storage, "getItem" | "setItem">;
 
 const STEP_FIELD_SUFFIX = /_p[1-6]$/;
 export type FaasDraftFormType = "building" | "land" | "machinery";
@@ -12,6 +13,7 @@ const FAAS_DRAFT_ID_KEYS: Record<FaasDraftFormType, string> = {
 };
 
 const LEGACY_DRAFT_ID_KEY = "draft_id";
+const FAAS_DRAFT_OWNER_KEY = "rpfaas_draft_owner_id";
 
 const DEFAULT_SKIP_KEYS = new Set([
   "id",
@@ -202,6 +204,24 @@ export function clearMachineryDraftStorage(storage: ClearableDraftStorage) {
     key.startsWith("rpfaas_") ||
     STEP_FIELD_SUFFIX.test(key)
   ));
+}
+
+export function clearAllFaasDraftStorage(storage: ClearableDraftStorage) {
+  clearBuildingStructureDraftStorage(storage);
+  clearLandImprovementDraftStorage(storage);
+  clearMachineryDraftStorage(storage);
+  removeMatchingStorageKeys(storage, (key) => key.startsWith("draft_"));
+  storage.removeItem(FAAS_DRAFT_OWNER_KEY);
+}
+
+export function bindFaasDraftStorageToUser(storage: BoundDraftStorage, userId: string) {
+  const previousOwnerId = storage.getItem(FAAS_DRAFT_OWNER_KEY);
+
+  if (previousOwnerId && previousOwnerId !== userId) {
+    clearAllFaasDraftStorage(storage);
+  }
+
+  storage.setItem(FAAS_DRAFT_OWNER_KEY, userId);
 }
 
 type DraftRecord = Record<string, unknown>;

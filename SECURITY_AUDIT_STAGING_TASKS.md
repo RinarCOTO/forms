@@ -163,6 +163,8 @@ Acceptance checks:
 
 ## Stage 5 - File, Comment, Session, And Draft Hardening
 
+Status: completed. See `SECURITY_STAGE5_COMPLETION.md`.
+
 Priority: medium/low.
 
 Findings covered:
@@ -196,6 +198,8 @@ Acceptance checks:
 - Service proxy does not forward unauthenticated requests or raw cookies without a validated user.
 
 ## Stage 6 - Migration Hygiene And Regression Coverage
+
+Status: completed. See `SECURITY_STAGE6_COMPLETION.md`.
 
 Priority: process fix.
 

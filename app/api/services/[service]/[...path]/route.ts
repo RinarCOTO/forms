@@ -17,9 +17,17 @@ async function proxy(req: NextRequest, service: string, path: string[]) {
     return NextResponse.json({ error: `Unknown service: ${service}` }, { status: 404 })
   }
 
-  // Get the user's JWT from the Supabase cookie session
+  // Validate the user before proxying anything derived from browser cookies.
   const supabase = await createClient()
+  const { data: { user }, error: userError } = await supabase.auth.getUser()
+  if (userError || !user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   const { data: { session } } = await supabase.auth.getSession()
+  if (!session?.access_token) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
 
   const targetPath = '/' + path.join('/')
   const targetUrl = new URL(targetPath + (req.nextUrl.search || ''), serviceBase)
@@ -28,9 +36,7 @@ async function proxy(req: NextRequest, service: string, path: string[]) {
     'Content-Type': req.headers.get('content-type') ?? 'application/json',
   }
 
-  if (session?.access_token) {
-    headers['Authorization'] = `Bearer ${session.access_token}`
-  }
+  headers['Authorization'] = `Bearer ${session.access_token}`
 
   // Print service needs the raw cookies so Puppeteer can authenticate against the main app
   if (service === 'print') {

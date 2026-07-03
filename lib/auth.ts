@@ -1,3 +1,5 @@
+import { clearAllFaasDraftStorage } from '@/utils/form-draft-storage';
+
 /**
  * Authentication utilities
  * These are simple client-side helpers. For production, use a proper auth solution like NextAuth.js
@@ -23,6 +25,7 @@ export function logout(): void {
   localStorage.removeItem('isAuthenticated');
   localStorage.removeItem('userEmail');
   localStorage.removeItem('userName');
+  clearAllFaasDraftStorage(localStorage);
 }
 
 export function requireAuth(router: any): boolean {

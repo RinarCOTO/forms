@@ -13,6 +13,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { bindFaasDraftStorageToUser } from "@/utils/form-draft-storage";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -40,6 +41,9 @@ export default function LoginPage() {
       }
 
       if (data.success) {
+        if (data.user?.id) {
+          bindFaasDraftStorageToUser(window.localStorage, data.user.id);
+        }
         window.location.href = '/dashboard';
       }
     } catch {

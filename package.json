@@ -7,6 +7,8 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
+    "security:verify-policies": "node scripts/security-verify-policies.js",
+    "security:regression": "node scripts/security-regression-checks.js",
     "postinstall": "prisma generate"
   },
   "dependencies": {

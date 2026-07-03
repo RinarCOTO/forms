@@ -6,6 +6,12 @@ import { getCurrentUserContext } from '@/lib/services/user.service';
 
 const MAX_STORED_UPLOAD_BYTES = 10 * 1024 * 1024;
 const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+const FILE_EXTENSIONS: Record<string, string> = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+  'application/pdf': 'pdf',
+};
 
 interface FaasPhotoRouteConfig {
   bucket: string;
@@ -28,6 +34,27 @@ function getAdminClient() {
 
 function requiredFieldsMessage(parentIdField: string) {
   return `file, ${parentIdField}, and photoType are required`;
+}
+
+function hasSignature(bytes: Uint8Array, signature: number[], offset = 0) {
+  if (bytes.length < offset + signature.length) return false;
+  return signature.every((value, index) => bytes[offset + index] === value);
+}
+
+function isAllowedFileSignature(bytes: Uint8Array, contentType: string) {
+  switch (contentType) {
+    case 'image/jpeg':
+      return hasSignature(bytes, [0xff, 0xd8, 0xff]);
+    case 'image/png':
+      return hasSignature(bytes, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    case 'image/webp':
+      return hasSignature(bytes, [0x52, 0x49, 0x46, 0x46]) &&
+        hasSignature(bytes, [0x57, 0x45, 0x42, 0x50], 8);
+    case 'application/pdf':
+      return hasSignature(bytes, [0x25, 0x50, 0x44, 0x46, 0x2d]);
+    default:
+      return false;
+  }
 }
 
 export function createFaasPhotoRouteHandlers(config: FaasPhotoRouteConfig) {
@@ -74,6 +101,15 @@ export function createFaasPhotoRouteHandlers(config: FaasPhotoRouteConfig) {
         );
       }
 
+      const arrayBuffer = await file.arrayBuffer();
+      const fileBytes = new Uint8Array(arrayBuffer);
+      if (!isAllowedFileSignature(fileBytes, file.type)) {
+        return NextResponse.json(
+          { success: false, error: 'File contents do not match the declared file type.' },
+          { status: 400 }
+        );
+      }
+
       const admin = getAdminClient();
       const userCtx = await getCurrentUserContext();
       if (!userCtx) {
@@ -94,11 +130,10 @@ export function createFaasPhotoRouteHandlers(config: FaasPhotoRouteConfig) {
         return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
       }
 
-      const ext = (file.name.split('.').pop() ?? 'jpg').toLowerCase();
+      const ext = FILE_EXTENSIONS[file.type] ?? 'bin';
       const photoId = crypto.randomUUID();
       const storagePath = `${user.id}/${parentRecordId}/${photoType}/${photoId}.${ext}`;
 
-      const arrayBuffer = await file.arrayBuffer();
       const { error: uploadError } = await admin.storage
         .from(config.bucket)
         .upload(storagePath, Buffer.from(arrayBuffer), {

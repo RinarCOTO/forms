@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { LogOut, User } from "lucide-react";
+import { clearAllFaasDraftStorage } from "@/utils/form-draft-storage";
 
 interface UserData {
   id: string;
@@ -42,6 +43,7 @@ export function UserProfile() {
       await fetch("/api/auth/logout", {
         method: "POST",
       });
+      clearAllFaasDraftStorage(window.localStorage);
       window.location.href = '/login';
     } catch (error) {
       console.error("Logout failed:", error);
