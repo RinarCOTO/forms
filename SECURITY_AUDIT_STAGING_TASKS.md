@@ -83,6 +83,8 @@ Acceptance checks:
 
 ## Stage 3 - Restore Real RLS On Core Tables
 
+Status: completed. See `SECURITY_STAGE3_COMPLETION.md`.
+
 Priority: high.
 
 Findings covered:
