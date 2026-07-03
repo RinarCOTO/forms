@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
 import { notifyFaasAssignment } from '@/lib/faas/notification-rules';
+import {
+  canAssignFaasRecord,
+  canAssignUserToFaasRecord,
+  FAAS_ASSIGN_SELECT,
+  parsePositiveIntegerId,
+} from '@/lib/faas/access-control';
 
 function getAdmin() {
   return createAdminClient(
@@ -20,6 +26,10 @@ export async function PATCH(
   try {
     const params = await Promise.resolve(context.params);
     const id = params.id;
+    const recordId = parsePositiveIntegerId(id);
+    if (!recordId) {
+      return NextResponse.json({ error: 'Invalid ID provided' }, { status: 400 });
+    }
 
     const sessionClient = await createClient();
     const { data: { user: authUser }, error: authError } = await sessionClient.auth.getUser();
@@ -31,7 +41,7 @@ export async function PATCH(
 
     const { data: profile } = await admin
       .from('users')
-      .select('role')
+      .select('role, municipality')
       .eq('id', authUser.id)
       .single();
 
@@ -40,15 +50,55 @@ export async function PATCH(
     }
 
     const { assigned_to } = await req.json();
+    const assignedToId = typeof assigned_to === 'string' && assigned_to.trim() ? assigned_to.trim() : null;
+
+    const { data: record, error: recordError } = await admin
+      .from('land_improvements')
+      .select(FAAS_ASSIGN_SELECT)
+      .eq('id', recordId)
+      .single();
+
+    if (recordError || !record) {
+      return NextResponse.json({ error: 'Record not found' }, { status: 404 });
+    }
+
+    const userCtx = {
+      userId: authUser.id,
+      role: profile.role,
+      municipality: profile.municipality ?? null,
+      isAdmin: ['admin', 'super_admin'].includes(profile.role),
+    };
+
+    if (!canAssignFaasRecord(userCtx, record)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    let assignedUser: { id?: string | null; role?: string | null; municipality?: string | null } | null = null;
+    if (assignedToId) {
+      const { data: targetUser, error: targetError } = await admin
+        .from('users')
+        .select('id, role, municipality')
+        .eq('id', assignedToId)
+        .single();
+
+      if (targetError || !targetUser) {
+        return NextResponse.json({ error: 'Assigned user not found' }, { status: 404 });
+      }
+      assignedUser = targetUser;
+    }
+
+    if (!canAssignUserToFaasRecord(userCtx, record, assignedUser)) {
+      return NextResponse.json({ error: 'Assigned user is not allowed for this record' }, { status: 403 });
+    }
 
     const { data, error } = await admin
       .from('land_improvements')
       .update({
-        assigned_to: assigned_to ?? null,
-        appraised_by: assigned_to ?? null,
+        assigned_to: assignedToId,
+        appraised_by: assignedToId,
         updated_at: new Date().toISOString(),
       })
-      .eq('id', id)
+      .eq('id', recordId)
       .select('id, assigned_to, appraised_by, created_by, owner_name, location_municipality, municipality')
       .single();
 
@@ -58,7 +108,7 @@ export async function PATCH(
       await notifyFaasAssignment({
         formType: 'land_improvements',
         record: data,
-        assignedTo: assigned_to ?? null,
+        assignedTo: assignedToId,
         actorId: authUser.id,
       });
     } catch (notificationErr) {

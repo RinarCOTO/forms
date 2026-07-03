@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getCurrentUserContext } from '@/lib/services/user.service'
+import { canAccessFaasRecord, FAAS_ACCESS_SELECT, parsePositiveIntegerId } from '@/lib/faas/access-control'
 import { z } from 'zod'
 
 const numericField = z.union([z.number(), z.string()]).nullish()
@@ -121,11 +122,15 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 
     const supabase = getSupabaseAdmin()
     const { id } = await params
+    const recordId = parsePositiveIntegerId(id)
+    if (!recordId) {
+      return NextResponse.json({ success: false, error: 'Invalid ID provided' }, { status: 400 })
+    }
     
     const { data, error } = await supabase
       .from('land_improvements')
       .select('*')
-      .eq('id', id)
+      .eq('id', recordId)
       .single()
     
     if (error) {
@@ -141,6 +146,10 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
         { success: false, error: 'Land improvement not found' },
         { status: 404 }
       )
+    }
+
+    if (!canAccessFaasRecord(userCtx, data)) {
+      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 })
     }
     
     return NextResponse.json({ success: true, data })
@@ -163,16 +172,23 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
     const supabase = getSupabaseAdmin()
     const { id } = await params
+    const recordId = parsePositiveIntegerId(id)
+    if (!recordId) {
+      return NextResponse.json({ success: false, error: 'Invalid ID provided' }, { status: 400 })
+    }
     const body = await request.json()
 
     // Block updates on approved forms — fetch current status first
     const { data: current, error: fetchErr } = await supabase
       .from('land_improvements')
-      .select('status')
-      .eq('id', id)
+      .select(FAAS_ACCESS_SELECT)
+      .eq('id', recordId)
       .single()
     if (fetchErr || !current) {
       return NextResponse.json({ success: false, error: 'Form not found' }, { status: 404 })
+    }
+    if (!canAccessFaasRecord(userCtx, current)) {
+      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 })
     }
     if (current.status === 'approved') {
       return NextResponse.json(
@@ -210,11 +226,20 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       }
       return acc
     }, {} as any)
+
+    if (cleanedData.status && !['draft', 'returned'].includes(String(cleanedData.status))) {
+      delete cleanedData.status
+    }
+    delete cleanedData.submitted_at
+    delete cleanedData.approved_at
+    delete cleanedData.municipal_reviewer_id
+    delete cleanedData.provincial_reviewer_id
+    delete cleanedData.laoo_reviewer_id
     
     const { data, error } = await supabase
       .from('land_improvements')
       .update(cleanedData)
-      .eq('id', id)
+      .eq('id', recordId)
       .select()
       .single()
     

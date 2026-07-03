@@ -2,24 +2,23 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { revalidateTag } from 'next/cache';
 import { getCurrentUserContext } from '@/lib/services/user.service';
+import { canAccessFaasRecord, FAAS_ACCESS_SELECT, parsePositiveIntegerId } from '@/lib/faas/access-control';
 
 export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> | { id: string } }) {
   try {
     const params = await Promise.resolve(context.params);
     const id = params.id;
+    const recordId = parsePositiveIntegerId(id);
 
-    if (!id) {
+    if (!recordId) {
       return NextResponse.json(
-        { success: false, message: 'No ID provided' },
+        { success: false, message: 'Invalid ID provided' },
         { status: 400 }
       );
     }
 
-    // Verify authentication
-    const { createClient: createServerClient } = await import('@/lib/supabase/server');
-    const sessionSupabase = await createServerClient();
-    const { data: { user }, error: userError } = await sessionSupabase.auth.getUser();
-    if (userError || !user) {
+    const userCtx = await getCurrentUserContext();
+    if (!userCtx) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
     }
 
@@ -31,7 +30,7 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
     const { data: draft, error } = await supabase
       .from('building_structures')
       .select('*')
-      .eq('id', id)
+      .eq('id', recordId)
       .single();
 
     if (error) {
@@ -49,6 +48,10 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
       );
     }
 
+    if (!canAccessFaasRecord(userCtx, draft)) {
+      return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 });
+    }
+
     return NextResponse.json({ success: true, data: draft });
 
   } catch (error) {
@@ -64,10 +67,11 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
   try {
     const params = await Promise.resolve(context.params);
     const id = params.id;
+    const recordId = parsePositiveIntegerId(id);
 
-    if (!id) {
+    if (!recordId) {
       return NextResponse.json(
-        { success: false, message: 'No ID provided' },
+        { success: false, message: 'Invalid ID provided' },
         { status: 400 }
       );
     }
@@ -95,11 +99,14 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
     // Block updates on approved forms — fetch current status first
     const { data: current, error: fetchErr } = await supabase
       .from('building_structures')
-      .select('status')
-      .eq('id', id)
+      .select(FAAS_ACCESS_SELECT)
+      .eq('id', recordId)
       .single();
     if (fetchErr || !current) {
       return NextResponse.json({ success: false, message: 'Form not found' }, { status: 404 });
+    }
+    if (!canAccessFaasRecord(userCtx, current)) {
+      return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 });
     }
     if (current.status === 'approved') {
       return NextResponse.json(
@@ -134,12 +141,19 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
       })
     );
 
+    if (data.status && !['draft', 'returned'].includes(String(data.status))) {
+      delete data.status;
+    }
     delete data.submitted_at;
+    delete data.approved_at;
+    delete data.municipal_reviewer_id;
+    delete data.provincial_reviewer_id;
+    delete data.laoo_reviewer_id;
 
     const { data: updatedRecord, error } = await supabase
       .from('building_structures')
       .update(data)
-      .eq('id', id)
+      .eq('id', recordId)
       .select()
       .single();
 

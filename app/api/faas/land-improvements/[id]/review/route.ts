@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
 import { notifyFaasStatusChange } from '@/lib/faas/notification-rules';
+import { canAccessFaasRecord, parsePositiveIntegerId } from '@/lib/faas/access-control';
 
 function getAdmin() {
   return createAdminClient(
@@ -39,6 +40,8 @@ export async function POST(
   try {
     const params = await Promise.resolve(context.params);
     const id = params.id;
+    const recordId = parsePositiveIntegerId(id);
+    if (!recordId) return NextResponse.json({ error: 'Invalid ID provided' }, { status: 400 });
 
     const sessionClient = await createClient();
     const { data: { user: authUser }, error: authError } = await sessionClient.auth.getUser();
@@ -63,11 +66,22 @@ export async function POST(
 
     const { data: record, error: fetchError } = await admin
       .from('land_improvements')
-      .select('id, status, previous_td_no')
-      .eq('id', id)
+      .select('id, status, previous_td_no, created_by, assigned_to, appraised_by, laoo_reviewer_id, municipality, location_municipality')
+      .eq('id', recordId)
       .single();
 
     if (fetchError || !record) return NextResponse.json({ error: 'Form not found' }, { status: 404 });
+
+    const userCtx = {
+      userId: authUser.id,
+      role: profile.role,
+      municipality: profile.municipality ?? null,
+      isAdmin: ['admin', 'super_admin'].includes(profile.role),
+    };
+
+    if (!canAccessFaasRecord(userCtx, record)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
 
     if (!config.fromStatuses.includes(record.status)) {
       return NextResponse.json({ error: `Cannot perform "${action}" on a form with status "${record.status}"` }, { status: 409 });
@@ -90,7 +104,7 @@ export async function POST(
     const { data: updated, error: updateError } = await admin
       .from('land_improvements')
       .update(updatePayload)
-      .eq('id', id)
+      .eq('id', recordId)
       .select()
       .single();
 
@@ -105,7 +119,7 @@ export async function POST(
           .from('land_improvements')
           .update({ status: 'cancelled', updated_at: now })
           .eq('arp_no', record.previous_td_no)
-          .neq('id', parseInt(id))
+          .neq('id', recordId)
           .neq('status', 'cancelled');
       } catch (cancelErr) {
         console.warn('Previous TD cancellation failed:', cancelErr);
@@ -116,7 +130,7 @@ export async function POST(
     try {
       await admin.from('form_review_history').insert({
         form_type: 'land_improvements',
-        form_id: parseInt(id),
+        form_id: recordId,
         form_stage: 'faas',
         from_status: record.status,
         to_status: config.toStatus,

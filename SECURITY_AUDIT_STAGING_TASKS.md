@@ -118,6 +118,8 @@ Acceptance checks:
 
 ## Stage 4 - Fix Authenticated Cross-Municipality IDORs
 
+Status: completed. See `SECURITY_STAGE4_COMPLETION.md`.
+
 Priority: high/medium.
 
 Findings covered:

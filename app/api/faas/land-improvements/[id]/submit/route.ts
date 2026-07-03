@@ -11,6 +11,7 @@ import {
   shouldStampProvincialReview,
 } from '@/lib/faas/workflow';
 import { notifyFaasStatusChange } from '@/lib/faas/notification-rules';
+import { canAccessFaasRecord, parsePositiveIntegerId } from '@/lib/faas/access-control';
 
 function getAdminClient() {
   return createAdminClient(
@@ -27,9 +28,10 @@ export async function POST(
   try {
     const params = await Promise.resolve(context.params);
     const id = params.id;
+    const recordId = parsePositiveIntegerId(id);
 
-    if (!id) {
-      return NextResponse.json({ success: false, message: 'No ID provided' }, { status: 400 });
+    if (!recordId) {
+      return NextResponse.json({ success: false, message: 'Invalid ID provided' }, { status: 400 });
     }
 
     const sessionClient = await createClient();
@@ -59,12 +61,23 @@ export async function POST(
 
     const { data: record, error: fetchError } = await admin
       .from('land_improvements')
-      .select('id, status, previous_td_no, appraised_by')
-      .eq('id', id)
+      .select('id, status, previous_td_no, appraised_by, created_by, assigned_to, laoo_reviewer_id, municipality, location_municipality')
+      .eq('id', recordId)
       .single();
 
     if (fetchError || !record) {
       return NextResponse.json({ success: false, message: 'Form not found' }, { status: 404 });
+    }
+
+    const userCtx = {
+      userId: authUser.id,
+      role: profile.role,
+      municipality: profile.municipality ?? null,
+      isAdmin: ['admin', 'super_admin'].includes(profile.role),
+    };
+
+    if (!canAccessFaasRecord(userCtx, record)) {
+      return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 });
     }
 
     if (!isFaasSubmittableStatus(record.status)) {
@@ -87,11 +100,11 @@ export async function POST(
 
     if (fromStatus === 'returned') {
       const [formRes, commentsRes] = await Promise.all([
-        admin.from('land_improvements').select('*').eq('id', id).single(),
+        admin.from('land_improvements').select('*').eq('id', recordId).single(),
         admin.from('form_comments')
           .select('id, field_name, comment_text, parent_id, author_role')
           .eq('form_type', 'land_improvements')
-          .eq('form_id', parseInt(id))
+          .eq('form_id', recordId)
           .is('parent_id', null)
           .neq('author_role', 'municipal_tax_mapper')
           .order('created_at', { ascending: true }),
@@ -127,7 +140,7 @@ export async function POST(
     const { data: updated, error: updateError } = await admin
       .from('land_improvements')
       .update(updatePayload)
-      .eq('id', id)
+      .eq('id', recordId)
       .select()
       .single();
 
@@ -145,7 +158,7 @@ export async function POST(
           .from('land_improvements')
           .update({ status: 'cancelled', updated_at: now })
           .eq('arp_no', record.previous_td_no)
-          .neq('id', parseInt(id))
+          .neq('id', recordId)
           .neq('status', 'cancelled');
       } catch (cancelErr) {
         console.warn('Previous TD cancellation failed:', cancelErr);
@@ -188,7 +201,7 @@ export async function POST(
           if (valueParts.length === 0) return null;
           return {
             form_type: 'land_improvements',
-            form_id: parseInt(id),
+            form_id: recordId,
             field_name: c.field_name,
             comment_text: `Tax mapper updated values — ${valueParts.join(' | ')}`,
             author_id: authUser.id,
@@ -210,7 +223,7 @@ export async function POST(
     try {
       await admin.from('form_review_history').insert({
         form_type: 'land_improvements',
-        form_id: parseInt(id),
+        form_id: recordId,
         form_stage: 'faas',
         from_status: fromStatus,
         to_status: targetStatus,

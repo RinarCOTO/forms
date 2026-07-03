@@ -6,6 +6,7 @@ export interface FaasUserContext {
 }
 
 export interface FaasAccessRecord {
+  id?: number | string;
   created_by?: string | null;
   assigned_to?: string | null;
   appraised_by?: string | null;
@@ -15,12 +16,22 @@ export interface FaasAccessRecord {
 }
 
 const PROVINCIAL_ROLES = new Set([
-  'laoo',
   'assistant_provincial_assessor',
   'provincial_assessor',
 ]);
 
-function normalize(value: string | null | undefined) {
+const ASSIGNABLE_ROLES = new Set([
+  'municipal_tax_mapper',
+  'municipal_assessor',
+]);
+
+export const FAAS_ACCESS_SELECT =
+  'id, status, created_by, assigned_to, appraised_by, laoo_reviewer_id, municipality, location_municipality';
+
+export const FAAS_ASSIGN_SELECT =
+  'id, status, assigned_to, appraised_by, created_by, owner_name, location_municipality, municipality, laoo_reviewer_id';
+
+export function normalizeMunicipality(value: string | null | undefined) {
   return value?.trim().toLowerCase() ?? null;
 }
 
@@ -42,14 +53,49 @@ export function canAccessFaasRecord(userCtx: FaasUserContext, record: FaasAccess
     return true;
   }
 
-  const userMunicipality = normalize(userCtx.municipality);
+  const userMunicipality = normalizeMunicipality(userCtx.municipality);
   if (!userMunicipality) {
     return false;
   }
 
   return [record.municipality, record.location_municipality]
-    .map(normalize)
+    .map(normalizeMunicipality)
     .some((recordMunicipality) => recordMunicipality === userMunicipality);
+}
+
+export function getFaasRecordMunicipality(record: FaasAccessRecord) {
+  return normalizeMunicipality(record.location_municipality) ?? normalizeMunicipality(record.municipality);
+}
+
+export function isProvinceWideFaasRole(role: string) {
+  return PROVINCIAL_ROLES.has(role);
+}
+
+export function canAssignFaasRecord(userCtx: FaasUserContext, record: FaasAccessRecord) {
+  return canAccessFaasRecord(userCtx, record);
+}
+
+export function canAssignUserToFaasRecord(
+  userCtx: FaasUserContext,
+  record: FaasAccessRecord,
+  assignedUser: { id?: string | null; role?: string | null; municipality?: string | null } | null,
+) {
+  if (!assignedUser?.id) {
+    return true;
+  }
+
+  if (!ASSIGNABLE_ROLES.has(assignedUser.role ?? '')) {
+    return false;
+  }
+
+  if (userCtx.isAdmin || isProvinceWideFaasRole(userCtx.role)) {
+    return true;
+  }
+
+  const recordMunicipality = getFaasRecordMunicipality(record);
+  const assignedMunicipality = normalizeMunicipality(assignedUser.municipality);
+
+  return !!recordMunicipality && recordMunicipality === assignedMunicipality;
 }
 
 export function parsePositiveIntegerId(value: string | null | undefined) {

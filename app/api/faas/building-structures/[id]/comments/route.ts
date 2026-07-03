@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
+import { canAccessFaasRecord, FAAS_ACCESS_SELECT, parsePositiveIntegerId } from '@/lib/faas/access-control';
 
 function getAdmin() {
   return createAdminClient(
@@ -17,6 +18,8 @@ export async function GET(
   try {
     const params = await Promise.resolve(context.params);
     const id = params.id;
+    const recordId = parsePositiveIntegerId(id);
+    if (!recordId) return NextResponse.json({ error: 'Invalid ID provided' }, { status: 400 });
 
     const sessionClient = await createClient();
     const { data: { user: authUser }, error: authError } = await sessionClient.auth.getUser();
@@ -25,6 +28,27 @@ export async function GET(
     }
 
     const admin = getAdmin();
+
+    const { data: profile } = await admin
+      .from('users')
+      .select('role, municipality')
+      .eq('id', authUser.id)
+      .single();
+
+    const { data: record } = await admin
+      .from('building_structures')
+      .select(FAAS_ACCESS_SELECT)
+      .eq('id', recordId)
+      .single();
+
+    if (!profile || !record || !canAccessFaasRecord({
+      userId: authUser.id,
+      role: profile.role,
+      municipality: profile.municipality ?? null,
+      isAdmin: ['admin', 'super_admin'].includes(profile.role),
+    }, record)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
 
     const { data, error } = await admin
       .from('form_comments')
@@ -41,7 +65,7 @@ export async function GET(
         updated_at
       `)
       .eq('form_type', 'building_structures')
-      .eq('form_id', parseInt(id))
+      .eq('form_id', recordId)
       .order('created_at', { ascending: true });
 
     if (error) {
@@ -81,6 +105,8 @@ export async function POST(
   try {
     const params = await Promise.resolve(context.params);
     const id = params.id;
+    const recordId = parsePositiveIntegerId(id);
+    if (!recordId) return NextResponse.json({ error: 'Invalid ID provided' }, { status: 400 });
 
     const sessionClient = await createClient();
     const { data: { user: authUser }, error: authError } = await sessionClient.auth.getUser();
@@ -92,12 +118,27 @@ export async function POST(
 
     const { data: profile, error: profileError } = await admin
       .from('users')
-      .select('role')
+      .select('role, municipality')
       .eq('id', authUser.id)
       .single();
 
     if (profileError || !profile) {
       return NextResponse.json({ error: 'User profile not found' }, { status: 401 });
+    }
+
+    const { data: record } = await admin
+      .from('building_structures')
+      .select(FAAS_ACCESS_SELECT)
+      .eq('id', recordId)
+      .single();
+
+    if (!record || !canAccessFaasRecord({
+      userId: authUser.id,
+      role: profile.role,
+      municipality: profile.municipality ?? null,
+      isAdmin: ['admin', 'super_admin'].includes(profile.role),
+    }, record)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const body = await req.json().catch(() => ({}));
@@ -121,7 +162,7 @@ export async function POST(
       .from('form_comments')
       .insert({
         form_type: 'building_structures',
-        form_id: parseInt(id),
+        form_id: recordId,
         field_name: field_name ?? null,
         comment_text: comment_text.trim(),
         suggested_value: suggested_value ?? null,
@@ -151,6 +192,8 @@ export async function DELETE(
   try {
     const params = await Promise.resolve(context.params);
     const id = params.id;
+    const recordId = parsePositiveIntegerId(id);
+    if (!recordId) return NextResponse.json({ error: 'Invalid ID provided' }, { status: 400 });
 
     const sessionClient = await createClient();
     const { data: { user: authUser }, error: authError } = await sessionClient.auth.getUser();
@@ -166,12 +209,33 @@ export async function DELETE(
 
     const admin = getAdmin();
 
+    const { data: profile } = await admin
+      .from('users')
+      .select('role, municipality')
+      .eq('id', authUser.id)
+      .single();
+
+    const { data: record } = await admin
+      .from('building_structures')
+      .select(FAAS_ACCESS_SELECT)
+      .eq('id', recordId)
+      .single();
+
+    if (!profile || !record || !canAccessFaasRecord({
+      userId: authUser.id,
+      role: profile.role,
+      municipality: profile.municipality ?? null,
+      isAdmin: ['admin', 'super_admin'].includes(profile.role),
+    }, record)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const { data: existing, error: fetchError } = await admin
       .from('form_comments')
       .select('id, author_id')
       .eq('id', comment_id)
       .eq('form_type', 'building_structures')
-      .eq('form_id', parseInt(id))
+      .eq('form_id', recordId)
       .single();
 
     if (fetchError || !existing) {

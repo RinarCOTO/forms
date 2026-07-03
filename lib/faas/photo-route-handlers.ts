@@ -43,9 +43,10 @@ export function createFaasPhotoRouteHandlers(config: FaasPhotoRouteConfig) {
       const formData = await req.formData();
       const file = formData.get('file') as File | null;
       const parentId = formData.get(config.parentIdFormField) as string | null;
+      const parentRecordId = parsePositiveIntegerId(parentId);
       const photoType = formData.get('photoType') as string | null;
 
-      if (!file || !parentId || !photoType) {
+      if (!file || !parentRecordId || !photoType) {
         return NextResponse.json(
           { success: false, error: requiredFieldsMessage(config.parentIdFormField) },
           { status: 400 }
@@ -74,9 +75,28 @@ export function createFaasPhotoRouteHandlers(config: FaasPhotoRouteConfig) {
       }
 
       const admin = getAdminClient();
+      const userCtx = await getCurrentUserContext();
+      if (!userCtx) {
+        return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+      }
+
+      const { data: parentRecord, error: parentError } = await admin
+        .from(config.parentTable)
+        .select(config.parentAccessSelect)
+        .eq('id', parentRecordId)
+        .single();
+
+      if (parentError || !parentRecord) {
+        return NextResponse.json({ success: false, error: 'Parent record not found' }, { status: 404 });
+      }
+
+      if (!canAccessFaasRecord(userCtx, parentRecord as unknown as FaasAccessRecord)) {
+        return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
+      }
+
       const ext = (file.name.split('.').pop() ?? 'jpg').toLowerCase();
       const photoId = crypto.randomUUID();
-      const storagePath = `${user.id}/${parentId}/${photoType}/${photoId}.${ext}`;
+      const storagePath = `${user.id}/${parentRecordId}/${photoType}/${photoId}.${ext}`;
 
       const arrayBuffer = await file.arrayBuffer();
       const { error: uploadError } = await admin.storage
@@ -94,7 +114,7 @@ export function createFaasPhotoRouteHandlers(config: FaasPhotoRouteConfig) {
       const { data: existingPhoto, error: existingErr } = await admin
         .from(config.table)
         .select('id, storage_path')
-        .eq(config.parentIdColumn, parseInt(parentId, 10))
+        .eq(config.parentIdColumn, parentRecordId)
         .eq('photo_type', photoType)
         .maybeSingle();
 
@@ -108,7 +128,7 @@ export function createFaasPhotoRouteHandlers(config: FaasPhotoRouteConfig) {
       const { data: photoRecord, error: dbError } = await admin
         .from(config.table)
         .insert({
-          [config.parentIdColumn]: parseInt(parentId, 10),
+          [config.parentIdColumn]: parentRecordId,
           photo_type: photoType,
           storage_path: storagePath,
           original_name: file.name,

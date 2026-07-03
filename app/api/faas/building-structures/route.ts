@@ -175,34 +175,11 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const userCtx = await getCurrentUserContext()
-    if (!userCtx) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const admin = getAdminClient()
-    const { searchParams } = new URL(request.url)
-    const id = searchParams.get('id')
-    const body = await request.json()
-
-    if (!id) {
-      return NextResponse.json({ error: 'Missing ID parameter' }, { status: 400 })
-    }
-
-    const { data, error } = await admin
-      .from('building_structures')
-      .update(body)
-      .eq('id', id)
-      .select()
-      .single()
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
-    }
-
-    revalidateTag('building-structures', 'max')
-
-    return NextResponse.json({ data })
+    await request.text().catch(() => '')
+    return NextResponse.json(
+      { error: 'Use /api/faas/building-structures/[id] for updates.' },
+      { status: 410 }
+    )
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }

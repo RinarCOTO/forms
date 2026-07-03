@@ -78,9 +78,11 @@ export async function GET(request: NextRequest) {
 
     const results: Record<string, unknown>[] = [];
     const isLaoo = profile.role === 'laoo';
+    const isMunicipalScoped = MUNICIPAL_ROLES.includes(profile.role) && !!profile.municipality;
     const isLaooScoped = isLaoo && !!profile.municipality;
+    const needsMunicipalityScope = isLaoo || MUNICIPAL_ROLES.includes(profile.role);
 
-    if (isLaoo && !profile.municipality) {
+    if (needsMunicipalityScope && !profile.municipality) {
       return NextResponse.json({ success: true, data: [] });
     }
 
@@ -93,7 +95,7 @@ export async function GET(request: NextRequest) {
         .order('submitted_at', { ascending: false, nullsFirst: false })
         .order('updated_at', { ascending: false });
 
-      if (isLaooScoped) q = q.or(getMunicipalityScopeFilter(profile.municipality));
+      if (isLaooScoped || isMunicipalScoped) q = q.or(getMunicipalityScopeFilter(profile.municipality));
 
       const { data } = await q;
       if (data) {
@@ -110,7 +112,7 @@ export async function GET(request: NextRequest) {
         .order('submitted_at', { ascending: false, nullsFirst: false })
         .order('updated_at', { ascending: false });
 
-      if (isLaooScoped) q = q.or(getMunicipalityScopeFilter(profile.municipality));
+      if (isLaooScoped || isMunicipalScoped) q = q.or(getMunicipalityScopeFilter(profile.municipality));
 
       const { data } = await q;
       if (data) {
