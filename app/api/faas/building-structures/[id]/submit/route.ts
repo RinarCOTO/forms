@@ -4,6 +4,7 @@ import { createClient as createAdminClient } from '@supabase/supabase-js';
 import {
   canSubmitFaasRole,
   getBuildingSubmitTargetStatus,
+  getFaasRealtimeTopic,
   getSubmitHistoryNote,
   isFaasSubmittableStatus,
 } from '@/lib/faas/workflow';
@@ -239,7 +240,7 @@ export async function POST(
         },
         body: JSON.stringify({
           messages: [{
-            topic: 'building-structures-updates',
+            topic: getFaasRealtimeTopic('building_structures'),
             event: 'status_change',
             payload: { id: updated.id, status: toStatus, updated_at: updated.updated_at, submitted_at: updated.submitted_at, owner_name: updated.owner_name, location_municipality: updated.location_municipality, location_barangay: updated.location_barangay, created_by: updated.created_by, form_type: 'building', form_label: 'Building & Structures' },
           }],

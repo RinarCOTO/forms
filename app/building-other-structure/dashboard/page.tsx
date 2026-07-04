@@ -1,6 +1,7 @@
 "use client"
 
 import { FaasDashboard, type FaasDashboardConfig } from "@/components/faas/FaasDashboard";
+import { getFaasRealtimeTopic } from "@/lib/faas/workflow";
 
 const config: FaasDashboardConfig = {
   label: "Building & Structures",
@@ -14,7 +15,7 @@ const config: FaasDashboardConfig = {
   municipalityField: "location_municipality",
   hasBarangay: true,
   hasMunicipalAssessor: true,
-  realtimeChannel: "building-structures-updates",
+  realtimeChannel: getFaasRealtimeTopic("building_structures"),
   canDeleteStatuses: ['draft', 'returned'],
 };
 

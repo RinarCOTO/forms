@@ -3,6 +3,7 @@ import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { revalidateTag } from 'next/cache';
 import { getCurrentUserContext } from '@/lib/services/user.service';
 import { canAccessFaasRecord, FAAS_ACCESS_SELECT, parsePositiveIntegerId } from '@/lib/faas/access-control';
+import { sanitizeFaasUpdatePayload } from '@/lib/faas/update-payload';
 
 export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> | { id: string } }) {
   try {
@@ -128,27 +129,10 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
       'cost_of_construction', 'previous_av', 'previous_mv', 'previous_area',
       'physical_depreciation_pct',
     ]);
-    const data = Object.fromEntries(
-      Object.entries(raw).filter(([, v]) => v !== '' && v !== undefined).map(([k, v]) => {
-        if (NUMERIC_COLS.has(k)) {
-          const n = typeof v === 'string' ? parseFloat(v) : v;
-          return [k, isNaN(n as number) ? null : n];
-        }
-        if (k === 'floor_areas' && Array.isArray(v)) {
-          return [k, (v as (number | string)[]).filter(x => x !== '' && x !== null)];
-        }
-        return [k, v];
-      })
-    );
-
-    if (data.status && !['draft', 'returned'].includes(String(data.status))) {
-      delete data.status;
-    }
-    delete data.submitted_at;
-    delete data.approved_at;
-    delete data.municipal_reviewer_id;
-    delete data.provincial_reviewer_id;
-    delete data.laoo_reviewer_id;
+    const data = sanitizeFaasUpdatePayload(raw, {
+      numericFields: [...NUMERIC_COLS],
+      arrayFields: ['floor_areas'],
+    });
 
     const { data: updatedRecord, error } = await supabase
       .from('building_structures')

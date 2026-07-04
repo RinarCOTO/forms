@@ -16,6 +16,34 @@ export type FaasWorkflowStatus =
   | 'approved';
 
 export type FaasSubmitFormType = 'building_structures' | 'land_improvements';
+export type FaasRealtimeFormType = FaasSubmitFormType;
+
+export const FAAS_ADMIN_ROLES = ['admin', 'super_admin'] as const;
+
+export const FAAS_MUNICIPAL_REVIEW_ROLES = [
+  'municipal_tax_mapper',
+  'municipal_assessor',
+  'admin',
+  'super_admin',
+] as const;
+
+export const FAAS_LAOO_REVIEW_ROLES = [
+  'laoo',
+  'admin',
+  'super_admin',
+] as const;
+
+export const FAAS_PROVINCIAL_REVIEW_ROLES = [
+  'assistant_provincial_assessor',
+  'provincial_assessor',
+  'admin',
+  'super_admin',
+] as const;
+
+export const FAAS_REALTIME_TOPICS: Record<FaasRealtimeFormType, string> = {
+  building_structures: 'building-structures-updates',
+  land_improvements: 'land-improvements-updates',
+};
 
 export const FAAS_SUBMIT_ALLOWED_ROLES = [
   'municipal_tax_mapper',
@@ -39,6 +67,10 @@ export function canSubmitFaasRole(role: string): role is FaasRole {
 
 export function isFaasSubmittableStatus(status: string): status is FaasSubmitStatus {
   return FAAS_SUBMITTABLE_STATUSES.includes(status as FaasSubmitStatus);
+}
+
+export function getFaasRealtimeTopic(formType: FaasRealtimeFormType) {
+  return FAAS_REALTIME_TOPICS[formType];
 }
 
 export function getLandSubmitTargetStatus(role: string): FaasWorkflowStatus {

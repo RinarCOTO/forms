@@ -23,6 +23,13 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Loader2, Eye, XCircle, ClipboardList, ChevronLeft, ChevronRight, RefreshCw, MoreHorizontal, PenLine } from "lucide-react";
 import { toast } from "sonner";
 import { usePermissions } from "@/app/contexts/permissions-context";
+import {
+  FAAS_ADMIN_ROLES,
+  FAAS_LAOO_REVIEW_ROLES,
+  FAAS_MUNICIPAL_REVIEW_ROLES,
+  FAAS_PROVINCIAL_REVIEW_ROLES,
+  getFaasRealtimeTopic,
+} from "@/lib/faas/workflow";
 
 type FormType = "building" | "land";
 type ReviewAction = 'sign_forward' | 'return_to_mapper' | 'laoo_approve' | 'laoo_return' | 'sign_approve' | 'provincial_return';
@@ -40,10 +47,10 @@ interface ReviewItem {
 }
 
 // Role group helpers
-const MUNICIPAL_ROLES  = ['municipal_tax_mapper', 'municipal_assessor'];
-const LAOO_ROLES       = ['laoo'];
-const PROVINCIAL_ROLES = ['assistant_provincial_assessor', 'provincial_assessor'];
-const ADMIN_ROLES      = ['admin', 'super_admin'];
+const MUNICIPAL_ROLES: string[] = [...FAAS_MUNICIPAL_REVIEW_ROLES];
+const LAOO_ROLES: string[] = [...FAAS_LAOO_REVIEW_ROLES];
+const PROVINCIAL_ROLES: string[] = [...FAAS_PROVINCIAL_REVIEW_ROLES];
+const ADMIN_ROLES: string[] = [...FAAS_ADMIN_ROLES];
 
 function getDefaultStatuses(role: string | null): string[] {
   if (!role) return [];
@@ -151,9 +158,7 @@ export default function ReviewQueuePage() {
     if (!role) return;
     const visibleStatuses = getDefaultStatuses(role);
     const supabase = createClient();
-    const channel = supabase
-      .channel('building-structures-updates')
-      .on('broadcast', { event: 'status_change' }, ({ payload }) => {
+    const handleStatusChange = ({ payload }: { payload: unknown }) => {
         const item = payload as ReviewItem;
         setItems(prev => {
           const exists = prev.some(r => r.id === item.id && r.form_type === item.form_type);
@@ -164,9 +169,18 @@ export default function ReviewQueuePage() {
           if (visibleStatuses.includes(item.status)) return sortLatestFirst([item, ...prev]);
           return prev;
         });
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
+      };
+    const channels = [
+      supabase
+        .channel(getFaasRealtimeTopic('building_structures'))
+        .on('broadcast', { event: 'status_change' }, handleStatusChange)
+        .subscribe(),
+      supabase
+        .channel(getFaasRealtimeTopic('land_improvements'))
+        .on('broadcast', { event: 'status_change' }, handleStatusChange)
+        .subscribe(),
+    ];
+    return () => { channels.forEach(channel => supabase.removeChannel(channel)); };
   }, [role]);
 
   const uniqueMunicipalities = [...new Set(items.map(i => i.location_municipality).filter(Boolean) as string[])].sort();
@@ -245,19 +259,19 @@ export default function ReviewQueuePage() {
     if (!role) return [];
     const s = item.status;
     const actions: { action: ReviewAction; label: string; danger?: boolean }[] = [];
-    if (MUNICIPAL_ROLES.includes(role) || ADMIN_ROLES.includes(role)) {
+    if (MUNICIPAL_ROLES.includes(role)) {
       if (['submitted', 'returned_to_municipal'].includes(s)) {
         actions.push({ action: 'sign_forward', label: 'Approve & Forward' });
         actions.push({ action: 'return_to_mapper', label: 'Return to Mapper', danger: true });
       }
     }
-    if (LAOO_ROLES.includes(role) || ADMIN_ROLES.includes(role)) {
+    if (LAOO_ROLES.includes(role)) {
       if (s === 'municipal_signed') {
         actions.push({ action: 'laoo_approve', label: 'Approve & Forward' });
         actions.push({ action: 'laoo_return', label: 'Return to Municipal', danger: true });
       }
     }
-    if (PROVINCIAL_ROLES.includes(role) || ADMIN_ROLES.includes(role)) {
+    if (PROVINCIAL_ROLES.includes(role)) {
       if (s === 'laoo_approved') {
         actions.push({ action: 'sign_approve', label: 'Approve' });
         actions.push({ action: 'provincial_return', label: 'Return to Municipal', danger: true });

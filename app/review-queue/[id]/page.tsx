@@ -24,6 +24,11 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import ReviewFaasOverlay from "./ReviewFaasOverlay";
 import { toast } from "sonner";
 import { useSubmitOnEnter, useSubmitOnEnterSingleLine } from "@/hooks/useSubmitOnEnter";
+import {
+  FAAS_LAOO_REVIEW_ROLES,
+  FAAS_MUNICIPAL_REVIEW_ROLES,
+  FAAS_PROVINCIAL_REVIEW_ROLES,
+} from "@/lib/faas/workflow";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -429,9 +434,9 @@ function ReviewDetailInner({ id }: { id: string }) {
   const isReviewer = ["municipal_tax_mapper", "municipal_assessor", "laoo", "assistant_provincial_assessor", "provincial_assessor", "admin", "super_admin"]
     .includes(userRole);
 
-  const MUNICIPAL_ROLES_LOCAL  = ['municipal_tax_mapper', 'municipal_assessor', 'admin', 'super_admin'];
-  const LAOO_ROLES_LOCAL       = ['laoo', 'admin', 'super_admin'];
-  const PROVINCIAL_ROLES_LOCAL = ['assistant_provincial_assessor', 'provincial_assessor', 'admin', 'super_admin'];
+  const MUNICIPAL_ROLES_LOCAL: string[] = [...FAAS_MUNICIPAL_REVIEW_ROLES];
+  const LAOO_ROLES_LOCAL: string[] = [...FAAS_LAOO_REVIEW_ROLES];
+  const PROVINCIAL_ROLES_LOCAL: string[] = [...FAAS_PROVINCIAL_REVIEW_ROLES];
 
   const canMunicipalAct  = MUNICIPAL_ROLES_LOCAL.includes(userRole) && ['submitted', 'returned_to_municipal'].includes(record.status);
   const canLaooAct       = LAOO_ROLES_LOCAL.includes(userRole) && record.status === 'municipal_signed';

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { getCurrentUserContext } from '@/lib/services/user.service';
 import { canAccessFaasRecord, parsePositiveIntegerId } from '@/lib/faas/access-control';
+import { sanitizeFaasUpdatePayload } from '@/lib/faas/update-payload';
 
 const getSupabaseAdmin = () =>
   createSupabaseClient(
@@ -85,7 +86,9 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
     }
 
     const body = await req.json();
-    const { id: _bodyId, ...updateData } = body;
+    const updateData = sanitizeFaasUpdatePayload(body, {
+      allowedStatusUpdates: ['draft', 'returned', 'submitted'],
+    });
 
     const supabase = getSupabaseAdmin();
 

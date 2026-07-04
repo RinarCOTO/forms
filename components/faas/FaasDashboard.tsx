@@ -72,7 +72,6 @@ interface FormSubmission {
 }
 
 const PAGE_SIZE = 10;
-const EDITABLE_STATUSES = ['draft', 'returned', 'returned_to_municipal'];
 const EXPORT_PRESETS = [
   { label: 'Last 7 days',   value: '7d'  },
   { label: 'Last 28 days',  value: '28d' },
@@ -614,7 +613,7 @@ export function FaasDashboard({ config }: { config: FaasDashboardConfig }) {
                                     </DropdownMenuItem>
                                     <DropdownMenuItem
                                       onClick={() => handleEdit(submission.id)}
-                                      disabled={!EDITABLE_STATUSES.includes(submission.status)}
+                                      disabled={!isFaasSubmittableStatus(submission.status)}
                                     >
                                       <Edit className="h-4 w-4 mr-2" /> Edit
                                     </DropdownMenuItem>

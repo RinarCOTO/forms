@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getCurrentUserContext } from '@/lib/services/user.service'
 import { canAccessFaasRecord, FAAS_ACCESS_SELECT, parsePositiveIntegerId } from '@/lib/faas/access-control'
+import { sanitizeFaasUpdatePayload } from '@/lib/faas/update-payload'
 import { z } from 'zod'
 
 const numericField = z.union([z.number(), z.string()]).nullish()
@@ -213,28 +214,9 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     
     // Clean the data: remove undefined and empty string values; allow explicit null to clear fields
     const numericFields = ['area', 'market_value', 'assessment_level', 'assessed_value', 'land_area', 'unit_value', 'base_market_value', 'additional_percentage_value', 'additional_flat_rate_value', 'previous_av', 'previous_mv', 'previous_area']
-    const cleanedData = Object.entries(updateData).reduce((acc, [key, value]) => {
-      if (value === undefined || value === 'undefined' || value === '') return acc
-      if (value === null) {
-        // Explicit null clears the field in DB
-        acc[key] = null
-      } else if (numericFields.includes(key)) {
-        const numValue = parseFloat(value as string)
-        if (!isNaN(numValue)) acc[key] = numValue
-      } else {
-        acc[key] = value
-      }
-      return acc
-    }, {} as any)
-
-    if (cleanedData.status && !['draft', 'returned'].includes(String(cleanedData.status))) {
-      delete cleanedData.status
-    }
-    delete cleanedData.submitted_at
-    delete cleanedData.approved_at
-    delete cleanedData.municipal_reviewer_id
-    delete cleanedData.provincial_reviewer_id
-    delete cleanedData.laoo_reviewer_id
+    const cleanedData = sanitizeFaasUpdatePayload(updateData, {
+      numericFields,
+    })
     
     const { data, error } = await supabase
       .from('land_improvements')
@@ -281,7 +263,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
 
     const isAdmin = userCtx.isAdmin
     if (!isAdmin) {
-      // Non-admins can only delete their own drafts
+      // Non-admins can only delete their own draft or returned records
       const { data: record, error: fetchErr } = await supabase
         .from('land_improvements')
         .select('status, created_by')
@@ -291,7 +273,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
       if (fetchErr || !record) {
         return NextResponse.json({ success: false, error: 'Record not found' }, { status: 404 })
       }
-      if (record.status !== 'draft' || record.created_by !== userCtx.userId) {
+      if (!['draft', 'returned'].includes(record.status) || record.created_by !== userCtx.userId) {
         return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 })
       }
     }

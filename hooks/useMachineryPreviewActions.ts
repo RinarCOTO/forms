@@ -3,7 +3,12 @@
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { clearMachineryDraftStorage } from "@/utils/form-draft-storage";
+import {
+  clearMachineryDraftStorage,
+  collectStepDraftFields,
+  getStoredFaasDraftId,
+  setStoredFaasDraftId,
+} from "@/utils/form-draft-storage";
 
 interface SuccessModalState {
   open: boolean;
@@ -24,20 +29,33 @@ export function useMachineryPreviewActions(draftId: string | null | undefined) {
   const [confirmSubmitOpen, setConfirmSubmitOpen] = useState(false);
 
   const handleSaveDraft = useCallback(async () => {
-    if (!draftId) return;
     setIsSaving(true);
 
     try {
-      const response = await fetch(`/api/faas/machinery/${draftId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "draft" }),
-      });
+      const formData = collectStepDraftFields(localStorage);
+      formData.status = "draft";
+      const currentDraftId = draftId ?? getStoredFaasDraftId(localStorage, "machinery");
+
+      const response = currentDraftId
+        ? await fetch(`/api/faas/machinery/${currentDraftId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(formData),
+          })
+        : await fetch("/api/faas/machinery", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(formData),
+          });
 
       if (response.ok) {
+        const result = await response.json().catch(() => null);
+        const savedId = result?.data?.id?.toString() ?? result?.id?.toString();
+        if (savedId) setStoredFaasDraftId(localStorage, "machinery", savedId);
+        clearMachineryDraftStorage(localStorage);
         setSuccessModal({
           open: true,
-          title: "Draft saved",
+          title: `Draft ${currentDraftId ? "updated" : "saved"}`,
           description: "Your draft has been saved successfully.",
           onConfirm: () => router.push("/machinery/dashboard"),
         });

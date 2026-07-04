@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/popover";
 import type { AppNotification } from "@/lib/notifications";
 import { cn } from "@/lib/utils";
+import { getFaasRealtimeTopic } from "@/lib/faas/workflow";
 
 interface NotificationResponse {
   notifications: AppNotification[];
@@ -156,13 +157,19 @@ export function NotificationBell() {
           .subscribe();
         channels.push(notificationChannel);
 
-        const workflowChannel = supabase
-          .channel("building-structures-updates")
-          .on("broadcast", { event: "status_change" }, () => {
-            scheduleRealtimeRefresh(WORKFLOW_BROADCAST_REFRESH_DELAYS_MS);
-          })
-          .subscribe();
-        channels.push(workflowChannel);
+        const realtimeClient = supabase;
+        [
+          getFaasRealtimeTopic("building_structures"),
+          getFaasRealtimeTopic("land_improvements"),
+        ].forEach((topic) => {
+          const workflowChannel = realtimeClient
+            .channel(topic)
+            .on("broadcast", { event: "status_change" }, () => {
+              scheduleRealtimeRefresh(WORKFLOW_BROADCAST_REFRESH_DELAYS_MS);
+            })
+            .subscribe();
+          channels.push(workflowChannel);
+        });
       } catch {
         // Realtime is an enhancement only. The API fetch and fallback refresh still work.
       }

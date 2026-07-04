@@ -120,6 +120,11 @@ function LandOtherImprovementsFillPageContent() {
   const { checking: lockChecking, locked, lockedBy } = useFormLock('land_improvements', draftId);
 
   const [isSaving, setIsSaving] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
+  const isInitializedRef = useRef(false);
+  const markDirty = useCallback(() => {
+    if (isInitializedRef.current) setIsDirty(true);
+  }, []);
 
   const [ownerName, setOwnerName] = useState("");
   const [adminCareOf, setAdminCareOf] = useState("");
@@ -160,7 +165,7 @@ function LandOtherImprovementsFillPageContent() {
   }, [propLoc.municipalities, propLoc.municipalityCode, userMunicipality]);
 
   useEffect(() => {
-    if (!draftId) return;
+    if (!draftId) { isInitializedRef.current = true; return; }
     const loadDraft = async () => {
       try {
         const response = await fetch(`/api/faas/land-improvements/${draftId}`);
@@ -208,6 +213,8 @@ function LandOtherImprovementsFillPageContent() {
         }
       } catch (error) {
         console.error('Failed to load draft data for step 1', error);
+      } finally {
+        isInitializedRef.current = true;
       }
     };
     loadDraft();
@@ -262,6 +269,7 @@ function LandOtherImprovementsFillPageContent() {
     setIsSaving(true);
     try {
       await saveData();
+      setIsDirty(false);
       toast.success("Draft saved successfully.");
     } catch {
       toast.error("Error saving. Please try again.");
@@ -276,6 +284,7 @@ function LandOtherImprovementsFillPageContent() {
       const id = await saveData();
       if (id) {
         setStoredFaasDraftId(localStorage, "land", id);
+        setIsDirty(false);
         router.push(`/land-other-improvements/fill/step-2?id=${id}`);
       } else {
         toast.error('Save completed but no ID returned. Please try again.');
@@ -313,7 +322,7 @@ function LandOtherImprovementsFillPageContent() {
       </header>
 
       <fieldset disabled={locked || lockChecking} className={`border-0 p-0 m-0 min-w-0 block${locked || lockChecking ? ' opacity-60' : ''}`}>
-        <form id={`form_${FORM_NAME}_main`} className="rpfaas-fill-form rpfaas-fill-form-single space-y-6">
+        <form id={`form_${FORM_NAME}_main`} className="rpfaas-fill-form rpfaas-fill-form-single space-y-6" onChange={markDirty}>
 
           <FormSection title="Property Identification">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -387,7 +396,7 @@ function LandOtherImprovementsFillPageContent() {
           <StepPagination
             currentStep={1}
             draftId={draftId}
-            isDirty={false}
+            isDirty={isDirty}
             onNext={handleNext}
             isNextLoading={isSaving}
             isNextDisabled={isSaving || locked || lockChecking}

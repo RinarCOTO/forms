@@ -2,7 +2,12 @@
 
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
-import { clearLandImprovementDraftStorage } from "@/utils/form-draft-storage";
+import {
+  clearLandImprovementDraftStorage,
+  collectStepDraftFields,
+  getStoredFaasDraftId,
+  setStoredFaasDraftId,
+} from "@/utils/form-draft-storage";
 
 export function useLandImprovementPreviewActions(draftId: string | null | undefined) {
   const router = useRouter();
@@ -10,17 +15,29 @@ export function useLandImprovementPreviewActions(draftId: string | null | undefi
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSaveDraft = useCallback(async () => {
-    if (!draftId) return;
     setIsSaving(true);
 
     try {
-      const response = await fetch(`/api/faas/land-improvements/${draftId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "draft" }),
-      });
+      const formData = collectStepDraftFields(localStorage);
+      formData.status = "draft";
+      const currentDraftId = draftId ?? getStoredFaasDraftId(localStorage, "land");
+
+      const response = currentDraftId
+        ? await fetch(`/api/faas/land-improvements/${currentDraftId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(formData),
+          })
+        : await fetch("/api/faas/land-improvements", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(formData),
+          });
 
       if (response.ok) {
+        const result = await response.json().catch(() => null);
+        const savedId = result?.data?.id?.toString() ?? result?.id?.toString();
+        if (savedId) setStoredFaasDraftId(localStorage, "land", savedId);
         alert("Draft saved successfully!");
         clearLandImprovementDraftStorage(localStorage);
         router.push("/land-other-improvements/dashboard");

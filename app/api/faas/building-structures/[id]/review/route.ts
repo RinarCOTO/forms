@@ -3,6 +3,12 @@ import { createClient } from '@/lib/supabase/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
 import { notifyFaasStatusChange } from '@/lib/faas/notification-rules';
 import { canAccessFaasRecord, parsePositiveIntegerId } from '@/lib/faas/access-control';
+import {
+  FAAS_LAOO_REVIEW_ROLES,
+  FAAS_MUNICIPAL_REVIEW_ROLES,
+  FAAS_PROVINCIAL_REVIEW_ROLES,
+  getFaasRealtimeTopic,
+} from '@/lib/faas/workflow';
 
 function getAdmin() {
   return createAdminClient(
@@ -12,10 +18,9 @@ function getAdmin() {
   );
 }
 
-// Role groups
-const MUNICIPAL_ROLES  = ['municipal_tax_mapper', 'municipal_assessor', 'admin', 'super_admin'];
-const LAOO_ROLES       = ['laoo', 'admin', 'super_admin'];
-const PROVINCIAL_ROLES = ['assistant_provincial_assessor', 'provincial_assessor', 'admin', 'super_admin'];
+const MUNICIPAL_ROLES = [...FAAS_MUNICIPAL_REVIEW_ROLES];
+const LAOO_ROLES = [...FAAS_LAOO_REVIEW_ROLES];
+const PROVINCIAL_ROLES = [...FAAS_PROVINCIAL_REVIEW_ROLES];
 
 type ReviewAction = 'sign_forward' | 'return_to_mapper' | 'laoo_approve' | 'laoo_return' | 'sign_approve' | 'provincial_return';
 
@@ -136,7 +141,7 @@ export async function POST(
         },
         body: JSON.stringify({
           messages: [{
-            topic: 'building-structures-updates',
+            topic: getFaasRealtimeTopic('building_structures'),
             event: 'status_change',
             payload: {
               id: updated.id,
