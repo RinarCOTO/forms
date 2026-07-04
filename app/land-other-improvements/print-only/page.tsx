@@ -1,12 +1,13 @@
 "use client";
 
 import "@/app/components/forms/RPFAAS/faas_table_forms.css";
-import { useState, useEffect, useRef, useCallback, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import LandImprovementForm from "@/app/components/forms/RPFAAS/land_improvement_form";
-import { type FaasPhotoRecord, useFaasPhotos } from "@/hooks/useFaasPhotos";
+import { useFaasPhotos } from "@/hooks/useFaasPhotos";
 import { useFaasPrintFooterReady } from "@/hooks/useFaasPrintFooterReady";
-import { FaasPhotoImage } from "@/components/faas/FaasPhotoImage";
+import { FaasPrintPhotoAttachmentPages } from "@/components/faas/FaasPrintPhotoAttachmentPages";
+import { usePrintPhotoReadiness } from "@/hooks/usePrintPhotoReadiness";
 
 type PhotoType =
   | "barangay_certificate"
@@ -22,8 +23,6 @@ type PhotoType =
   | "extra_judicial_settlement"
   | "bir_certificate"
   | "inspection_report";
-
-type PhotoRecord = FaasPhotoRecord<PhotoType>;
 
 const PHOTO_LABELS: Record<PhotoType, string> = {
   barangay_certificate: "Barangay Certificate",
@@ -59,43 +58,11 @@ const PHOTO_ORDER: PhotoType[] = [
 
 const LANDSCAPE_PLAN_TYPES: PhotoType[] = ["sketch_plan", "survey_plan"];
 
-function PhotoAttachmentPages({
-  photos,
-  onImageDone,
-}: {
-  photos: PhotoRecord[];
-  onImageDone: () => void;
-}) {
-  return (
-    <>
-      {PHOTO_ORDER.map((type) => {
-        const photo = photos.find((p) => p.photo_type === type);
-        if (!photo?.signedUrl) return null;
-        const isLandscapePlan = LANDSCAPE_PLAN_TYPES.includes(type);
-        return (
-          <div key={photo.id} className={isLandscapePlan ? "photo-page plan-landscape" : "photo-page"}>
-            <p className="photo-page-title">{PHOTO_LABELS[type]}</p>
-            <FaasPhotoImage
-              signedUrl={photo.signedUrl}
-              alt={PHOTO_LABELS[type]}
-              mode="print"
-              onReady={onImageDone}
-            />
-            <p className="photo-page-filename">{photo.original_name}</p>
-          </div>
-        );
-      })}
-    </>
-  );
-}
-
 function PrintOnlyPage() {
   const searchParams = useSearchParams();
   const id = searchParams.get("id");
   const includeAttachments = searchParams.get("attachments") !== "0";
   const [data, setData] = useState<any>(null);
-  const [photosReady, setPhotosReady] = useState(false);
-  const loadedRef = useRef(0);
   const footerReady = useFaasPrintFooterReady(Boolean(data));
 
   const { photos, photosLoading } = useFaasPhotos<PhotoType>({
@@ -105,18 +72,10 @@ function PrintOnlyPage() {
   });
 
   const printablePhotos = photos.filter((photo) => photo.signedUrl);
-
-  useEffect(() => {
-    loadedRef.current = 0;
-    setPhotosReady(!photosLoading && printablePhotos.length === 0);
-  }, [photosLoading, printablePhotos.length]);
-
-  const markOneImageDone = useCallback(() => {
-    loadedRef.current += 1;
-    if (loadedRef.current >= printablePhotos.length) {
-      setPhotosReady(true);
-    }
-  }, [printablePhotos.length]);
+  const { markPhotoReady, photosReady } = usePrintPhotoReadiness({
+    photoCount: printablePhotos.length,
+    loading: photosLoading,
+  });
 
   useEffect(() => {
     if (!id) return;
@@ -145,7 +104,13 @@ function PrintOnlyPage() {
         <LandImprovementForm data={data} />
       </div>
       {includeAttachments && (
-        <PhotoAttachmentPages photos={printablePhotos} onImageDone={markOneImageDone} />
+        <FaasPrintPhotoAttachmentPages
+          photos={printablePhotos}
+          photoOrder={PHOTO_ORDER}
+          photoLabels={PHOTO_LABELS}
+          landscapeTypes={LANDSCAPE_PLAN_TYPES}
+          onPhotoReady={markPhotoReady}
+        />
       )}
     </>
   );

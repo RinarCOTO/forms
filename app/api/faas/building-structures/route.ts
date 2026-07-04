@@ -2,6 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { revalidateTag } from 'next/cache'
 import { getCurrentUserContext } from '@/lib/services/user.service'
+import {
+  getBuildingLaooDraftVisibilityFilter,
+  getHiddenDraftStatusList,
+  getOwnOrAssignedFilter,
+  isBuildingOwnWorkOnlyRole,
+  shouldHideBuildingDrafts,
+  shouldScopeBuildingToMunicipality,
+} from '@/lib/faas/visibility-filters'
 
 function getAdminClient() {
   return createAdminClient(
@@ -41,26 +49,23 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(data || null)
     }
 
-    const PROVINCIAL_ROLES  = ['laoo', 'assistant_provincial_assessor', 'provincial_assessor'];
-    const HIDE_DRAFTS_ROLES = ['municipal_assessor', 'laoo', 'provincial_assessor', 'assistant_provincial_assessor'];
-
     // Lightweight meta request — returns distinct municipalities + barangays for dropdown options.
     // Uses the same role-scoping as the main query so users only see their permitted locations.
     if (searchParams.get('meta') === '1') {
       let mq = admin
         .from('building_structures')
         .select('location_municipality, location_barangay')
-      if (userCtx.role === 'municipal_tax_mapper') {
-        mq = mq.or(`created_by.eq.${userCtx.userId},assigned_to.eq.${userCtx.userId}`)
+      if (isBuildingOwnWorkOnlyRole(userCtx.role)) {
+        mq = mq.or(getOwnOrAssignedFilter(userCtx))
       } else {
-        if (!userCtx.isAdmin && !PROVINCIAL_ROLES.includes(userCtx.role) && userCtx.municipality) {
+        if (shouldScopeBuildingToMunicipality(userCtx)) {
           mq = mq.eq('municipality', userCtx.municipality)
         }
-        if (HIDE_DRAFTS_ROLES.includes(userCtx.role)) {
+        if (shouldHideBuildingDrafts(userCtx.role)) {
           if (userCtx.role === 'laoo') {
-            mq = mq.or(`and(status.neq.draft,status.neq.returned),and(status.eq.draft,created_by.eq.${userCtx.userId})`)
+            mq = mq.or(getBuildingLaooDraftVisibilityFilter(userCtx))
           } else {
-            mq = mq.not('status', 'in', '("draft","returned")')
+            mq = mq.not('status', 'in', getHiddenDraftStatusList())
           }
         }
       }
@@ -84,17 +89,17 @@ export async function GET(request: NextRequest) {
       .order('updated_at', { ascending: false })
       .order('id', { ascending: false })
 
-    if (userCtx.role === 'municipal_tax_mapper') {
-      query = query.or(`created_by.eq.${userCtx.userId},assigned_to.eq.${userCtx.userId}`)
+    if (isBuildingOwnWorkOnlyRole(userCtx.role)) {
+      query = query.or(getOwnOrAssignedFilter(userCtx))
     } else {
-      if (!userCtx.isAdmin && !PROVINCIAL_ROLES.includes(userCtx.role) && userCtx.municipality) {
+      if (shouldScopeBuildingToMunicipality(userCtx)) {
         query = query.eq('municipality', userCtx.municipality)
       }
-      if (HIDE_DRAFTS_ROLES.includes(userCtx.role)) {
+      if (shouldHideBuildingDrafts(userCtx.role)) {
         if (userCtx.role === 'laoo') {
-          query = query.or(`and(status.neq.draft,status.neq.returned),and(status.eq.draft,created_by.eq.${userCtx.userId})`)
+          query = query.or(getBuildingLaooDraftVisibilityFilter(userCtx))
         } else {
-          query = query.not('status', 'in', '("draft","returned")')
+          query = query.not('status', 'in', getHiddenDraftStatusList())
         }
       }
     }

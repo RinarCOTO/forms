@@ -4,9 +4,8 @@ import { createClient as createAdminClient } from '@supabase/supabase-js';
 import { notifyFaasStatusChange } from '@/lib/faas/notification-rules';
 import { canAccessFaasRecord, parsePositiveIntegerId } from '@/lib/faas/access-control';
 import {
-  FAAS_LAOO_REVIEW_ROLES,
-  FAAS_MUNICIPAL_REVIEW_ROLES,
-  FAAS_PROVINCIAL_REVIEW_ROLES,
+  type FaasReviewAction,
+  getFaasReviewActionConfig,
   getFaasRealtimeTopic,
 } from '@/lib/faas/workflow';
 
@@ -17,26 +16,6 @@ function getAdmin() {
     { auth: { autoRefreshToken: false, persistSession: false } }
   );
 }
-
-const MUNICIPAL_ROLES = [...FAAS_MUNICIPAL_REVIEW_ROLES];
-const LAOO_ROLES = [...FAAS_LAOO_REVIEW_ROLES];
-const PROVINCIAL_ROLES = [...FAAS_PROVINCIAL_REVIEW_ROLES];
-
-type ReviewAction = 'sign_forward' | 'return_to_mapper' | 'laoo_approve' | 'laoo_return' | 'sign_approve' | 'provincial_return';
-
-const ACTION_CONFIG: Record<ReviewAction, {
-  roles: string[];
-  fromStatuses: string[];
-  toStatus: string;
-  requiresNote?: boolean;
-}> = {
-  sign_forward:      { roles: MUNICIPAL_ROLES,  fromStatuses: ['submitted', 'returned_to_municipal'], toStatus: 'municipal_signed' },
-  return_to_mapper:  { roles: MUNICIPAL_ROLES,  fromStatuses: ['submitted', 'returned_to_municipal'], toStatus: 'returned',         requiresNote: true },
-  laoo_approve:      { roles: LAOO_ROLES,       fromStatuses: ['municipal_signed'],                   toStatus: 'laoo_approved' },
-  laoo_return:       { roles: LAOO_ROLES,       fromStatuses: ['municipal_signed'],                   toStatus: 'returned_to_municipal', requiresNote: true },
-  sign_approve:      { roles: PROVINCIAL_ROLES, fromStatuses: ['laoo_approved'],                      toStatus: 'approved' },
-  provincial_return: { roles: PROVINCIAL_ROLES, fromStatuses: ['laoo_approved'],                      toStatus: 'returned_to_municipal', requiresNote: true },
-};
 
 export async function POST(
   req: NextRequest,
@@ -62,9 +41,9 @@ export async function POST(
     if (profileError || !profile) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     const body = await req.json().catch(() => ({}));
-    const { action, note } = body as { action: ReviewAction; note?: string };
+    const { action, note } = body as { action: FaasReviewAction; note?: string };
 
-    const config = ACTION_CONFIG[action];
+    const config = getFaasReviewActionConfig(action);
     if (!config) return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
     if (!config.roles.includes(profile.role)) return NextResponse.json({ error: 'Forbidden for your role' }, { status: 403 });
     if (config.requiresNote && !note?.trim()) return NextResponse.json({ error: 'A note is required for this action' }, { status: 422 });

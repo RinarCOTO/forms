@@ -24,15 +24,16 @@ import { Loader2, Eye, XCircle, ClipboardList, ChevronLeft, ChevronRight, Refres
 import { toast } from "sonner";
 import { usePermissions } from "@/app/contexts/permissions-context";
 import {
-  FAAS_ADMIN_ROLES,
-  FAAS_LAOO_REVIEW_ROLES,
-  FAAS_MUNICIPAL_REVIEW_ROLES,
-  FAAS_PROVINCIAL_REVIEW_ROLES,
+  FAAS_ACTIVE_REVIEW_STATUSES,
+  type FaasReviewAction,
+  getActiveReviewStatusesForRole,
+  getFaasReviewActionsForRoleAndStatus,
   getFaasRealtimeTopic,
+  getSelectableReviewStatusesForRole,
 } from "@/lib/faas/workflow";
 
 type FormType = "building" | "land";
-type ReviewAction = 'sign_forward' | 'return_to_mapper' | 'laoo_approve' | 'laoo_return' | 'sign_approve' | 'provincial_return';
+type ReviewAction = FaasReviewAction;
 
 interface ReviewItem {
   id: number;
@@ -44,29 +45,6 @@ interface ReviewItem {
   submitted_at?: string | null;
   form_type: FormType;
   form_label: string;
-}
-
-// Role group helpers
-const MUNICIPAL_ROLES: string[] = [...FAAS_MUNICIPAL_REVIEW_ROLES];
-const LAOO_ROLES: string[] = [...FAAS_LAOO_REVIEW_ROLES];
-const PROVINCIAL_ROLES: string[] = [...FAAS_PROVINCIAL_REVIEW_ROLES];
-const ADMIN_ROLES: string[] = [...FAAS_ADMIN_ROLES];
-
-function getDefaultStatuses(role: string | null): string[] {
-  if (!role) return [];
-  if (ADMIN_ROLES.includes(role))      return ['submitted', 'municipal_signed', 'laoo_approved', 'returned_to_municipal'];
-  if (MUNICIPAL_ROLES.includes(role))  return ['submitted', 'returned_to_municipal'];
-  if (LAOO_ROLES.includes(role))       return ['municipal_signed'];
-  if (PROVINCIAL_ROLES.includes(role)) return ['laoo_approved'];
-  return ['submitted', 'municipal_signed', 'laoo_approved', 'returned_to_municipal'];
-}
-
-const ALL_STATUSES = ['submitted', 'municipal_signed', 'laoo_approved', 'approved', 'returned', 'returned_to_municipal'];
-
-function getSelectableStatuses(role: string | null): string[] {
-  if (!role) return [];
-  if (ADMIN_ROLES.includes(role)) return ALL_STATUSES;
-  return getDefaultStatuses(role);
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -132,10 +110,10 @@ export default function ReviewQueuePage() {
       const params = new URLSearchParams();
       if (formTypeFilter !== 'all') params.set('form_type', formTypeFilter);
       if (statusFilter === 'active') {
-        const defaults = getDefaultStatuses(role);
+        const defaults = getActiveReviewStatusesForRole(role);
         defaults.forEach(s => params.append('status', s));
       } else if (statusFilter === 'all') {
-        getSelectableStatuses(role).forEach(s => params.append('status', s));
+        getSelectableReviewStatusesForRole(role).forEach(s => params.append('status', s));
       } else {
         params.set('status', statusFilter);
       }
@@ -156,7 +134,7 @@ export default function ReviewQueuePage() {
 
   useEffect(() => {
     if (!role) return;
-    const visibleStatuses = getDefaultStatuses(role);
+    const visibleStatuses = getActiveReviewStatusesForRole(role);
     const supabase = createClient();
     const handleStatusChange = ({ payload }: { payload: unknown }) => {
         const item = payload as ReviewItem;
@@ -184,7 +162,7 @@ export default function ReviewQueuePage() {
   }, [role]);
 
   const uniqueMunicipalities = [...new Set(items.map(i => i.location_municipality).filter(Boolean) as string[])].sort();
-  const selectableStatuses = getSelectableStatuses(role);
+  const selectableStatuses = getSelectableReviewStatusesForRole(role);
 
   const filteredItems = items.filter(item => {
     if (municipalityFilter !== 'all' && item.location_municipality !== municipalityFilter) return false;
@@ -253,31 +231,22 @@ export default function ReviewQueuePage() {
     sign_approve:      'Approve',
     provincial_return: 'Return to Municipal',
   };
+  const actionButtonLabel: Record<ReviewAction, string> = {
+    sign_forward:      'Approve & Forward',
+    return_to_mapper:  'Return to Mapper',
+    laoo_approve:      'Approve & Forward',
+    laoo_return:       'Return to Municipal',
+    sign_approve:      'Approve',
+    provincial_return: 'Return to Municipal',
+  };
 
   // Available actions per role per status
   function getActions(item: ReviewItem): { action: ReviewAction; label: string; danger?: boolean }[] {
-    if (!role) return [];
-    const s = item.status;
-    const actions: { action: ReviewAction; label: string; danger?: boolean }[] = [];
-    if (MUNICIPAL_ROLES.includes(role)) {
-      if (['submitted', 'returned_to_municipal'].includes(s)) {
-        actions.push({ action: 'sign_forward', label: 'Approve & Forward' });
-        actions.push({ action: 'return_to_mapper', label: 'Return to Mapper', danger: true });
-      }
-    }
-    if (LAOO_ROLES.includes(role)) {
-      if (s === 'municipal_signed') {
-        actions.push({ action: 'laoo_approve', label: 'Approve & Forward' });
-        actions.push({ action: 'laoo_return', label: 'Return to Municipal', danger: true });
-      }
-    }
-    if (PROVINCIAL_ROLES.includes(role)) {
-      if (s === 'laoo_approved') {
-        actions.push({ action: 'sign_approve', label: 'Approve' });
-        actions.push({ action: 'provincial_return', label: 'Return to Municipal', danger: true });
-      }
-    }
-    return actions;
+    return getFaasReviewActionsForRoleAndStatus({ role, status: item.status }).map((action) => ({
+      action,
+      label: actionButtonLabel[action],
+      danger: needsNote(action),
+    }));
   }
 
   return (
@@ -301,7 +270,7 @@ export default function ReviewQueuePage() {
             <Card>
               <CardHeader className="pb-2">
                 <CardDescription>Active</CardDescription>
-                <CardTitle className="text-3xl">{items.filter(i => ['submitted','municipal_signed','laoo_approved','returned_to_municipal'].includes(i.status)).length}</CardTitle>
+                <CardTitle className="text-3xl">{items.filter(i => FAAS_ACTIVE_REVIEW_STATUSES.includes(i.status as typeof FAAS_ACTIVE_REVIEW_STATUSES[number])).length}</CardTitle>
               </CardHeader>
               <CardContent><p className="text-xs text-muted-foreground">Forms needing action</p></CardContent>
             </Card>

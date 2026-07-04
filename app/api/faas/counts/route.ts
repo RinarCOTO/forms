@@ -1,13 +1,20 @@
 import { NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { getCurrentUserContext } from '@/lib/services/user.service'
-
-const PROVINCIAL_ROLES = ['laoo', 'assistant_provincial_assessor', 'provincial_assessor']
-const HIDE_BUILDING_DRAFTS_ROLES = ['municipal_assessor', 'laoo', 'provincial_assessor', 'assistant_provincial_assessor']
-const HIDE_LAND_DRAFTS_ROLES = ['laoo', 'provincial_assessor', 'assistant_provincial_assessor']
-const LAND_MUNICIPAL_DASHBOARD_ROLES = ['municipal_tax_mapper', 'municipal_assessor']
-const LAND_OWN_WORK_STATUSES = ['draft', 'returned', 'returned_to_municipal']
-const LAND_HIDDEN_REVIEW_STATUSES = ['draft', 'returned']
+import {
+  getBuildingLaooDraftVisibilityFilter,
+  getHiddenDraftStatusList,
+  getLandMunicipalVisibilityFilter,
+  getLandMunicipalityVisibilityFilter,
+  getLandOwnWorkVisibilityFilter,
+  getOwnOrAssignedFilter,
+  isBuildingOwnWorkOnlyRole,
+  isLandMunicipalDashboardRole,
+  shouldHideBuildingDrafts,
+  shouldHideLandDrafts,
+  shouldScopeBuildingToMunicipality,
+  shouldScopeLandToMunicipality,
+} from '@/lib/faas/visibility-filters'
 
 type UserContext = NonNullable<Awaited<ReturnType<typeof getCurrentUserContext>>>
 type CountResult = { count: number | null }
@@ -32,20 +39,20 @@ function getAdminClient() {
 function applyBuildingVisibility(query: CountQuery, userCtx: UserContext): CountQuery {
   let scopedQuery = query
 
-  if (userCtx.role === 'municipal_tax_mapper') {
-    return scopedQuery.or(`created_by.eq.${userCtx.userId},assigned_to.eq.${userCtx.userId}`)
+  if (isBuildingOwnWorkOnlyRole(userCtx.role)) {
+    return scopedQuery.or(getOwnOrAssignedFilter(userCtx))
   }
 
-  if (!userCtx.isAdmin && !PROVINCIAL_ROLES.includes(userCtx.role) && userCtx.municipality) {
+  if (shouldScopeBuildingToMunicipality(userCtx)) {
     scopedQuery = scopedQuery.eq('municipality', userCtx.municipality)
   }
 
-  if (HIDE_BUILDING_DRAFTS_ROLES.includes(userCtx.role)) {
+  if (shouldHideBuildingDrafts(userCtx.role)) {
     if (userCtx.role === 'laoo') {
-      return scopedQuery.or(`and(status.neq.draft,status.neq.returned),and(status.eq.draft,created_by.eq.${userCtx.userId})`)
+      return scopedQuery.or(getBuildingLaooDraftVisibilityFilter(userCtx))
     }
 
-    return scopedQuery.not('status', 'in', '("draft","returned")')
+    return scopedQuery.not('status', 'in', getHiddenDraftStatusList())
   }
 
   return scopedQuery
@@ -54,21 +61,16 @@ function applyBuildingVisibility(query: CountQuery, userCtx: UserContext): Count
 function applyLandVisibility(query: CountQuery, userCtx: UserContext): CountQuery {
   let scopedQuery = query
 
-  if (LAND_MUNICIPAL_DASHBOARD_ROLES.includes(userCtx.role)) {
-    return userCtx.municipality
-      ? scopedQuery.or(`municipality.eq.${userCtx.municipality},location_municipality.ilike.${userCtx.municipality},created_by.eq.${userCtx.userId},assigned_to.eq.${userCtx.userId}`)
-      : scopedQuery.or(`created_by.eq.${userCtx.userId},assigned_to.eq.${userCtx.userId}`)
+  if (isLandMunicipalDashboardRole(userCtx.role)) {
+    return scopedQuery.or(getLandMunicipalVisibilityFilter(userCtx))
   }
 
-  if (!userCtx.isAdmin && !PROVINCIAL_ROLES.includes(userCtx.role) && userCtx.municipality) {
-    scopedQuery = scopedQuery.or(`municipality.eq.${userCtx.municipality},location_municipality.ilike.${userCtx.municipality}`)
+  if (shouldScopeLandToMunicipality(userCtx)) {
+    scopedQuery = scopedQuery.or(getLandMunicipalityVisibilityFilter(userCtx))
   }
 
-  if (HIDE_LAND_DRAFTS_ROLES.includes(userCtx.role)) {
-    const ownWorkVisibilityFilter =
-      `status.not.in.(${LAND_HIDDEN_REVIEW_STATUSES.join(',')}),and(status.in.(${LAND_OWN_WORK_STATUSES.join(',')}),created_by.eq.${userCtx.userId})`
-
-    return scopedQuery.or(ownWorkVisibilityFilter)
+  if (shouldHideLandDrafts(userCtx.role)) {
+    return scopedQuery.or(getLandOwnWorkVisibilityFilter(userCtx))
   }
 
   return scopedQuery

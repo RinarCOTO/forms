@@ -25,9 +25,9 @@ import ReviewFaasOverlay from "./ReviewFaasOverlay";
 import { toast } from "sonner";
 import { useSubmitOnEnter, useSubmitOnEnterSingleLine } from "@/hooks/useSubmitOnEnter";
 import {
-  FAAS_LAOO_REVIEW_ROLES,
-  FAAS_MUNICIPAL_REVIEW_ROLES,
-  FAAS_PROVINCIAL_REVIEW_ROLES,
+  type FaasReviewAction,
+  getFaasReviewActionsForRoleAndStatus,
+  getReviewReturnAction,
 } from "@/lib/faas/workflow";
 
 // ---------------------------------------------------------------------------
@@ -251,7 +251,7 @@ function ReviewDetailInner({ id }: { id: string }) {
   }, [apiBase]);
 
   // ── Review actions ──────────────────────────────────────────────────────────
-  type ReviewAction = 'sign_forward' | 'return_to_mapper' | 'laoo_approve' | 'laoo_return' | 'sign_approve' | 'provincial_return';
+  type ReviewAction = FaasReviewAction;
 
   const [returnDialogOpen, setReturnDialogOpen] = useState(false);
   const [returnNote, setReturnNote] = useState("");
@@ -434,15 +434,12 @@ function ReviewDetailInner({ id }: { id: string }) {
   const isReviewer = ["municipal_tax_mapper", "municipal_assessor", "laoo", "assistant_provincial_assessor", "provincial_assessor", "admin", "super_admin"]
     .includes(userRole);
 
-  const MUNICIPAL_ROLES_LOCAL: string[] = [...FAAS_MUNICIPAL_REVIEW_ROLES];
-  const LAOO_ROLES_LOCAL: string[] = [...FAAS_LAOO_REVIEW_ROLES];
-  const PROVINCIAL_ROLES_LOCAL: string[] = [...FAAS_PROVINCIAL_REVIEW_ROLES];
+  const availableActions = getFaasReviewActionsForRoleAndStatus({ role: userRole, status: record.status });
+  const canMunicipalAct = availableActions.includes('sign_forward') || availableActions.includes('return_to_mapper');
+  const canLaooAct = availableActions.includes('laoo_approve') || availableActions.includes('laoo_return');
+  const canProvincialAct = availableActions.includes('sign_approve') || availableActions.includes('provincial_return');
 
-  const canMunicipalAct  = MUNICIPAL_ROLES_LOCAL.includes(userRole) && ['submitted', 'returned_to_municipal'].includes(record.status);
-  const canLaooAct       = LAOO_ROLES_LOCAL.includes(userRole) && record.status === 'municipal_signed';
-  const canProvincialAct = PROVINCIAL_ROLES_LOCAL.includes(userRole) && record.status === 'laoo_approved';
-
-  const returnAction: ReviewAction = canMunicipalAct ? 'return_to_mapper' : canLaooAct ? 'laoo_return' : 'provincial_return';
+  const returnAction = getReviewReturnAction({ canMunicipalAct, canLaooAct });
 
   return (
     <SidebarProvider>

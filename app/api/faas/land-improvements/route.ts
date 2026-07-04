@@ -2,6 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { revalidateTag } from 'next/cache'
 import { getCurrentUserContext } from '@/lib/services/user.service'
+import {
+  getLandMunicipalVisibilityFilter,
+  getLandMunicipalityVisibilityFilter,
+  getLandOwnWorkVisibilityFilter,
+  isLandMunicipalDashboardRole,
+  shouldHideLandDrafts,
+  shouldScopeLandToMunicipality,
+} from '@/lib/faas/visibility-filters'
 
 function getAdminClient() {
   return createAdminClient(
@@ -45,28 +53,18 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(data || null)
     }
 
-    const PROVINCIAL_ROLES  = ['laoo', 'assistant_provincial_assessor', 'provincial_assessor'];
-    const MUNICIPAL_DASHBOARD_ROLES = ['municipal_tax_mapper', 'municipal_assessor'];
-    const HIDE_DRAFTS_ROLES = ['laoo', 'provincial_assessor', 'assistant_provincial_assessor'];
-    const OWN_WORK_STATUSES = ['draft', 'returned', 'returned_to_municipal'];
-    const HIDDEN_REVIEW_STATUSES = ['draft', 'returned'];
-    const ownWorkVisibilityFilter =
-      `status.not.in.(${HIDDEN_REVIEW_STATUSES.join(',')}),and(status.in.(${OWN_WORK_STATUSES.join(',')}),created_by.eq.${userCtx.userId})`
-
     if (searchParams.get('meta') === '1') {
       let mq = admin
         .from('land_improvements')
         .select('location_municipality, location_barangay')
-      if (MUNICIPAL_DASHBOARD_ROLES.includes(userCtx.role)) {
-        mq = userCtx.municipality
-          ? mq.or(`municipality.eq.${userCtx.municipality},location_municipality.ilike.${userCtx.municipality},created_by.eq.${userCtx.userId},assigned_to.eq.${userCtx.userId}`)
-          : mq.or(`created_by.eq.${userCtx.userId},assigned_to.eq.${userCtx.userId}`)
+      if (isLandMunicipalDashboardRole(userCtx.role)) {
+        mq = mq.or(getLandMunicipalVisibilityFilter(userCtx))
       } else {
-        if (!userCtx.isAdmin && !PROVINCIAL_ROLES.includes(userCtx.role) && userCtx.municipality) {
-          mq = mq.or(`municipality.eq.${userCtx.municipality},location_municipality.ilike.${userCtx.municipality}`)
+        if (shouldScopeLandToMunicipality(userCtx)) {
+          mq = mq.or(getLandMunicipalityVisibilityFilter(userCtx))
         }
-        if (HIDE_DRAFTS_ROLES.includes(userCtx.role)) {
-          mq = mq.or(ownWorkVisibilityFilter)
+        if (shouldHideLandDrafts(userCtx.role)) {
+          mq = mq.or(getLandOwnWorkVisibilityFilter(userCtx))
         }
       }
       const { data: mData } = await mq
@@ -89,16 +87,14 @@ export async function GET(request: NextRequest) {
       .order('updated_at', { ascending: false })
       .order('id', { ascending: false })
 
-    if (MUNICIPAL_DASHBOARD_ROLES.includes(userCtx.role)) {
-      query = userCtx.municipality
-        ? query.or(`municipality.eq.${userCtx.municipality},location_municipality.ilike.${userCtx.municipality},created_by.eq.${userCtx.userId},assigned_to.eq.${userCtx.userId}`)
-        : query.or(`created_by.eq.${userCtx.userId},assigned_to.eq.${userCtx.userId}`)
+    if (isLandMunicipalDashboardRole(userCtx.role)) {
+      query = query.or(getLandMunicipalVisibilityFilter(userCtx))
     } else {
-      if (!userCtx.isAdmin && !PROVINCIAL_ROLES.includes(userCtx.role) && userCtx.municipality) {
-        query = query.or(`municipality.eq.${userCtx.municipality},location_municipality.ilike.${userCtx.municipality}`)
+      if (shouldScopeLandToMunicipality(userCtx)) {
+        query = query.or(getLandMunicipalityVisibilityFilter(userCtx))
       }
-      if (HIDE_DRAFTS_ROLES.includes(userCtx.role)) {
-        query = query.or(ownWorkVisibilityFilter)
+      if (shouldHideLandDrafts(userCtx.role)) {
+        query = query.or(getLandOwnWorkVisibilityFilter(userCtx))
       }
     }
 

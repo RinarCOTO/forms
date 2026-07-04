@@ -1,3 +1,6 @@
+import { normalizeMunicipality } from '@/lib/faas/municipality';
+import { isProvincialFaasRole } from '@/lib/faas/workflow';
+
 export interface FaasUserContext {
   userId: string;
   municipality: string | null;
@@ -15,11 +18,6 @@ export interface FaasAccessRecord {
   location_municipality?: string | null;
 }
 
-const PROVINCIAL_ROLES = new Set([
-  'assistant_provincial_assessor',
-  'provincial_assessor',
-]);
-
 const ASSIGNABLE_ROLES = new Set([
   'municipal_tax_mapper',
   'municipal_assessor',
@@ -31,16 +29,12 @@ export const FAAS_ACCESS_SELECT =
 export const FAAS_ASSIGN_SELECT =
   'id, status, assigned_to, appraised_by, created_by, owner_name, location_municipality, municipality, laoo_reviewer_id';
 
-export function normalizeMunicipality(value: string | null | undefined) {
-  return value?.trim().toLowerCase() ?? null;
-}
-
 function matchesUser(userId: string, value: string | null | undefined) {
   return value === userId;
 }
 
 export function canAccessFaasRecord(userCtx: FaasUserContext, record: FaasAccessRecord) {
-  if (userCtx.isAdmin || PROVINCIAL_ROLES.has(userCtx.role)) {
+  if (userCtx.isAdmin || isProvincialFaasRole(userCtx.role)) {
     return true;
   }
 
@@ -68,7 +62,7 @@ export function getFaasRecordMunicipality(record: FaasAccessRecord) {
 }
 
 export function isProvinceWideFaasRole(role: string) {
-  return PROVINCIAL_ROLES.has(role);
+  return isProvincialFaasRole(role);
 }
 
 export function canAssignFaasRecord(userCtx: FaasUserContext, record: FaasAccessRecord) {

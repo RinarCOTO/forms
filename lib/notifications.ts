@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { normalizeMunicipality } from "@/lib/faas/municipality";
 
 export type NotificationType =
   | "form_submitted"
@@ -37,25 +38,6 @@ interface CreateNotificationInput {
 interface CreateNotificationsInput extends Omit<CreateNotificationInput, "recipientId"> {
   recipientIds: string[];
   skipUserId?: string | null;
-}
-
-const MUNICIPALITY_LABEL_TO_SLUG = new Map([
-  ["barlig", "barlig"],
-  ["bauko", "bauko"],
-  ["besao", "besao"],
-  ["bontoc", "bontoc"],
-  ["natonin", "natonin"],
-  ["paracellis", "paracellis"],
-  ["paracelis", "paracellis"],
-  ["sabangan", "sabangan"],
-  ["sagada", "sagada"],
-  ["sadanga", "sadanga"],
-  ["tadian", "tadian"],
-]);
-
-function normalizeMunicipality(value: string | null | undefined) {
-  if (!value) return null;
-  return MUNICIPALITY_LABEL_TO_SLUG.get(value.trim().toLowerCase()) ?? value.trim().toLowerCase();
 }
 
 function getNotificationDedupeKey(notification: Pick<AppNotification, "recipient_id" | "title" | "message" | "type" | "related_form_type" | "related_form_id" | "link_url">) {

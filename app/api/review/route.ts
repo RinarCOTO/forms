@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
+import {
+  canReviewFaasRole,
+  getSelectableReviewStatusesForRole,
+  isMunicipalFaasRole,
+} from '@/lib/faas/workflow';
+import { getMunicipalityComparisonValues } from '@/lib/faas/municipality';
 
 function getAdmin() {
   return createAdminClient(
@@ -10,36 +16,8 @@ function getAdmin() {
   );
 }
 
-const REVIEW_ROLES = ['municipal_tax_mapper', 'municipal_assessor', 'laoo', 'assistant_provincial_assessor', 'provincial_assessor', 'admin', 'super_admin'];
-const MUNICIPAL_ROLES = ['municipal_tax_mapper', 'municipal_assessor'];
-const LAOO_ROLES = ['laoo'];
-const PROVINCIAL_ROLES = ['assistant_provincial_assessor', 'provincial_assessor'];
-const ADMIN_ROLES = ['admin', 'super_admin'];
-const ALL_REVIEW_STATUSES = ['submitted', 'municipal_signed', 'laoo_approved', 'approved', 'returned', 'returned_to_municipal'];
-const MUNICIPALITY_LABELS: Record<string, string> = {
-  barlig: 'Barlig',
-  bauko: 'Bauko',
-  besao: 'Besao',
-  bontoc: 'Bontoc',
-  natonin: 'Natonin',
-  paracellis: 'Paracellis',
-  sabangan: 'Sabangan',
-  sagada: 'Sagada',
-  sadanga: 'Sadanga',
-  tadian: 'Tadian',
-};
-
-function getAllowedStatusesForRole(role: string) {
-  if (ADMIN_ROLES.includes(role)) return ALL_REVIEW_STATUSES;
-  if (MUNICIPAL_ROLES.includes(role)) return ['submitted', 'returned_to_municipal'];
-  if (LAOO_ROLES.includes(role)) return ['municipal_signed'];
-  if (PROVINCIAL_ROLES.includes(role)) return ['laoo_approved'];
-  return [];
-}
-
 function getMunicipalityScopeFilter(municipality: string) {
-  const label = MUNICIPALITY_LABELS[municipality.toLowerCase()];
-  const values = [...new Set([municipality, municipality.toLowerCase(), label].filter(Boolean))];
+  const values = [...new Set(getMunicipalityComparisonValues(municipality))];
   return values
     .flatMap(value => [`location_municipality.eq.${value}`, `municipality.eq.${value}`])
     .join(',');
@@ -61,14 +39,14 @@ export async function GET(request: NextRequest) {
       .eq('id', authUser.id)
       .single();
 
-    if (profileError || !profile || !REVIEW_ROLES.includes(profile.role)) {
+    if (profileError || !profile || !canReviewFaasRole(profile.role)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const { searchParams } = new URL(request.url);
     const statusFilter  = searchParams.getAll('status');
     const formTypeFilter = searchParams.get('form_type'); // 'building' | 'land' | null = all
-    const allowedStatuses = getAllowedStatusesForRole(profile.role);
+    const allowedStatuses = getSelectableReviewStatusesForRole(profile.role);
     const requestedStatuses = statusFilter.length > 0 ? statusFilter : allowedStatuses;
     const statusesToQuery = requestedStatuses.filter(status => allowedStatuses.includes(status));
 
@@ -78,9 +56,9 @@ export async function GET(request: NextRequest) {
 
     const results: Record<string, unknown>[] = [];
     const isLaoo = profile.role === 'laoo';
-    const isMunicipalScoped = MUNICIPAL_ROLES.includes(profile.role) && !!profile.municipality;
+    const isMunicipalScoped = isMunicipalFaasRole(profile.role) && !!profile.municipality;
     const isLaooScoped = isLaoo && !!profile.municipality;
-    const needsMunicipalityScope = isLaoo || MUNICIPAL_ROLES.includes(profile.role);
+    const needsMunicipalityScope = isLaoo || isMunicipalFaasRole(profile.role);
 
     if (needsMunicipalityScope && !profile.municipality) {
       return NextResponse.json({ success: true, data: [] });

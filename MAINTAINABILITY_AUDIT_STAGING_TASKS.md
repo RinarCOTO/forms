@@ -80,7 +80,7 @@ Acceptance checks:
 
 ## Stage 2 - Centralize Shared FAAS Sources Of Truth
 
-Status: not started.
+Status: in progress.
 
 Priority: high.
 
@@ -131,7 +131,7 @@ Acceptance checks:
 
 ## Stage 3 - Reduce Large Files When Touching Them
 
-Status: not started.
+Status: in progress.
 
 Priority: medium.
 
@@ -179,7 +179,7 @@ Acceptance checks:
 
 ## Stage 4 - Delete Dead Code And Consolidate Low-Risk Duplication
 
-Status: not started.
+Status: in progress.
 
 Priority: low risk / opportunistic.
 
