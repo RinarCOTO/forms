@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { getCurrentUserContext } from '@/lib/services/user.service'
 import { canAccessFaasRecord, FAAS_ACCESS_SELECT, parsePositiveIntegerId } from '@/lib/faas/access-control'
 import { sanitizeFaasUpdatePayload } from '@/lib/faas/update-payload'
@@ -101,17 +101,7 @@ const LandImprovementUpdateSchema = z.object({
   unit_of_measure: z.string().max(20).optional(),
 })
 
-// Helper function to initialize Supabase
-const getSupabaseAdmin = () => {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
-      auth: { autoRefreshToken: false, persistSession: false },
-      db: { schema: 'public' }
-    }
-  )
-}
+const getSupabaseAdmin = () => createSupabaseAdminClient()
 
 // GET: Fetch single land improvement record by ID
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {

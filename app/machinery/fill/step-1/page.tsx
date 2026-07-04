@@ -37,10 +37,11 @@ import { TitleNoField } from "@/components/rpfaas/title-no-field";
 import { TransactionCodeSelect, type TransactionCode } from "@/components/rpfaas/transaction-code-select";
 
 // Constants
-import { PH_PROVINCES, MOUNTAIN_PROVINCE_CODE } from "@/app/components/forms/RPFAAS/constants/philippineLocations";
+import { MOUNTAIN_PROVINCE_CODE } from "@/app/components/forms/RPFAAS/constants/philippineLocations";
 import { MACHINERY_STEPS } from "@/app/machinery/fill/constants";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { ACTUAL_USE_OPTIONS } from "@/app/machinery/components/machinery-item-card";
+import { createFaasStep1Payload } from "@/lib/faas/step1-payload";
 
 const TRANSACTION_CODES: TransactionCode[] = [
   { code: "ND", label: "ND – New Discovery", description: "Used when declaring machinery for the first time. Covers: Newly Installed/Brand New (just affixed to the property); Previously Undeclared/Omitted (older machinery just discovered by the assessor — may trigger back taxes up to 10 years); or Imported (special appraisal using foreign exchange rates, import duties, and freight costs at acquisition)." },
@@ -50,96 +51,6 @@ const TRANSACTION_CODES: TransactionCode[] = [
   { code: "RC", label: "RC – Reclassification", description: "Used when the assessment level changes due to a change in actual use. Examples: Agricultural to Industrial/Commercial (e.g., a farm tractor now rented for construction); Exempt to Taxable (e.g., equipment sold by a tax-exempt entity to a private corporation); or Taxable to Exempt (e.g., a generator donated to a public hospital or church)." },
   { code: "CN", label: "CN – Cancellation", description: "Used to permanently remove machinery from the tax roll. Reasons must be documented: Dismantled/Retired (permanently shut down or sold as scrap); Destroyed (fire, earthquake, typhoon, or accident); or Transferred to Another LGU (machinery physically moved to a different city or municipality — the receiving LGU will tag it as New Discovery)." },
 ];
-
-
-function collectFormData(
-  ownerName: string,
-  adminCareOf: string,
-  propertyStreet: string,
-  ownerLoc: any,
-  adminLoc: any,
-  propLoc: any,
-  transactionCode: string,
-  tdNo: string,
-  arpNo: string,
-  titleType: string,
-  titleNo: string,
-  pin: string,
-  surveyNo: string,
-  lotNo: string,
-  blk: string | number,
-  previousTdNo: string,
-  previousOwner: string,
-  previousAv: string,
-  previousMv: string,
-  previousArea: string,
-  landOwner: string,
-  landPin: string,
-  landArpNo: string,
-  landArea: string,
-  buildingOwner: string,
-  buildingPin: string,
-  buildingTdArpNo: string,
-  actualUse: string,
-) {
-  const data: any = {
-    actual_use: actualUse || null,
-    owner_name: ownerName,
-    admin_care_of: adminCareOf,
-    property_address: propertyStreet,
-    transaction_code: transactionCode,
-    td_no: tdNo,
-    arp_no: arpNo,
-    oct_tct_cloa_no: titleType === 'None' || !titleType ? '' : `${titleType} ${titleNo}`.trim(),
-    pin,
-    survey_no: surveyNo,
-    lot_no: lotNo,
-    blk: blk !== "" ? Number(blk) : null,
-    previous_td_no: previousTdNo || null,
-    previous_owner: previousOwner || null,
-    previous_av: previousAv ? parseFloat(previousAv) || null : null,
-    previous_mv: previousMv ? parseFloat(previousMv) || null : null,
-    previous_area: previousArea ? parseFloat(previousArea) || null : null,
-    land_owner: landOwner || null,
-    land_pin: landPin || null,
-    land_arp_no: landArpNo || null,
-    land_area: landArea ? parseFloat(landArea) || null : null,
-    building_owner: buildingOwner || null,
-    building_pin: buildingPin || null,
-    building_td_arp_no: buildingTdArpNo || null,
-    owner_province_code: ownerLoc.provinceCode,
-    owner_municipality_code: ownerLoc.municipalityCode,
-    owner_barangay_code: ownerLoc.barangayCode,
-    admin_province_code: adminLoc.provinceCode,
-    admin_municipality_code: adminLoc.municipalityCode,
-    admin_barangay_code: adminLoc.barangayCode,
-    property_province_code: propLoc.provinceCode,
-    property_municipality_code: propLoc.municipalityCode,
-    property_barangay_code: propLoc.barangayCode,
-  };
-
-  const ownerProvince = PH_PROVINCES.find(p => p.code === ownerLoc.provinceCode)?.name || '';
-  const ownerMunicipality = ownerLoc.municipalities.find((m: any) => m.code === ownerLoc.municipalityCode)?.name || '';
-  const ownerBarangay = ownerLoc.barangays.find((b: any) => b.code === ownerLoc.barangayCode)?.name || '';
-  if (ownerProvince || ownerMunicipality || ownerBarangay) {
-    data.owner_address = [ownerBarangay, ownerMunicipality, ownerProvince].filter(Boolean).join(', ');
-  }
-
-  const adminProvince = PH_PROVINCES.find(p => p.code === adminLoc.provinceCode)?.name || '';
-  const adminMunicipality = adminLoc.municipalities.find((m: any) => m.code === adminLoc.municipalityCode)?.name || '';
-  const adminBarangay = adminLoc.barangays.find((b: any) => b.code === adminLoc.barangayCode)?.name || '';
-  if (adminProvince || adminMunicipality || adminBarangay) {
-    data.admin_address = [adminBarangay, adminMunicipality, adminProvince].filter(Boolean).join(', ');
-  }
-
-  data.location_province = "Mountain Province";
-  const propMunicipality = propLoc.municipalities.find((m: any) => m.code === propLoc.municipalityCode)?.name || '';
-  const propBarangay = propLoc.barangays.find((b: any) => b.code === propLoc.barangayCode)?.name || '';
-  if (propMunicipality) data.location_municipality = propMunicipality;
-  if (propBarangay) data.location_barangay = propBarangay;
-
-  return data;
-}
 
 function MachineryFillPageContent() {
   const router = useRouter();
@@ -321,7 +232,40 @@ function MachineryFillPageContent() {
   }, [propLoc.barangayCode, propLoc.barangays]);
 
   const saveFormData = useCallback(async (): Promise<string | null> => {
-    const formData = collectFormData(ownerName, adminCareOf, propertyStreet, ownerLoc, adminLoc, propLoc, transactionCode, tdNo, arpNo, titleType, titleNo, pin, surveyNo, lotNo, blk, previousTdNo, previousOwner, previousAv, previousMv, previousArea, landOwner, landPin, landArpNo, landArea, buildingOwner, buildingPin, buildingTdArpNo, actualUse);
+    const formData = createFaasStep1Payload({
+      ownerName,
+      adminCareOf,
+      propertyStreet,
+      ownerLoc,
+      adminLoc,
+      propLoc,
+      transactionCode,
+      tdNo,
+      arpNo,
+      titleType,
+      titleNo,
+      pin,
+      surveyNo,
+      lotNo,
+      blk,
+      previousTdNo,
+      previousOwner,
+      previousAv,
+      previousMv,
+      previousArea,
+      missingTitleValue: '',
+      blockValueMode: 'number-or-null',
+      extraFields: {
+        actual_use: actualUse || null,
+        land_owner: landOwner || null,
+        land_pin: landPin || null,
+        land_arp_no: landArpNo || null,
+        land_area: landArea ? parseFloat(landArea) || null : null,
+        building_owner: buildingOwner || null,
+        building_pin: buildingPin || null,
+        building_td_arp_no: buildingTdArpNo || null,
+      },
+    });
     const currentDraftId = draftId || getStoredFaasDraftId(localStorage, "machinery");
     if (!currentDraftId) formData.status = 'draft';
     try {

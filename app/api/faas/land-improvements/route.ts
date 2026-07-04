@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { revalidateTag } from 'next/cache'
 import { getCurrentUserContext } from '@/lib/services/user.service'
 import {
@@ -12,11 +12,7 @@ import {
 } from '@/lib/faas/visibility-filters'
 
 function getAdminClient() {
-  return createAdminClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { autoRefreshToken: false, persistSession: false }, db: { schema: 'public' } }
-  )
+  return createSupabaseAdminClient()
 }
 
 function getErrorMessage(error: unknown) {

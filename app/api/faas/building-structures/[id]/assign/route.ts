@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { createClient as createAdminClient } from '@supabase/supabase-js';
+import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { notifyFaasAssignment } from '@/lib/faas/notification-rules';
 import {
   canAssignFaasRecord,
@@ -10,11 +10,7 @@ import {
 } from '@/lib/faas/access-control';
 
 function getAdmin() {
-  return createAdminClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { autoRefreshToken: false, persistSession: false } }
-  );
+  return createSupabaseAdminClient();
 }
 
 const ASSIGN_ALLOWED_ROLES = ['municipal_tax_mapper', 'municipal_assessor', 'admin', 'super_admin'];

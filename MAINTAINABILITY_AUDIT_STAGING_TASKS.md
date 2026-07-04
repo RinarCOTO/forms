@@ -162,11 +162,11 @@ Likely files:
 Tasks:
 - Split `FaasDashboard.tsx` into data/action hooks plus a presentational table when the dashboard is next changed.
 - Split `useRPFAASData.ts` into data hydration, pure calculations, and a thin composing hook.
-- Extract the building step-2 currency input behavior into a shared hook or formatter.
-- Extract building step-2 derived calculations and loaded-data mapping into named pure helpers.
-- Extract shared step-1 owner/admin/location/title/previous-TD collection into a form-type-configured helper.
-- Extract print photo readiness into a shared hook.
-- Extract repeated photo attachment page rendering into a shared component.
+- Completed: extracted the building step-2 currency/input formatting behavior into named pure helpers.
+- Completed: extracted building step-2 payload, year, building-type, floor-area, and loaded-data mapping helpers.
+- Completed: extracted shared step-1 owner/admin/location/title/previous-TD collection into a form-type-configured helper.
+- Completed: extracted print photo readiness into a shared hook.
+- Completed: extracted repeated photo attachment page rendering into a shared component.
 - Create one shared Zod schema or sanitizer factory for all FAAS PUT routes.
 
 Acceptance checks:
@@ -179,7 +179,7 @@ Acceptance checks:
 
 ## Stage 4 - Delete Dead Code And Consolidate Low-Risk Duplication
 
-Status: in progress.
+Status: implemented; pending optional manual spot checks.
 
 Priority: low risk / opportunistic.
 
@@ -202,12 +202,12 @@ Likely files:
 - `app/components/forms/RPFAAS/components/taxDec.css`
 
 Tasks:
-- Confirm zero call sites for `useLoadDraft`, `useSaveForm`, `formStorage`, and `SaveButton`.
-- Delete the unused legacy save/load files after confirmation.
-- Add one shared Supabase admin-client factory.
-- Replace repeated per-route admin-client factories with the shared helper.
-- Move identical `.rpfaas-field-value` and `.floor-area-print` CSS declarations out of duplicated media blocks.
-- Express tax declaration print density through shared CSS custom properties and land-specific overrides.
+- Completed: confirmed zero active call sites for `useLoadDraft`, `useSaveForm`, `formStorage`, and `SaveButton`.
+- Completed: deleted the unused legacy save/load files after confirmation.
+- Completed: added one shared Supabase admin-client factory.
+- Completed: replaced repeated per-route admin-client factories with the shared helper.
+- Completed: moved identical `.rpfaas-field-value` and `.floor-area-print` CSS declarations out of duplicated media blocks.
+- Completed: expressed tax declaration print density through shared CSS custom properties and land-specific overrides.
 
 Acceptance checks:
 - `rg` confirms deleted legacy save/load files had no remaining references.

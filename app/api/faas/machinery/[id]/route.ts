@@ -1,15 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient as createSupabaseClient } from '@supabase/supabase-js';
+import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { getCurrentUserContext } from '@/lib/services/user.service';
 import { canAccessFaasRecord, parsePositiveIntegerId } from '@/lib/faas/access-control';
 import { sanitizeFaasUpdatePayload } from '@/lib/faas/update-payload';
 
-const getSupabaseAdmin = () =>
-  createSupabaseClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { autoRefreshToken: false, persistSession: false }, db: { schema: 'public' } }
-  );
+const getSupabaseAdmin = () => createSupabaseAdminClient();
 
 export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> | { id: string } }) {
   try {

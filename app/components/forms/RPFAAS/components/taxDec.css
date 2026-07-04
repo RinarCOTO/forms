@@ -40,30 +40,57 @@
 
 @media print {
   .tax-dec-body {
-    font-size: 9pt !important;
-    line-height: 1.2 !important;
+    --td-font-size: 9pt;
+    --td-line-height: 1.2;
+    --td-section-gap: 3pt;
+    --td-stack-gap: 2pt;
+    --td-mt-4: 4pt;
+    --td-mt-6: 5pt;
+    --td-grid-mt-6: 6pt;
+    --td-mt-24: 8pt;
+    --td-mb-1: 1pt;
+    --td-mb-2: 2pt;
+    --td-mb-4: 3pt;
+    --td-appraisal-min-height: 12pt;
+    --td-appraisal-line-height: 1.15;
+    font-size: var(--td-font-size) !important;
+    line-height: var(--td-line-height) !important;
+  }
+
+  /* Land tax declarations have extra boundary/title rows; keep the print density
+     aligned with the building tax declaration. */
+  .tax-dec-land {
+    --td-font-size: 8.5pt;
+    --td-line-height: 1.12;
+    --td-section-gap: 1.5pt;
+    --td-stack-gap: 1.5pt;
+    --td-mt-4: 3pt;
+    --td-mt-6: 4pt;
+    --td-mt-24: 6pt;
+    --td-appraisal-min-height: 10pt;
+    --td-appraisal-line-height: 1.1;
   }
 
   /* Collapse all space-y-* gaps inside the tax dec */
   .tax-dec-body > * + * {
-    margin-top: 3pt !important;
+    margin-top: var(--td-section-gap) !important;
   }
   .tax-dec-body .space-y-1 > * + *,
   .tax-dec-body .space-y-2 > * + *,
   .tax-dec-body .space-y-3 > * + * {
-    margin-top: 2pt !important;
+    margin-top: var(--td-stack-gap) !important;
   }
 
   /* Reduce large Tailwind margin utilities */
-  .tax-dec-body .mt-4  { margin-top: 4pt !important; }
-  .tax-dec-body .mt-6  { margin-top: 5pt !important; }
-  .tax-dec-body .mt-24 { margin-top: 8pt !important; }
-  .tax-dec-body .mb-1  { margin-bottom: 1pt !important; }
-  .tax-dec-body .mb-2  { margin-bottom: 2pt !important; }
-  .tax-dec-body .mb-4  { margin-bottom: 3pt !important; }
+  .tax-dec-body .mt-4  { margin-top: var(--td-mt-4) !important; }
+  .tax-dec-body .mt-6  { margin-top: var(--td-mt-6) !important; }
+  .tax-dec-body .mt-24 { margin-top: var(--td-mt-24) !important; }
+  .tax-dec-body .mb-1  { margin-bottom: var(--td-mb-1) !important; }
+  .tax-dec-body .mb-2  { margin-bottom: var(--td-mb-2) !important; }
+  .tax-dec-body .mb-4  { margin-bottom: var(--td-mb-4) !important; }
 
   /* Signature area spacing */
-  .tax-dec-body .mt-6[class*="grid"] { margin-top: 6pt !important; }
+  .tax-dec-body .mt-6[class*="grid"] { margin-top: var(--td-grid-mt-6) !important; }
 
   /* Title */
   .tax-dec-title {
@@ -81,32 +108,8 @@
 
   .tax-dec-appraisal-head > div,
   .tax-dec-appraisal-row > div {
-    min-height: 12pt !important;
-    line-height: 1.15 !important;
+    min-height: var(--td-appraisal-min-height, 12pt) !important;
+    line-height: var(--td-appraisal-line-height, 1.15) !important;
     padding-bottom: 1pt !important;
-  }
-
-  /* Land tax declarations have extra boundary/title rows; keep the print density
-     aligned with the building tax declaration. */
-  .tax-dec-land {
-    font-size: 8.5pt !important;
-    line-height: 1.12 !important;
-  }
-
-  .tax-dec-land > * + *,
-  .tax-dec-land .space-y-1 > * + *,
-  .tax-dec-land .space-y-2 > * + *,
-  .tax-dec-land .space-y-3 > * + * {
-    margin-top: 1.5pt !important;
-  }
-
-  .tax-dec-land .mt-4 { margin-top: 3pt !important; }
-  .tax-dec-land .mt-6 { margin-top: 4pt !important; }
-  .tax-dec-land .mt-24 { margin-top: 6pt !important; }
-
-  .tax-dec-land .tax-dec-appraisal-head > div,
-  .tax-dec-land .tax-dec-appraisal-row > div {
-    min-height: 10pt !important;
-    line-height: 1.1 !important;
   }
 }

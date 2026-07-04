@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect, useCallback, Suspense, useRef } from "react";
 import { StepPagination } from "@/components/ui/step-pagination";
@@ -23,36 +22,38 @@ import { toast } from "sonner";
 import { FormLockBanner } from "@/components/ui/form-lock-banner";
 import { FormSection } from "@/components/ui/form-section";
 import { getStoredFaasDraftId, setStoredFaasDraftId } from "@/utils/form-draft-storage";
-// Pure helper — lives at module scope so it's never recreated on render
-function formatPeso(value: string | number) {
-  if (value === "" || value === undefined) return "";
-  const num = typeof value === "string" ? Number(value.replace(/[^0-9.]/g, "")) : value;
-  if (isNaN(num) || num === 0) return "₱0.00";
-  return `₱${num.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
+import {
+  combineLandTdArpNo,
+  createBuildingStep2Payload,
+  formatPeso,
+  getBuildingType,
+  getBuildingTypeForCost,
+  getBuildingTypeSelection,
+  getRawCostValue,
+  getStoredYear,
+  normalizeStructuralType,
+  parseStoredFloorAreas,
+} from "@/lib/faas/building-step2";
 
-function normalizeStructuralType(value: string) {
-  return value.replace(/^Type\s+/i, "").trim();
-}
-
-// Helper function to collect form data
-function collectFormData(
-  typeOfBuilding: string,
-  structureType: string,
-  dateConstructed: number | string,
-  numberOfStoreys: number | string,
-  totalFloorArea: number | string,
-  // Add other fields here if your DB Schema expects them (e.g. permit number)
-) {
-  const data: any = {};
-  if (typeOfBuilding) data.type_of_building = typeOfBuilding;
-  if (structureType) data.structure_type = structureType;
-  if (dateConstructed) data.date_constructed = dateConstructed.toString();
-  if (numberOfStoreys) data.number_of_storeys = numberOfStoreys.toString();
-  if (totalFloorArea) data.total_floor_area = totalFloorArea.toString();
-  
-  return data;
-}
+type LoadedBuildingStep2Data = Partial<{
+  type_of_building: string;
+  structure_type: string;
+  building_permit_no: string;
+  cct: string;
+  completion_issued_on: string | number;
+  date_constructed: string | number;
+  date_occupied: string | number;
+  building_age: string | number;
+  number_of_storeys: string | number;
+  floor_areas: unknown;
+  total_floor_area: string | number;
+  land_owner: string;
+  land_td_no: string;
+  land_arp_no: string;
+  td_arp_no: string;
+  land_area: string | number;
+  cost_of_construction: string | number;
+}>;
 
 const BuildingStructureFormFillPage2 = () => {
   const router = useRouter();
@@ -66,21 +67,13 @@ const BuildingStructureFormFillPage2 = () => {
   const markDirty = useCallback(() => {
     if (isInitializedRef.current) setIsDirty(true);
   }, []);
-  const FORM_NAME = "building_other_structure_fill_p2";
-
   // --- 1. DEFINE ALL STATES (So the Hook can save them) ---
   const [buildingCategory, setBuildingCategory] = useState(""); // "Residential" | "Commercial"
   const [buildingSubType, setBuildingSubType] = useState(""); // label from BUILDING_TYPES[1..]
   // Derived value saved to DB: "Residential" or "Commercial - <subtype>"
-  const typeOfBuilding =
-    buildingCategory === "Residential"
-      ? "Residential"
-      : buildingSubType
-      ? `Commercial - ${buildingSubType}`
-      : "";
+  const typeOfBuilding = getBuildingType(buildingCategory, buildingSubType);
   // Label passed to unit cost lookup (always the original BUILDING_TYPES label)
-  const typeOfBuildingForCost =
-    buildingCategory === "Residential" ? "Residential Houses" : buildingSubType;
+  const typeOfBuildingForCost = getBuildingTypeForCost(buildingCategory, buildingSubType);
   const [structureType, setStructureType] = useState("");
   const [buildingPermitNo, setBuildingPermitNo] = useState(""); // Added
   const [cct, setCct] = useState(""); // Added
@@ -88,61 +81,19 @@ const BuildingStructureFormFillPage2 = () => {
   const [dateConstructed, setDateConstructed] = useState<number | "">("");
   const [dateOccupied, setDateOccupied] = useState("");
   const [buildingAge, setBuildingAge] = useState<number | string>("");
-  const [costOfConstruction, setCostOfConstruction] = useState<string>("");
   const [costOfConstructionDisplay, setCostOfConstructionDisplay] = useState<string>("");
-  // Handle input change
-const handleCostOfConstructionChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-  let value = e.target.value;
-
-  // 1. Remove all non-digit characters except the decimal point
-  const cleanValue = value.replace(/[^0-9.]/g, "");
-
-  // 2. Handle multiple decimal points (only allow the first one)
-  const parts = cleanValue.split(".");
-  const integerPart = parts[0];
-  const decimalPart = parts.length > 1 ? "." + parts[1].slice(0, 2) : "";
-
-  // 3. Format the integer part with commas
-  const formattedInteger = integerPart 
-    ? parseInt(integerPart, 10).toLocaleString() 
-    : "";
-
-  const rawValue = cleanValue === "" ? "" : cleanValue;
-
-  // 4. Combine and update state
-  // We use the string version for display so the user can type the decimal
-  setCostOfConstructionDisplay(formattedInteger + decimalPart);
-  setCostOfConstruction(rawValue);
-
-  // 5. If you need the raw number for calculations, save it elsewhere:
-  // setRawValue(parseFloat(cleanValue) || 0);
-}, []);
-  // Format on blur
-  const handleCostOfConstructionBlur = useCallback(() => {
-    setCostOfConstructionDisplay(formatPeso(costOfConstruction));
-  }, [costOfConstruction]);
-  // Show formatted value if not editing
-  useEffect(() => {
-    if (costOfConstruction === "") {
-      setCostOfConstructionDisplay("");
-    } else {
-      setCostOfConstructionDisplay(formatPeso(costOfConstruction));
-    }
-  }, []);
 
   useEffect(() => {
     const rawValue = getUnitConstructionCost(typeOfBuildingForCost, structureType);
     if (rawValue != null) {
-      setCostOfConstruction(rawValue);
       setCostOfConstructionDisplay(formatPeso(rawValue));
     } else {
-      setCostOfConstruction("");
       setCostOfConstructionDisplay("");
     }
   }, [typeOfBuildingForCost, structureType]);
   const [numberOfStoreys, setNumberOfStoreys] = useState<number | "">(1);
   const [floorAreas, setFloorAreas] = useState<(number | "")[]>([""]);
-  const [totalFloorArea, setTotalFloorArea] = useState<number | "">("");
+  const [totalFloorArea, setTotalFloorArea] = useState<number | string>("");
   
   // Land Reference States
   const [landOwner, setLandOwner] = useState("");
@@ -171,45 +122,30 @@ const handleCostOfConstructionChange = useCallback((e: React.ChangeEvent<HTMLInp
 
   // --- 2.1. LOAD EXISTING DATA (if editing) ---
 // --- 2.1. LOAD EXISTING DATA (if editing) ---
-  const { data: loadedData, isLoading: isLoadingData } = useFormData<any>("faas/building-structures", draftId || "");
+  const { data: loadedData } = useFormData<LoadedBuildingStep2Data>("faas/building-structures", draftId || "");
 
   useEffect(() => {
     if (loadedData) {
-      // HELPER: Extract Year from "YYYY-MM-DD" or just return the number
-      const getYear = (val: any) => {
-        if (!val) return "";
-        // If it's already a number (e.g. 2024), return it
-        if (typeof val === 'number') return val;
-        // If it's a string like "2024-01-01", take the first 4 chars
-        const strVal = val.toString();
-        return strVal.length >= 4 ? Number(strVal.substring(0, 4)) : "";
-      };
-
       const savedType: string = loadedData.type_of_building || "";
-      if (savedType === "Residential" || savedType === "Residential Houses") {
-        setBuildingCategory("Residential");
-        setBuildingSubType("");
-      } else if (savedType.startsWith("Commercial - ")) {
-        setBuildingCategory("Commercial");
-        setBuildingSubType(savedType.replace("Commercial - ", ""));
-      } else if (savedType) {
-        // legacy: plain label without prefix → treat as Commercial
-        setBuildingCategory("Commercial");
-        setBuildingSubType(savedType);
-      }
+      const typeSelection = getBuildingTypeSelection(savedType);
+      setBuildingCategory(typeSelection.buildingCategory);
+      setBuildingSubType(typeSelection.buildingSubType);
       setStructureType(normalizeStructuralType(loadedData.structure_type || ""));
       setBuildingPermitNo(loadedData.building_permit_no || "");
       setCct(loadedData.cct || "");
 
       // FIX: Extract Year properly
-      setCompletionIssuedOn(String(getYear(loadedData.completion_issued_on)));
-      setDateConstructed(getYear(loadedData.date_constructed));
-      setDateOccupied(String(getYear(loadedData.date_occupied)));
+      const completionIssuedYear = getStoredYear(loadedData.completion_issued_on);
+      const dateConstructedYear = getStoredYear(loadedData.date_constructed);
+      const dateOccupiedYear = getStoredYear(loadedData.date_occupied);
+      setCompletionIssuedOn(String(completionIssuedYear));
+      setDateConstructed(dateConstructedYear);
+      setDateOccupied(String(dateOccupiedYear));
 
       if (loadedData.building_age) {
         setBuildingAge(loadedData.building_age);
-      } else if (loadedData.date_constructed) {
-        setBuildingAge(calculateAge(Number(getYear(loadedData.date_constructed))));
+      } else if (dateConstructedYear) {
+        setBuildingAge(calculateAge(Number(dateConstructedYear)));
       } else {
         setBuildingAge("");
       }
@@ -217,25 +153,21 @@ const handleCostOfConstructionChange = useCallback((e: React.ChangeEvent<HTMLInp
 
       // Handle Floor Areas safely
       if (loadedData.floor_areas) {
-         const areas = typeof loadedData.floor_areas === 'string' 
-            ? JSON.parse(loadedData.floor_areas) 
-            : loadedData.floor_areas;
-         setFloorAreas(areas);
+         const areas = parseStoredFloorAreas(loadedData.floor_areas);
+         if (areas) setFloorAreas(areas);
       }
 
       setTotalFloorArea(loadedData.total_floor_area || "");
       setLandOwner(loadedData.land_owner || "");
       setLandTdNo(loadedData.land_td_no || loadedData.td_arp_no || "");
       setLandArpNo(loadedData.land_arp_no || "");
-      setLandArea(loadedData.land_area || "");
+      setLandArea(String(loadedData.land_area || ""));
 
       // Load cost of construction
       if (loadedData.cost_of_construction !== undefined && loadedData.cost_of_construction !== null) {
         const raw = loadedData.cost_of_construction.toString();
-        setCostOfConstruction(raw);
         setCostOfConstructionDisplay(formatPeso(raw));
       } else {
-        setCostOfConstruction("");
         setCostOfConstructionDisplay("");
       }
       isInitializedRef.current = true;
@@ -258,7 +190,7 @@ const handleCostOfConstructionChange = useCallback((e: React.ChangeEvent<HTMLInp
     land_owner: landOwner,
     land_td_no: landTdNo,
     land_arp_no: landArpNo,
-    td_arp_no: [landTdNo, landArpNo].filter(Boolean).join(" / "),
+    td_arp_no: combineLandTdArpNo(landTdNo, landArpNo),
     land_area: landArea
   });
 
@@ -294,44 +226,32 @@ const handleNext = useCallback(async () => {
     try {
       // 1. EXTRACT RAW VALUE FOR STORAGE
       // Remove commas and currency symbols to get raw number (e.g., "25000.50")
-      const rawCostValue = costOfConstructionDisplay 
-        ? costOfConstructionDisplay.replace(/[^0-9.]/g, "") 
-        : "0";
+      const rawCostValue = getRawCostValue(costOfConstructionDisplay);
 
       // 2. SAVE TO LOCALSTORAGE (This is what Step 4 looks for)
       localStorage.setItem('unit_cost_p2', rawCostValue);
       localStorage.setItem('total_floor_area_p2', totalFloorArea.toString());
 
-      // --- Prepare DB Payload ---
-      const formatYearToDate = (val: string | number) => {
-        if (!val) return null;
-        const str = val.toString();
-        return str.length === 4 ? `${str}-01-01` : str;
-      };
-
-      const formData: Record<string, unknown> = {
-        type_of_building: typeOfBuilding,
-        structure_type: structureType,
-        building_permit_no: buildingPermitNo,
-        cct: cct,
-        completion_issued_on: formatYearToDate(completionIssuedOn),
-        date_constructed: formatYearToDate(dateConstructed),
-        date_occupied: formatYearToDate(dateOccupied),
-        building_age: buildingAge,
-        number_of_storeys: numberOfStoreys,
-        floor_areas: typeof numberOfStoreys === 'number' ? floorAreas.slice(0, numberOfStoreys) : floorAreas,
-        total_floor_area: totalFloorArea,
-        land_owner: landOwner,
-        land_td_no: landTdNo,
-        land_arp_no: landArpNo,
-        td_arp_no: [landTdNo, landArpNo].filter(Boolean).join(" / "),
-        land_area: landArea,
-        // We use the raw value here for the DB too
-        cost_of_construction: rawCostValue === "0" ? null : rawCostValue,
-      };
+      const formData = createBuildingStep2Payload({
+        typeOfBuilding,
+        structureType,
+        buildingPermitNo,
+        cct,
+        completionIssuedOn,
+        dateConstructed,
+        dateOccupied,
+        buildingAge,
+        numberOfStoreys,
+        floorAreas,
+        totalFloorArea,
+        landOwner,
+        landTdNo,
+        landArpNo,
+        landArea,
+        rawCostValue,
+      });
 
       // ... rest of your fetch logic remains the same ...
-      let response;
       const currentDraftId = draftId || getStoredFaasDraftId(localStorage, "building");
       const method = currentDraftId ? 'PUT' : 'POST';
       if (!currentDraftId) formData.status = 'draft';
@@ -339,7 +259,7 @@ const handleNext = useCallback(async () => {
         ? `/api/faas/building-structures/${currentDraftId}` 
         : '/api/faas/building-structures';
 
-      response = await fetch(endpoint, {
+      const response = await fetch(endpoint, {
         method: method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
@@ -363,33 +283,30 @@ const handleNext = useCallback(async () => {
     } finally {
       setIsSaving(false);
     }
-  }, [draftId, router, typeOfBuilding, structureType, buildingPermitNo, cct, completionIssuedOn, dateConstructed, dateOccupied, buildingAge, numberOfStoreys, floorAreas, totalFloorArea, landOwner, landTdNo, landArpNo, landArea, costOfConstructionDisplay, costOfConstruction]);
+  }, [draftId, router, typeOfBuilding, structureType, buildingPermitNo, cct, completionIssuedOn, dateConstructed, dateOccupied, buildingAge, numberOfStoreys, floorAreas, totalFloorArea, landOwner, landTdNo, landArpNo, landArea, costOfConstructionDisplay]);
 
   const handleSaveDraft = useCallback(async () => {
     setIsSavingDraft(true);
     try {
-      const rawCostValue = costOfConstructionDisplay ? costOfConstructionDisplay.replace(/[^0-9.]/g, '') : '0';
-      const formatYearToDate = (val: string | number) => {
-        if (!val) return null;
-        const str = val.toString();
-        return str.length === 4 ? `${str}-01-01` : str;
-      };
-      const formData: Record<string, unknown> = {
-        type_of_building: typeOfBuilding, structure_type: structureType,
-        building_permit_no: buildingPermitNo, cct,
-        completion_issued_on: formatYearToDate(completionIssuedOn),
-        date_constructed: formatYearToDate(dateConstructed),
-        date_occupied: formatYearToDate(dateOccupied),
-        building_age: buildingAge, number_of_storeys: numberOfStoreys,
-        floor_areas: typeof numberOfStoreys === 'number' ? floorAreas.slice(0, numberOfStoreys) : floorAreas,
-        total_floor_area: totalFloorArea,
-        land_owner: landOwner,
-        land_td_no: landTdNo,
-        land_arp_no: landArpNo,
-        td_arp_no: [landTdNo, landArpNo].filter(Boolean).join(" / "),
-        land_area: landArea,
-        cost_of_construction: rawCostValue === '0' ? null : rawCostValue,
-      };
+      const rawCostValue = getRawCostValue(costOfConstructionDisplay);
+      const formData = createBuildingStep2Payload({
+        typeOfBuilding,
+        structureType,
+        buildingPermitNo,
+        cct,
+        completionIssuedOn,
+        dateConstructed,
+        dateOccupied,
+        buildingAge,
+        numberOfStoreys,
+        floorAreas,
+        totalFloorArea,
+        landOwner,
+        landTdNo,
+        landArpNo,
+        landArea,
+        rawCostValue,
+      });
       const currentDraftId = draftId || getStoredFaasDraftId(localStorage, "building");
       const method = currentDraftId ? 'PUT' : 'POST';
       if (!currentDraftId) formData.status = 'draft';

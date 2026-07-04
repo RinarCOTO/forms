@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { getCurrentUserContext } from '@/lib/services/user.service'
 import {
   getBuildingLaooDraftVisibilityFilter,
@@ -29,11 +29,7 @@ type CountQuery = {
 }
 
 function getAdminClient() {
-  return createAdminClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { auth: { autoRefreshToken: false, persistSession: false } }
-  )
+  return createSupabaseAdminClient({ allowAnonFallback: true })
 }
 
 function applyBuildingVisibility(query: CountQuery, userCtx: UserContext): CountQuery {

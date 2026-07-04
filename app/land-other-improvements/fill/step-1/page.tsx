@@ -14,7 +14,7 @@ import { FormSection } from "@/components/ui/form-section";
 import { FormLockBanner } from "@/components/ui/form-lock-banner";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { PH_PROVINCES, MOUNTAIN_PROVINCE_CODE } from "@/app/components/forms/RPFAAS/constants/philippineLocations";
+import { MOUNTAIN_PROVINCE_CODE } from "@/app/components/forms/RPFAAS/constants/philippineLocations";
 import { useFormLock } from "@/hooks/useFormLock";
 import { useLocationSelect, safeSetLS } from "@/hooks/useLocationSelect";
 import { PinInput } from "@/components/ui/pin-input";
@@ -26,6 +26,7 @@ import { TitleNoField } from "@/components/rpfaas/title-no-field";
 import { PreviousTdBlock } from "@/components/rpfaas/previous-td-block";
 import { TransactionCodeSelect, type TransactionCode } from "@/components/rpfaas/transaction-code-select";
 import { getStoredFaasDraftId, setStoredFaasDraftId } from "@/utils/form-draft-storage";
+import { createFaasStep1Payload } from "@/lib/faas/step1-payload";
 
 const TRANSACTION_CODES: TransactionCode[] = [
   { code: "DC", label: "DC – Discovery / Newly Discovered", description: "Used for newly constructed buildings, or for existing structures that were previously undeclared and are being assessed for the very first time." },
@@ -39,79 +40,6 @@ const TRANSACTION_CODES: TransactionCode[] = [
 ];
 
 const FORM_NAME = "land_other_improvements_fill";
-
-function collectFormData(
-  ownerName: string,
-  adminCareOf: string,
-  propertyStreet: string,
-  ownerLoc: any,
-  adminLoc: any,
-  propLoc: any,
-  transactionCode: string,
-  tdNo: string,
-  arpNo: string,
-  titleType: string,
-  titleNo: string,
-  pin: string,
-  surveyNo: string,
-  lotNo: string,
-  blk: string,
-  previousTdNo: string,
-  previousOwner: string,
-  previousAv: string,
-  previousMv: string,
-  previousArea: string,
-) {
-  const data: any = {
-    owner_name: ownerName,
-    admin_care_of: adminCareOf,
-    property_address: propertyStreet,
-    transaction_code: transactionCode,
-    td_no: tdNo,
-    arp_no: arpNo,
-    oct_tct_cloa_no: titleType === 'None' || !titleType ? null : `${titleType} ${titleNo}`.trim(),
-    pin,
-    survey_no: surveyNo,
-    lot_no: lotNo,
-    blk,
-    previous_td_no: previousTdNo || null,
-    previous_owner: previousOwner || null,
-    previous_av: previousAv ? parseFloat(previousAv) || null : null,
-    previous_mv: previousMv ? parseFloat(previousMv) || null : null,
-    previous_area: previousArea ? parseFloat(previousArea) || null : null,
-    owner_province_code: ownerLoc.provinceCode,
-    owner_municipality_code: ownerLoc.municipalityCode,
-    owner_barangay_code: ownerLoc.barangayCode,
-    admin_province_code: adminLoc.provinceCode,
-    admin_municipality_code: adminLoc.municipalityCode,
-    admin_barangay_code: adminLoc.barangayCode,
-    property_province_code: propLoc.provinceCode,
-    property_municipality_code: propLoc.municipalityCode,
-    property_barangay_code: propLoc.barangayCode,
-  };
-
-  const ownerProvince = PH_PROVINCES.find(p => p.code === ownerLoc.provinceCode)?.name || '';
-  const ownerMunicipality = ownerLoc.municipalities.find((m: any) => m.code === ownerLoc.municipalityCode)?.name || '';
-  const ownerBarangay = ownerLoc.barangays.find((b: any) => b.code === ownerLoc.barangayCode)?.name || '';
-  if (ownerProvince || ownerMunicipality || ownerBarangay) {
-    data.owner_address = [ownerBarangay, ownerMunicipality, ownerProvince].filter(Boolean).join(', ');
-  }
-
-  const adminProvince = PH_PROVINCES.find(p => p.code === adminLoc.provinceCode)?.name || '';
-  const adminMunicipality = adminLoc.municipalities.find((m: any) => m.code === adminLoc.municipalityCode)?.name || '';
-  const adminBarangay = adminLoc.barangays.find((b: any) => b.code === adminLoc.barangayCode)?.name || '';
-  if (adminProvince || adminMunicipality || adminBarangay) {
-    data.admin_address = [adminBarangay, adminMunicipality, adminProvince].filter(Boolean).join(', ');
-  }
-
-  data.location_province = "Mountain Province";
-  const propMunicipality = propLoc.municipalities.find((m: any) => m.code === propLoc.municipalityCode)?.name || '';
-  const propBarangay = propLoc.barangays.find((b: any) => b.code === propLoc.barangayCode)?.name || '';
-  if (propMunicipality) data.location_municipality = propMunicipality;
-  if (propBarangay) data.location_barangay = propBarangay;
-
-  return data;
-}
 
 function LandOtherImprovementsFillPageContent() {
   const router = useRouter();
@@ -250,7 +178,30 @@ function LandOtherImprovementsFillPageContent() {
   useEffect(() => safeSetLS("rpfaas_arp_no", arpNo), [arpNo]);
 
   const saveData = useCallback(async (): Promise<string | null> => {
-    const formData = collectFormData(ownerName, adminCareOf, propertyStreet, ownerLoc, adminLoc, propLoc, transactionCode, tdNo, arpNo, titleType, titleNo, pin, surveyNo, lotNo, blk, previousTdNo, previousOwner, previousAv, previousMv, previousArea);
+    const formData = createFaasStep1Payload({
+      ownerName,
+      adminCareOf,
+      propertyStreet,
+      ownerLoc,
+      adminLoc,
+      propLoc,
+      transactionCode,
+      tdNo,
+      arpNo,
+      titleType,
+      titleNo,
+      pin,
+      surveyNo,
+      lotNo,
+      blk,
+      previousTdNo,
+      previousOwner,
+      previousAv,
+      previousMv,
+      previousArea,
+      missingTitleValue: null,
+      blockValueMode: 'string',
+    });
     formData.status = 'draft';
     const currentDraftId = draftId || getStoredFaasDraftId(localStorage, "land");
     const method = currentDraftId ? 'PUT' : 'POST';

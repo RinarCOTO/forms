@@ -32,6 +32,25 @@
   background-color: var(--accent);
 }
 
+.floor-area-print {
+  padding-left: 2px;
+  font-size: inherit !important;
+}
+
+/* General Description value cells */
+.rpfaas-field-value {
+  font-weight: 700;
+  font-size: inherit !important;
+  display: flex;
+  align-items: center;
+}
+
+/* Table section headers */
+.rpfaas-table-header {
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
 /* =========================
    SCREEN DISPLAY IMPROVEMENTS
    (Overrides for on-screen readability — print rules below override these back)
@@ -144,25 +163,11 @@
     font-size: inherit !important;
     color: #374151;
   }
-.floor-area-print{
-  padding-left: 2px;
-  font-size: inherit !important;
-}
-
-/* General Description value cells */
-.rpfaas-field-value {
-  font-weight: 700;
-  font-size: inherit;
-  display: flex;
-  align-items: center;
-}
 
 /* Table section headers */
 .rpfaas-table-header {
   font-size: 12px;
-  font-weight: 700;
   letter-spacing: 0.04em;
-  text-transform: uppercase;
 }
 }
 /* =========================
@@ -190,27 +195,15 @@
     padding: 0;
     background: white !important;
   }
-  body .floor-area-print {
-    font-size: inherit !important;
-    padding-left: 2px !important;
-  }
 
   .rpfaas-print-small-1{
     font-size: inherit !important;
-  }
-  .rpfaas-field-value {
-    font-weight: 700;
-    font-size: inherit !important;
-    display: flex;
-    align-items: center;
   }
 
   /* Table section headers */
   .rpfaas-table-header {
     font-size: 9pt !important;
-    font-weight: 700;
     letter-spacing: 0.03em;
-    text-transform: uppercase;
   }
   /* Checked checkboxes: show black ✓ on white, no filled square */
   .rpfaas-checkbox {

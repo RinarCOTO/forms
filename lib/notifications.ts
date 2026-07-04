@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { normalizeMunicipality } from "@/lib/faas/municipality";
 
 export type NotificationType =
@@ -75,11 +75,7 @@ function dedupeNotifications(notifications: AppNotification[]) {
 }
 
 function getNotificationClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { autoRefreshToken: false, persistSession: false }, db: { schema: "public" } }
-  );
+  return createSupabaseAdminClient();
 }
 
 export async function createNotification(input: CreateNotificationInput) {

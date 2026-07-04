@@ -1,4 +1,4 @@
-import { createClient as createAdminClient } from '@supabase/supabase-js';
+import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { canAccessFaasRecord, parsePositiveIntegerId, type FaasAccessRecord } from '@/lib/faas/access-control';
@@ -25,11 +25,7 @@ interface FaasPhotoRouteConfig {
 }
 
 function getAdminClient() {
-  return createAdminClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { autoRefreshToken: false, persistSession: false }, db: { schema: 'public' } }
-  );
+  return createSupabaseAdminClient();
 }
 
 function requiredFieldsMessage(parentIdField: string) {
