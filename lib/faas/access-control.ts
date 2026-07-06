@@ -61,10 +61,6 @@ export function getFaasRecordMunicipality(record: FaasAccessRecord) {
   return normalizeMunicipality(record.location_municipality) ?? normalizeMunicipality(record.municipality);
 }
 
-export function isProvinceWideFaasRole(role: string) {
-  return isProvincialFaasRole(role);
-}
-
 export function canAssignFaasRecord(userCtx: FaasUserContext, record: FaasAccessRecord) {
   return canAccessFaasRecord(userCtx, record);
 }
@@ -82,7 +78,7 @@ export function canAssignUserToFaasRecord(
     return false;
   }
 
-  if (userCtx.isAdmin || isProvinceWideFaasRole(userCtx.role)) {
+  if (userCtx.isAdmin || isProvincialFaasRole(userCtx.role)) {
     return true;
   }
 

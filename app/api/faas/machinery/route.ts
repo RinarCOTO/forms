@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { getCurrentUserContext } from '@/lib/services/user.service'
+import { isProvinceWideFaasRole } from '@/lib/faas/workflow'
 
 function getAdminClient() {
   return createSupabaseAdminClient({ allowAnonFallback: true })
@@ -51,7 +52,7 @@ export async function GET(request: NextRequest) {
 
     if (searchParams.get('meta') === '1') {
       let mq = admin.from('machinery').select('municipality')
-      if (!userCtx.isAdmin && userCtx.municipality) {
+      if (!userCtx.isAdmin && !isProvinceWideFaasRole(userCtx.role) && userCtx.municipality) {
         mq = mq.eq('municipality', userCtx.municipality)
       }
       const { data: mData } = await mq
@@ -72,7 +73,7 @@ export async function GET(request: NextRequest) {
       .order('updated_at', { ascending: false })
       .order('id', { ascending: false })
 
-    if (!userCtx.isAdmin && userCtx.municipality) {
+    if (!userCtx.isAdmin && !isProvinceWideFaasRole(userCtx.role) && userCtx.municipality) {
       query = query.eq('municipality', userCtx.municipality)
     }
 
