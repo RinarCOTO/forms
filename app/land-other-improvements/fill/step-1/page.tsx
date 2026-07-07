@@ -87,9 +87,10 @@ function LandOtherImprovementsFillPageContent() {
   }, []);
 
   useEffect(() => {
-    if (!propLoc.municipalities.length || propLoc.municipalityCode || !userMunicipality) return;
-    const match = propLoc.municipalities.find(m => m.name.toLowerCase() === userMunicipality.toLowerCase());
-    if (match) propLoc.setMunicipalityCode(match.code);
+    if (!propLoc.municipalities.length || !userMunicipality) return;
+    const normalizedUserMunicipality = userMunicipality.trim().toLowerCase();
+    const match = propLoc.municipalities.find(m => m.name.trim().toLowerCase() === normalizedUserMunicipality);
+    if (match && propLoc.municipalityCode !== match.code) propLoc.setMunicipalityCode(match.code);
   }, [propLoc.municipalities, propLoc.municipalityCode, userMunicipality]);
 
   useEffect(() => {

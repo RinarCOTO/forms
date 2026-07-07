@@ -93,7 +93,13 @@ export function useFaasDashboard(config: FaasDashboardConfig) {
   const [approvedForExport, setApprovedForExport] = useState<FormSubmission[]>([]);
   const [allMunicipalities, setAllMunicipalities] = useState<string[]>([]);
   const [allBarangays, setAllBarangays] = useState<string[]>([]);
-  const [user, setUser] = useState<{ id: string; role: string; municipality?: string; permissions: Record<string, boolean> } | null>(null);
+  const [user, setUser] = useState<{
+    id: string;
+    role: string;
+    municipality?: string;
+    municipalities?: string[];
+    permissions: Record<string, boolean>;
+  } | null>(null);
   const defaultMunicipalityApplied = useRef(false);
   const [municipalAssessors, setMunicipalAssessors] = useState<{ full_name: string; municipality: string }[]>([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -170,12 +176,20 @@ export function useFaasDashboard(config: FaasDashboardConfig) {
 
   useEffect(() => {
     if (defaultMunicipalityApplied.current) return;
-    if (!user || user.role !== "laoo" || !user.municipality) return;
+    const assignedMunicipalities =
+      user?.municipalities && user.municipalities.length > 0
+        ? user.municipalities
+        : user?.municipality
+          ? [user.municipality]
+          : [];
+    if (!user || user.role !== "laoo" || assignedMunicipalities.length === 0) return;
     if (allMunicipalities.length === 0) return;
 
     defaultMunicipalityApplied.current = true;
-    const match = allMunicipalities.find(m => m.toLowerCase() === user.municipality!.toLowerCase());
-    if (match) setSelectedMunicipalities([match]);
+    const matches = allMunicipalities.filter((municipality) =>
+      assignedMunicipalities.some((assigned) => municipality.toLowerCase() === assigned.toLowerCase())
+    );
+    if (matches.length > 0) setSelectedMunicipalities(matches);
   }, [user, allMunicipalities]);
 
   useEffect(() => {

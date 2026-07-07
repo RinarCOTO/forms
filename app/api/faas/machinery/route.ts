@@ -7,6 +7,12 @@ function getAdminClient() {
   return createSupabaseAdminClient({ allowAnonFallback: true })
 }
 
+function getMunicipalityScope(userCtx: { municipality: string | null; municipalities?: string[] }) {
+  const municipalities = userCtx.municipalities?.filter(Boolean) ?? []
+  if (municipalities.length > 0) return [...new Set(municipalities)]
+  return userCtx.municipality ? [userCtx.municipality] : []
+}
+
 export async function POST(request: NextRequest) {
   try {
     const userCtx = await getCurrentUserContext()
@@ -52,8 +58,11 @@ export async function GET(request: NextRequest) {
 
     if (searchParams.get('meta') === '1') {
       let mq = admin.from('machinery').select('municipality')
-      if (!userCtx.isAdmin && !isProvinceWideFaasRole(userCtx.role) && userCtx.municipality) {
-        mq = mq.eq('municipality', userCtx.municipality)
+      const municipalityScope = getMunicipalityScope(userCtx)
+      if (!userCtx.isAdmin && !isProvinceWideFaasRole(userCtx.role) && municipalityScope.length > 0) {
+        mq = municipalityScope.length === 1
+          ? mq.eq('municipality', municipalityScope[0])
+          : mq.in('municipality', municipalityScope)
       }
       const { data: mData } = await mq
       const municipalities = [...new Set(mData?.map(r => r.municipality).filter(Boolean))].sort()
@@ -73,8 +82,11 @@ export async function GET(request: NextRequest) {
       .order('updated_at', { ascending: false })
       .order('id', { ascending: false })
 
-    if (!userCtx.isAdmin && !isProvinceWideFaasRole(userCtx.role) && userCtx.municipality) {
-      query = query.eq('municipality', userCtx.municipality)
+    const municipalityScope = getMunicipalityScope(userCtx)
+    if (!userCtx.isAdmin && !isProvinceWideFaasRole(userCtx.role) && municipalityScope.length > 0) {
+      query = municipalityScope.length === 1
+        ? query.eq('municipality', municipalityScope[0])
+        : query.in('municipality', municipalityScope)
     }
 
     // Additional client-supplied filters

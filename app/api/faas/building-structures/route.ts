@@ -3,11 +3,9 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { revalidateTag } from 'next/cache'
 import { getCurrentUserContext } from '@/lib/services/user.service'
 import {
-  getBuildingLaooDraftVisibilityFilter,
-  getHiddenDraftStatusList,
-  getOwnOrAssignedFilter,
-  isBuildingOwnWorkOnlyRole,
-  shouldHideBuildingDrafts,
+  getBuildingMunicipalVisibilityFilter,
+  getBuildingMunicipalityVisibilityFilter,
+  isBuildingMunicipalDashboardRole,
   shouldScopeBuildingToMunicipality,
 } from '@/lib/faas/visibility-filters'
 
@@ -51,18 +49,11 @@ export async function GET(request: NextRequest) {
       let mq = admin
         .from('building_structures')
         .select('location_municipality, location_barangay')
-      if (isBuildingOwnWorkOnlyRole(userCtx.role)) {
-        mq = mq.or(getOwnOrAssignedFilter(userCtx))
+      if (isBuildingMunicipalDashboardRole(userCtx.role)) {
+        mq = mq.or(getBuildingMunicipalVisibilityFilter(userCtx))
       } else {
         if (shouldScopeBuildingToMunicipality(userCtx)) {
-          mq = mq.eq('municipality', userCtx.municipality)
-        }
-        if (shouldHideBuildingDrafts(userCtx.role)) {
-          if (userCtx.role === 'laoo') {
-            mq = mq.or(getBuildingLaooDraftVisibilityFilter(userCtx))
-          } else {
-            mq = mq.not('status', 'in', getHiddenDraftStatusList())
-          }
+          mq = mq.or(getBuildingMunicipalityVisibilityFilter(userCtx))
         }
       }
       const { data: mData } = await mq
@@ -85,18 +76,11 @@ export async function GET(request: NextRequest) {
       .order('updated_at', { ascending: false })
       .order('id', { ascending: false })
 
-    if (isBuildingOwnWorkOnlyRole(userCtx.role)) {
-      query = query.or(getOwnOrAssignedFilter(userCtx))
+    if (isBuildingMunicipalDashboardRole(userCtx.role)) {
+      query = query.or(getBuildingMunicipalVisibilityFilter(userCtx))
     } else {
       if (shouldScopeBuildingToMunicipality(userCtx)) {
-        query = query.eq('municipality', userCtx.municipality)
-      }
-      if (shouldHideBuildingDrafts(userCtx.role)) {
-        if (userCtx.role === 'laoo') {
-          query = query.or(getBuildingLaooDraftVisibilityFilter(userCtx))
-        } else {
-          query = query.not('status', 'in', getHiddenDraftStatusList())
-        }
+        query = query.or(getBuildingMunicipalityVisibilityFilter(userCtx))
       }
     }
 

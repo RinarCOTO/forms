@@ -4,6 +4,7 @@ import { isProvincialFaasRole } from '@/lib/faas/workflow';
 export interface FaasUserContext {
   userId: string;
   municipality: string | null;
+  municipalities?: string[];
   isAdmin: boolean;
   role: string;
 }
@@ -47,14 +48,20 @@ export function canAccessFaasRecord(userCtx: FaasUserContext, record: FaasAccess
     return true;
   }
 
-  const userMunicipality = normalizeMunicipality(userCtx.municipality);
-  if (!userMunicipality) {
+  const userMunicipalities = [
+    ...(userCtx.municipalities ?? []),
+    userCtx.municipality,
+  ]
+    .map(normalizeMunicipality)
+    .filter((value, index, values): value is string => Boolean(value) && values.indexOf(value) === index);
+
+  if (userMunicipalities.length === 0) {
     return false;
   }
 
   return [record.municipality, record.location_municipality]
     .map(normalizeMunicipality)
-    .some((recordMunicipality) => recordMunicipality === userMunicipality);
+    .some((recordMunicipality) => !!recordMunicipality && userMunicipalities.includes(recordMunicipality));
 }
 
 export function getFaasRecordMunicipality(record: FaasAccessRecord) {

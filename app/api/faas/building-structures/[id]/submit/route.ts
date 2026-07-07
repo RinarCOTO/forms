@@ -10,6 +10,7 @@ import {
 } from '@/lib/faas/workflow';
 import { notifyFaasStatusChange } from '@/lib/faas/notification-rules';
 import { canAccessFaasRecord, parsePositiveIntegerId } from '@/lib/faas/access-control';
+import { getLaooAssignmentsForUser, getPrimaryMunicipality } from '@/lib/laoo-assignments';
 
 function getAdminClient() {
   return createSupabaseAdminClient();
@@ -66,10 +67,17 @@ export async function POST(
       return NextResponse.json({ success: false, message: 'Form not found' }, { status: 404 });
     }
 
+    const municipalities =
+      profile.role === 'laoo'
+        ? await getLaooAssignmentsForUser(admin, authUser.id, profile.municipality)
+        : profile.municipality
+          ? [profile.municipality]
+          : [];
     const userCtx = {
       userId: authUser.id,
       role: profile.role,
-      municipality: profile.municipality ?? null,
+      municipality: getPrimaryMunicipality(municipalities) ?? profile.municipality ?? null,
+      municipalities,
       isAdmin: ['admin', 'super_admin'].includes(profile.role),
     };
 

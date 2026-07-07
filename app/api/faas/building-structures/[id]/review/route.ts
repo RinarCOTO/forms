@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { notifyFaasStatusChange } from '@/lib/faas/notification-rules';
 import { canAccessFaasRecord, parsePositiveIntegerId } from '@/lib/faas/access-control';
+import { getLaooAssignmentsForUser, getPrimaryMunicipality } from '@/lib/laoo-assignments';
 import {
   type FaasReviewAction,
   getFaasReviewActionConfig,
@@ -52,10 +53,17 @@ export async function POST(
 
     if (fetchError || !record) return NextResponse.json({ error: 'Form not found' }, { status: 404 });
 
+    const municipalities =
+      profile.role === 'laoo'
+        ? await getLaooAssignmentsForUser(admin, authUser.id, profile.municipality)
+        : profile.municipality
+          ? [profile.municipality]
+          : [];
     const userCtx = {
       userId: authUser.id,
       role: profile.role,
-      municipality: profile.municipality ?? null,
+      municipality: getPrimaryMunicipality(municipalities) ?? profile.municipality ?? null,
+      municipalities,
       isAdmin: ['admin', 'super_admin'].includes(profile.role),
     };
 

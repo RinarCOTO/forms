@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { unstable_cache } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
+import { getLaooAssignmentsForUser, getPrimaryMunicipality } from '@/lib/laoo-assignments';
 
 function getAdminClient() {
   return createAdminClient(
@@ -166,10 +167,16 @@ function getCachedPermissions(userId: string) {
 
       const role: string = profile?.role ?? 'user';
       const full_name: string = profile?.full_name ?? '';
-      const municipality: string = profile?.municipality ?? '';
+      const municipalities =
+        role === 'laoo'
+          ? await getLaooAssignmentsForUser(admin, userId, profile?.municipality ?? null)
+          : profile?.municipality
+            ? [profile.municipality]
+            : [];
+      const municipality: string = getPrimaryMunicipality(municipalities) ?? profile?.municipality ?? '';
 
       if (role === 'super_admin') {
-        return { id: userId, role, full_name, municipality, permissions: DEFAULT_PERMISSIONS['super_admin'] };
+        return { id: userId, role, full_name, municipality, municipalities, permissions: DEFAULT_PERMISSIONS['super_admin'] };
       }
 
       const { data: rows, error: dbError } = await admin
@@ -178,7 +185,7 @@ function getCachedPermissions(userId: string) {
         .eq('role', role);
 
       if (dbError || !rows || rows.length === 0) {
-        return { id: userId, role, full_name, municipality, permissions: DEFAULT_PERMISSIONS[role] ?? {} };
+        return { id: userId, role, full_name, municipality, municipalities, permissions: DEFAULT_PERMISSIONS[role] ?? {} };
       }
 
       const permissions: Record<string, boolean> = { ...(DEFAULT_PERMISSIONS[role] ?? {}) };
@@ -186,7 +193,7 @@ function getCachedPermissions(userId: string) {
         permissions[row.feature] = row.allowed;
       }
 
-      return { id: userId, role, full_name, municipality, permissions };
+      return { id: userId, role, full_name, municipality, municipalities, permissions };
     },
     [`permissions-${userId}`],
     { revalidate: 60, tags: [`permissions-${userId}`, 'permissions'] }

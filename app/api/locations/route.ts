@@ -47,10 +47,24 @@ function cleanLocationRows(rows: LocationRow[], type: string, parent: string | n
     }));
 }
 
+function getParentCodes(parent: string) {
+  const codes = [parent];
+
+  // Mountain Province exists in older saved form state as 10-digit PSGC
+  // codes, while LOCATION_DATA.sql seeds the same locations as 9-digit codes.
+  if (parent.startsWith('14044') && parent.length === 10) {
+    codes.push(parent.slice(0, 2) + parent.slice(3));
+  } else if (parent.startsWith('1444') && parent.length === 9) {
+    codes.push(parent.slice(0, 2) + '0' + parent.slice(2));
+  }
+
+  return [...new Set(codes)];
+}
+
 /**
  * GET /api/locations?type=province
- * GET /api/locations?type=municipality&parent=1404400000
- * GET /api/locations?type=barangay&parent=1404401000
+ * GET /api/locations?type=municipality&parent=144400000
+ * GET /api/locations?type=barangay&parent=144401000
  */
 export async function GET(req: NextRequest) {
   try {
@@ -74,7 +88,10 @@ export async function GET(req: NextRequest) {
       .order('name');
 
     if (parent) {
-      query = query.eq('parent_code', parent);
+      const parentCodes = getParentCodes(parent);
+      query = parentCodes.length > 1
+        ? query.in('parent_code', parentCodes)
+        : query.eq('parent_code', parent);
     }
 
     const { data, error } = await query;

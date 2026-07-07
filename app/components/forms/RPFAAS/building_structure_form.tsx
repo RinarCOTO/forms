@@ -2,6 +2,7 @@
 
 import "@/app/components/forms/RPFAAS/faas_table_forms.css";
 import FaasFooter from "./faas-footer";
+import { DraftWatermark } from "./components/DraftWatermark";
 import { SectionHeader } from "./components/SectionHeader";
 import { Checkbox } from "./components/Checkbox";
 import { useRPFAASData } from "./hooks/useRPFAASData";
@@ -107,6 +108,7 @@ const BuildingStructureForm = ({
             ? typeOfBuilding.split(" - ")[0]
             : "";
     const actualUseDisplay = formatBuildingActualUse(actualUse);
+    const showDraftWatermark = serverData?.status !== "approved";
 
     // Get the deductions with their percentages and calculated values
     const getSelectedDeductionsWithData = () => {
@@ -166,6 +168,7 @@ const BuildingStructureForm = ({
 
     return (
         <div className="rpfaas-print print:mt-2 flex flex-col min-h-full" style={{ backgroundColor: 'white' }} data-print-ready={isLoaded ? "true" : undefined}>
+            <DraftWatermark show={showDraftWatermark} />
             <h1 className="text-2xl font-bold text-center uppercase">
                 Real Property Field Appraisal &amp; Assessment Sheet - Building &amp; Other structures
             </h1>
@@ -248,7 +251,7 @@ const BuildingStructureForm = ({
                     <SectionHeader>LOCATION OF PROPERTY</SectionHeader>
                     <tr className="border-t-2" data-field="location_municipality">
                         <td>No/Street/Sitio:</td>
-                        <td>
+                        <td className="rpfaas-stretch-grid-cell">
                             <div className="rpfaas-inner-grid grid grid-cols-2 divide-x divide-black items-stretch h-full">
                                 <div className="font-bold self-stretch flex items-center">{locationStreet || ''}</div>
                                 <div className="text-right self-stretch flex items-center justify-end ">Municipality:</div>
@@ -259,7 +262,7 @@ const BuildingStructureForm = ({
 
                     <tr className="border-b-2 border-black" data-field="location_barangay location_province">
                         <td>Barangay:</td>
-                        <td>
+                        <td className="rpfaas-stretch-grid-cell">
                             <div className="rpfaas-inner-grid grid grid-cols-2 divide-x divide-black items-stretch h-full">
                                 <div className="font-bold self-stretch flex items-center">{locationBarangay || ''}</div>
                                 <div className="text-right self-stretch flex items-center justify-end">Province:</div>
@@ -282,7 +285,7 @@ const BuildingStructureForm = ({
 
                     <tr className="border-t-2" data-field="type_of_building building_age">
                         <td >Type of Bldg:</td>
-                        <td>
+                        <td className="rpfaas-stretch-grid-cell">
                             <div className="rpfaas-inner-grid grid grid-cols-3 divide-x divide-black items-stretch h-full">
                                 <div className="rpfaas-field-value self-stretch">{typeOfBuildingDisplay}</div>
                                 <div className="flex items-center self-stretch font-medium floor-area-print whitespace-nowrap">Bldg. Age:</div>
@@ -303,7 +306,7 @@ const BuildingStructureForm = ({
 
                     <tr className="py-auto my-auto" data-field="structure_type number_of_storeys land_td_no land_arp_no">
                         <td>Structural Type:</td>
-                        <td>
+                        <td className="rpfaas-stretch-grid-cell">
                             <div className="rpfaas-inner-grid grid grid-cols-3 divide-x divide-black items-stretch h-full">
                                 <div className="rpfaas-field-value self-stretch">{structuralType || ''}</div>
                                 <div className="flex items-center self-stretch font-medium floor-area-print whitespace-nowrap">No. of Storey:</div>
@@ -320,7 +323,7 @@ const BuildingStructureForm = ({
 
                     <tr data-field="building_permit_no land_area">
                         <td>Building Permit No.</td>
-                        <td>
+                        <td className="rpfaas-stretch-grid-cell">
                             <div className="rpfaas-inner-grid grid grid-cols-3 divide-x divide-black items-stretch h-full">
                                 <div className="rpfaas-field-value self-stretch">{buildingPermitNo || ''}</div>
                                 <div className="flex items-center self-stretch font-medium floor-area-print whitespace-nowrap">1<sup>{ordSuffix(1)}</sup> Floor Area:</div>
@@ -337,7 +340,7 @@ const BuildingStructureForm = ({
 
                     <tr data-field="cct">
                         <td>Condominium Certificate of Title (CCT):</td>
-                        <td>
+                        <td className="rpfaas-stretch-grid-cell">
                             <div className="rpfaas-inner-grid grid grid-cols-3 divide-x divide-black items-stretch h-full">
                                 <div className="rpfaas-field-value self-stretch">{cct || ''}</div>
                                 <div className="flex items-center self-stretch font-medium floor-area-print whitespace-nowrap">{storeys >= 2 ? <>2<sup>{ordSuffix(2)}</sup> Floor Area:</> : null}</div>
@@ -347,14 +350,16 @@ const BuildingStructureForm = ({
                         <td className="land-reference">
                             <div className="rpfaas-inner-grid grid grid-cols-3 divide-x divide-black items-stretch h-full">
                                 <div className="flex items-center self-stretch rpfaas-print-small-1 font-bold col-span-1">Area:</div>
-                                <div className="flex items-center self-stretch col-span-2 rpfaas-print-small">{landArea || ''} sqm</div>
+                                <div className="flex items-center self-stretch col-span-2 rpfaas-print-small">
+                                    {hasDisplayValue(landArea) ? `${landArea} sqm` : ''}
+                                </div>
                             </div>
                         </td>
                     </tr>
 
                     <tr data-field="completion_issued_on">
                         <td>Certificate of Completion Issued on:</td>
-                        <td>
+                        <td className="rpfaas-stretch-grid-cell">
                             <div className="rpfaas-inner-grid grid grid-cols-3 divide-x divide-black items-stretch h-full">
                                 <div className="rpfaas-field-value self-stretch">{completionIssuedOn ? completionIssuedOn.slice(0, 4) : ''}</div>
                                 <div className="flex items-center self-stretch font-medium floor-area-print whitespace-nowrap">{storeys >= 3 ? <>3<sup>{ordSuffix(3)}</sup> Floor Area:</> : null}</div>
@@ -366,7 +371,7 @@ const BuildingStructureForm = ({
 
                     <tr data-field="date_constructed">
                         <td>Date Constructed/Completed:</td>
-                        <td>
+                        <td className="rpfaas-stretch-grid-cell">
                             <div className="rpfaas-inner-grid grid grid-cols-3 divide-x divide-black items-stretch h-full">
                                 <div className="rpfaas-field-value self-stretch">{dateConstructed ? dateConstructed.slice(0, 4) : ''}</div>
                                 <div className="flex items-center self-stretch font-medium floor-area-print whitespace-nowrap">{storeys >= 4 ? <>4<sup>{ordSuffix(4)}</sup> Floor Area:</> : null}</div>
@@ -379,7 +384,7 @@ const BuildingStructureForm = ({
                     {storeys > 4 && Array.from({ length: storeys - 4 }, (_, i) => i + 5).map((n) => (
                         <tr key={`extra-floor-${n}`}>
                             <td></td>
-                            <td>
+                            <td className="rpfaas-stretch-grid-cell">
                                 <div className="rpfaas-inner-grid grid grid-cols-3 divide-x divide-black items-stretch h-full">
                                     <div className="self-stretch"></div>
                                     <div className="flex items-center self-stretch font-medium floor-area-print whitespace-nowrap">{n}<sup>{ordSuffix(n)}</sup> Floor Area:</div>
@@ -392,7 +397,7 @@ const BuildingStructureForm = ({
 
                     <tr data-field="date_occupied total_floor_area">
                         <td className="font-bold">Date Occupied:</td>
-                        <td>
+                        <td className="rpfaas-stretch-grid-cell">
                             <div className="rpfaas-inner-grid grid grid-cols-3 divide-x divide-black items-stretch h-full">
                                 <div className="rpfaas-field-value self-stretch">{dateOccupied ? dateOccupied.slice(0, 4) : ''}</div>
                                 <div className="flex items-center self-stretch font-bold rpfaas-print-small whitespace-nowrap">Total:</div>

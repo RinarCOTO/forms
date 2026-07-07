@@ -126,7 +126,12 @@ export function createRPFAASDataFromServer(d: RPFAASServerData): RPFAASFormData 
   const roofMaterials = getRoofMaterials(d.roofing_material);
 
   const unitCost = asNumber(d.cost_of_construction);
-  const physicalDepreciationPct = asNumber(d.physical_depreciation_pct);
+  const storedPhysicalDepreciationPct = asNumber(d.physical_depreciation_pct);
+  const recomputedDepreciation = getBuildingDepreciationRate(
+    asNumber(d.building_age),
+    asString(d.structure_type),
+  );
+  const physicalDepreciationPct = recomputedDepreciation?.rate ?? storedPhysicalDepreciationPct;
   const totalFloorAreaNum = asNumber(d.total_floor_area);
   const totalFloorArea = String(d.total_floor_area || "");
   const mainCost = totalFloorAreaNum > 0 ? unitCost * totalFloorAreaNum : unitCost || 0;

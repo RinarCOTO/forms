@@ -7,6 +7,28 @@
   margin-bottom: 0.25rem;
 }
 
+.rpfaas-print {
+  position: relative;
+}
+
+.rpfaas-draft-watermark {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  user-select: none;
+  color: rgba(120, 120, 120, 0.18);
+  font-size: clamp(72px, 16vw, 150px);
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  line-height: 1;
+  text-transform: uppercase;
+  transform: rotate(-28deg);
+}
+
 /* Inline reviewer note shown after the highlighted field */
 .faas-inline-comment-row td {
   background: #fff7ed !important;
@@ -135,10 +157,27 @@
     width: 100%;
   }
 
-  .rpfaas-inner-grid > * {
-    padding-left: 0.4rem;
-    padding-right: 0.4rem;
-  }
+.rpfaas-inner-grid > * {
+  padding-left: 0.4rem;
+  padding-right: 0.4rem;
+}
+
+.rpfaas-stretch-grid-cell {
+  position: relative;
+  padding: 0 !important;
+}
+
+.rpfaas-stretch-grid-cell::before {
+  content: "";
+  display: block;
+  min-height: 1.75rem;
+}
+
+.rpfaas-stretch-grid-cell > .rpfaas-inner-grid {
+  position: absolute;
+  inset: 0;
+  height: auto;
+}
 
   /* Subtle hover tint on data rows for scannability */
   .rpfaas-print tbody tr:hover > td {
@@ -248,11 +287,19 @@
   font-size: 9px!important;
   }
   .rpfaas-print {
+    position: relative;
     width: 100%;
     font-size: 9pt !important;
     font-family: Helvetica, Arial, sans-serif;
     line-height: 1;
     color: #000;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .rpfaas-draft-watermark {
+    color: rgba(110, 110, 110, 0.18) !important;
+    font-size: 96pt !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
@@ -309,6 +356,23 @@
     padding-right: 3px;
     padding-top: 1px;
     padding-bottom: 1px;
+  }
+
+  .rpfaas-stretch-grid-cell {
+    position: relative;
+    padding: 0 !important;
+  }
+
+  .rpfaas-stretch-grid-cell::before {
+    content: "";
+    display: block;
+    min-height: 1.2rem;
+  }
+
+  .rpfaas-stretch-grid-cell > .rpfaas-inner-grid {
+    position: absolute;
+    inset: 0;
+    height: auto;
   }
 
   /* Allow applying no-border to any element */

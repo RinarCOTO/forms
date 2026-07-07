@@ -255,7 +255,7 @@ const FaasFooter = ({
         <div className="uppercase underline" style={{ minWidth: "75%" }}>{amountInWords ? `${amountInWords} Pesos Only` : '—'}</div>
       </div>
 
-      <div className="grid grid-cols-4 items-center mt-4 print:mt-0">
+      <div className="grid grid-cols-4 items-center mt-4 print:mt-2">
         <label className="flex items-center justify-center gap-2">
           <span className="inline-flex items-center justify-center w-4 h-4 border border-black">
             {taxStatus !== 'exempt' ? 'x' : ''}

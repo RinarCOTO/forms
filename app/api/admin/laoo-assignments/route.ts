@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { revalidateTag } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
+import {
+  LAOO_ASSIGNMENT_TABLE,
+  getLaooAssignmentsForUser,
+  getLaooAssignmentsForUsers,
+  getPrimaryMunicipality,
+  parseAssignmentMunicipalities,
+} from "@/lib/laoo-assignments";
 
 const ASSIGNMENT_ADMIN_ROLES = [
   "super_admin",
@@ -69,6 +76,23 @@ function parseLaooLevel(value: unknown): LaooLevel | null {
   return LAOO_LEVELS.includes(number as LaooLevel) ? (number as LaooLevel) : null;
 }
 
+function isMissingAssignmentTableError(error: { code?: string; message?: string }) {
+  return (
+    error.code === "42P01" ||
+    error.code === "PGRST205" ||
+    /laoo_municipality_assignments/i.test(error.message ?? "")
+  );
+}
+
+function missingAssignmentTableResponse() {
+  return NextResponse.json(
+    {
+      error: "LAOO assignment table is not installed yet. Apply database/20260707_laoo_municipality_assignments.sql before saving multiple municipalities.",
+    },
+    { status: 409 },
+  );
+}
+
 export async function GET() {
   try {
     const currentUser = await getCurrentUserRole();
@@ -92,7 +116,20 @@ export async function GET() {
       return NextResponse.json({ error: "Failed to load LAOO assignments" }, { status: 500 });
     }
 
-    return NextResponse.json({ users: data ?? [] });
+    const users = data ?? [];
+    const fallbackByUserId = new Map(users.map((user) => [user.id, user.municipality ?? null]));
+    const assignmentsByUser = await getLaooAssignmentsForUsers(
+      admin,
+      users.map((user) => user.id),
+      fallbackByUserId,
+    );
+
+    return NextResponse.json({
+      users: users.map((user) => ({
+        ...user,
+        municipalities: assignmentsByUser.get(user.id) ?? [],
+      })),
+    });
   } catch (error) {
     console.error("GET /api/admin/laoo-assignments unexpected:", error);
     return NextResponse.json({ error: "An unexpected error occurred" }, { status: 500 });
@@ -111,15 +148,33 @@ export async function PATCH(request: NextRequest) {
 
     const body = await request.json();
     const userId = typeof body.user_id === "string" ? body.user_id : "";
+    const hasMunicipalitiesInput = body.municipalities !== undefined;
     const hasMunicipalityInput = body.municipality !== undefined;
+    const shouldUpdateMunicipalities = hasMunicipalitiesInput || hasMunicipalityInput;
     const hasLaooLevelInput = body.laoo_level !== undefined;
-    const municipality = parseMunicipality(body.municipality);
+    const parsedMunicipalities = shouldUpdateMunicipalities
+      ? hasMunicipalitiesInput
+        ? parseAssignmentMunicipalities(body.municipalities)
+        : parseAssignmentMunicipalities(body.municipality)
+      : null;
+    const municipality = shouldUpdateMunicipalities
+      ? (getPrimaryMunicipality(parsedMunicipalities ?? []) as Municipality | null)
+      : undefined;
     const laooLevel = parseLaooLevel(body.laoo_level);
 
     if (!userId) {
       return NextResponse.json({ error: "LAOO user is required" }, { status: 400 });
     }
-    if (hasMunicipalityInput && body.municipality !== null && body.municipality !== "" && !municipality) {
+    if (shouldUpdateMunicipalities && parsedMunicipalities === null) {
+      return NextResponse.json({ error: "Invalid municipality assignment" }, { status: 400 });
+    }
+    if (
+      !hasMunicipalitiesInput &&
+      hasMunicipalityInput &&
+      body.municipality !== null &&
+      body.municipality !== "" &&
+      !parseMunicipality(body.municipality)
+    ) {
       return NextResponse.json({ error: "Invalid municipality" }, { status: 400 });
     }
     if (hasLaooLevelInput && body.laoo_level !== null && body.laoo_level !== "" && !laooLevel) {
@@ -140,13 +195,57 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: "Only LAOO users can be assigned here" }, { status: 400 });
     }
 
+    let nextMunicipalities =
+      shouldUpdateMunicipalities
+        ? parsedMunicipalities ?? []
+        : await getLaooAssignmentsForUser(admin, userId);
+
+    if (shouldUpdateMunicipalities) {
+      const { error: deleteError } = await admin
+        .from(LAOO_ASSIGNMENT_TABLE)
+        .delete()
+        .eq("user_id", userId);
+
+      if (deleteError) {
+        console.error("PATCH /api/admin/laoo-assignments delete error:", deleteError.message);
+        if (isMissingAssignmentTableError(deleteError)) {
+          return missingAssignmentTableResponse();
+        }
+        return NextResponse.json({ error: "Failed to update LAOO assignments" }, { status: 500 });
+      }
+
+      if (nextMunicipalities.length > 0) {
+        const { error: insertError } = await admin
+          .from(LAOO_ASSIGNMENT_TABLE)
+          .insert(
+            nextMunicipalities.map((assignedMunicipality) => ({
+              user_id: userId,
+              municipality: assignedMunicipality,
+              created_by: currentUser.userId,
+            })),
+          );
+
+        if (insertError) {
+          console.error("PATCH /api/admin/laoo-assignments insert error:", insertError.message);
+          if (isMissingAssignmentTableError(insertError)) {
+            return missingAssignmentTableResponse();
+          }
+          return NextResponse.json({ error: "Failed to update LAOO assignments" }, { status: 500 });
+        }
+      }
+    }
+
+    const updatePayload: Record<string, unknown> = {
+      laoo_level: laooLevel,
+      updated_at: new Date().toISOString(),
+    };
+    if (shouldUpdateMunicipalities) {
+      updatePayload.municipality = municipality;
+    }
+
     const { data: updatedUser, error: updateError } = await admin
       .from("users")
-      .update({
-        municipality,
-        laoo_level: laooLevel,
-        updated_at: new Date().toISOString(),
-      })
+      .update(updatePayload)
       .eq("id", userId)
       .select("id, email, full_name, role, municipality, laoo_level, is_active, updated_at")
       .single();
@@ -158,7 +257,7 @@ export async function PATCH(request: NextRequest) {
 
     revalidateTag(`permissions-${userId}`, "max");
 
-    return NextResponse.json({ user: updatedUser });
+    return NextResponse.json({ user: { ...updatedUser, municipalities: nextMunicipalities } });
   } catch (error) {
     console.error("PATCH /api/admin/laoo-assignments unexpected:", error);
     return NextResponse.json({ error: "An unexpected error occurred" }, { status: 500 });

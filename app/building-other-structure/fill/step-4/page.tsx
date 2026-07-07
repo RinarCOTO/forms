@@ -33,7 +33,11 @@ import {
   ADDITIONAL_PERCENT_CHOICES,
   ADDITIONAL_FLAT_RATE_CHOICES,
 } from "@/config/form-options";
-import { getBuildingDepreciationRate, type DepreciationResult } from "@/config/depreciation-table";
+import {
+  getBuildingDepreciationRate,
+  getBuildingDepreciationTypeKey,
+  type DepreciationResult,
+} from "@/config/depreciation-table";
 import { useFormData } from "@/hooks/useFormData";
 
 const FormSchema = z.object({
@@ -69,6 +73,10 @@ const BuildingStructureFormFillPage4 = () => {
   const [buildingAge, setBuildingAge] = useState<number>(0);
   const [structuralType, setStructuralType] = useState<string>("");
   const [depreciationResult, setDepreciationResult] = useState<DepreciationResult | null>(null);
+  const depreciationScheduleType = useMemo(
+    () => getBuildingDepreciationTypeKey(structuralType),
+    [structuralType],
+  );
 
 
   const { data: loadedData } = useFormData<any>("faas/building-structures", draftId || "");
@@ -118,7 +126,7 @@ const BuildingStructureFormFillPage4 = () => {
     // Buildings 0–1 years old are considered new — no depreciation applied
     if (age > 1 && sType) {
       const result = getBuildingDepreciationRate(age, sType);
-      if (result !== null) setDepreciationResult(result);
+      setDepreciationResult(result);
     } else {
       setDepreciationResult(null);
     }
@@ -474,6 +482,7 @@ if (loadedData?.additional_flat_rate_areas?.length > 0) {
                       <tr>
                         <th className="border-b px-4 py-2 text-left font-medium text-chart-5">Years Used</th>
                         <th className="border-b px-4 py-2 text-left font-medium text-chart-5">Structural Type</th>
+                        <th className="border-b px-4 py-2 text-left font-medium text-chart-5">Depreciation Schedule</th>
                         <th className="border-b px-4 py-2 text-center font-medium text-chart-5">Rate</th>
                         <th className="border-b px-4 py-2 text-center font-medium text-chart-5">Residual Floor</th>
                         <th className="border-b px-4 py-2 text-right font-medium text-chart-5">Depreciation Amount</th>
@@ -489,6 +498,15 @@ if (loadedData?.additional_flat_rate_areas?.length > 0) {
                               : "—"}
                         </td>
                         <td className="px-4 py-3">{structuralType || "—"}</td>
+                        <td className="px-4 py-3">
+                          {depreciationScheduleType ? (
+                            <span className="font-medium">{depreciationScheduleType}</span>
+                          ) : structuralType ? (
+                            <span className="text-amber-600 font-medium">No schedule configured</span>
+                          ) : (
+                            "—"
+                          )}
+                        </td>
                         <td className="px-4 py-3 text-center">
                           {buildingAge <= 1 && buildingAge > 0
                             ? <span className="text-emerald-600 font-medium">0% (New)</span>

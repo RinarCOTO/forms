@@ -2,9 +2,31 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { canAccessFaasRecord, FAAS_ACCESS_SELECT, parsePositiveIntegerId } from '@/lib/faas/access-control';
+import { getLaooAssignmentsForUser, getPrimaryMunicipality } from '@/lib/laoo-assignments';
 
 function getAdmin() {
   return createSupabaseAdminClient();
+}
+
+async function getAccessContext(
+  admin: ReturnType<typeof getAdmin>,
+  userId: string,
+  profile: { role: string; municipality?: string | null },
+) {
+  const municipalities =
+    profile.role === 'laoo'
+      ? await getLaooAssignmentsForUser(admin, userId, profile.municipality ?? null)
+      : profile.municipality
+        ? [profile.municipality]
+        : [];
+
+  return {
+    userId,
+    role: profile.role,
+    municipality: getPrimaryMunicipality(municipalities) ?? profile.municipality ?? null,
+    municipalities,
+    isAdmin: ['admin', 'super_admin'].includes(profile.role),
+  };
 }
 
 export async function GET(
@@ -37,12 +59,7 @@ export async function GET(
       .eq('id', recordId)
       .single();
 
-    if (!profile || !record || !canAccessFaasRecord({
-      userId: authUser.id,
-      role: profile.role,
-      municipality: profile.municipality ?? null,
-      isAdmin: ['admin', 'super_admin'].includes(profile.role),
-    }, record)) {
+    if (!profile || !record || !canAccessFaasRecord(await getAccessContext(admin, authUser.id, profile), record)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -127,12 +144,7 @@ export async function POST(
       .eq('id', recordId)
       .single();
 
-    if (!record || !canAccessFaasRecord({
-      userId: authUser.id,
-      role: profile.role,
-      municipality: profile.municipality ?? null,
-      isAdmin: ['admin', 'super_admin'].includes(profile.role),
-    }, record)) {
+    if (!record || !canAccessFaasRecord(await getAccessContext(admin, authUser.id, profile), record)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -215,12 +227,7 @@ export async function DELETE(
       .eq('id', recordId)
       .single();
 
-    if (!profile || !record || !canAccessFaasRecord({
-      userId: authUser.id,
-      role: profile.role,
-      municipality: profile.municipality ?? null,
-      isAdmin: ['admin', 'super_admin'].includes(profile.role),
-    }, record)) {
+    if (!profile || !record || !canAccessFaasRecord(await getAccessContext(admin, authUser.id, profile), record)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 

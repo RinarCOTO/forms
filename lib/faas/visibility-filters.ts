@@ -1,9 +1,11 @@
 import { isMunicipalFaasRole, isProvinceWideFaasRole } from '@/lib/faas/workflow';
+import { getMunicipalityComparisonValues } from '@/lib/faas/municipality';
 
 export interface FaasVisibilityUser {
   userId: string;
   role: string;
   municipality: string | null;
+  municipalities?: string[];
   isAdmin: boolean;
 }
 
@@ -28,11 +30,11 @@ export function isBuildingOwnWorkOnlyRole(role: string) {
 }
 
 export function shouldScopeBuildingToMunicipality(user: FaasVisibilityUser) {
-  return !user.isAdmin && !isProvinceWideFaasRole(user.role) && !!user.municipality;
+  return !user.isAdmin && !isProvinceWideFaasRole(user.role) && getAssignedMunicipalities(user).length > 0;
 }
 
 export function shouldScopeLandToMunicipality(user: FaasVisibilityUser) {
-  return !user.isAdmin && !isProvinceWideFaasRole(user.role) && !!user.municipality;
+  return !user.isAdmin && !isProvinceWideFaasRole(user.role) && getAssignedMunicipalities(user).length > 0;
 }
 
 export function shouldHideBuildingDrafts(role: string) {
@@ -47,6 +49,37 @@ export function getOwnOrAssignedFilter(user: FaasVisibilityUser) {
   return `created_by.eq.${user.userId},assigned_to.eq.${user.userId}`;
 }
 
+function getAssignedMunicipalities(user: FaasVisibilityUser) {
+  const municipalities = user.municipalities?.filter(Boolean) ?? [];
+  if (municipalities.length > 0) return [...new Set(municipalities)];
+  return user.municipality ? [user.municipality] : [];
+}
+
+function getMunicipalityFilterParts(user: FaasVisibilityUser) {
+  return getAssignedMunicipalities(user)
+    .flatMap((municipality) => getMunicipalityComparisonValues(municipality))
+    .filter((value, index, values) => values.indexOf(value) === index)
+    .flatMap((value) => [
+      `municipality.eq.${value}`,
+      `location_municipality.eq.${value}`,
+    ]);
+}
+
+export function getBuildingMunicipalityVisibilityFilter(user: FaasVisibilityUser) {
+  return getMunicipalityFilterParts(user).join(',');
+}
+
+export function getBuildingMunicipalVisibilityFilter(user: FaasVisibilityUser) {
+  const municipalityParts = getMunicipalityFilterParts(user);
+  if (municipalityParts.length === 0) return getOwnOrAssignedFilter(user);
+
+  return [
+    ...municipalityParts,
+    `created_by.eq.${user.userId}`,
+    `assigned_to.eq.${user.userId}`,
+  ].join(',');
+}
+
 export function getBuildingLaooDraftVisibilityFilter(user: FaasVisibilityUser) {
   return `and(status.neq.draft,status.neq.returned),and(status.eq.draft,created_by.eq.${user.userId})`;
 }
@@ -56,23 +89,18 @@ export function getHiddenDraftStatusList() {
 }
 
 export function getLandMunicipalVisibilityFilter(user: FaasVisibilityUser) {
-  if (!user.municipality) return getOwnOrAssignedFilter(user);
+  const municipalityParts = getMunicipalityFilterParts(user);
+  if (municipalityParts.length === 0) return getOwnOrAssignedFilter(user);
 
   return [
-    `municipality.eq.${user.municipality}`,
-    `location_municipality.ilike.${user.municipality}`,
+    ...municipalityParts,
     `created_by.eq.${user.userId}`,
     `assigned_to.eq.${user.userId}`,
   ].join(',');
 }
 
 export function getLandMunicipalityVisibilityFilter(user: FaasVisibilityUser) {
-  if (!user.municipality) return '';
-
-  return [
-    `municipality.eq.${user.municipality}`,
-    `location_municipality.ilike.${user.municipality}`,
-  ].join(',');
+  return getMunicipalityFilterParts(user).join(',');
 }
 
 export function getLandOwnWorkVisibilityFilter(user: FaasVisibilityUser) {
@@ -83,5 +111,9 @@ export function getLandOwnWorkVisibilityFilter(user: FaasVisibilityUser) {
 }
 
 export function isLandMunicipalDashboardRole(role: string) {
+  return isMunicipalFaasRole(role);
+}
+
+export function isBuildingMunicipalDashboardRole(role: string) {
   return isMunicipalFaasRole(role);
 }

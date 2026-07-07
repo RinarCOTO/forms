@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Loader2, RefreshCw, Save, UserCheck } from "lucide-react";
+import { Check, ChevronsUpDown, Loader2, RefreshCw, Save, UserCheck, X } from "lucide-react";
 import { AppSidebar } from "@/components/app-sidebar";
 import {
   Breadcrumb,
@@ -16,6 +16,15 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
 import {
   SidebarInset,
@@ -32,6 +41,7 @@ import {
 } from "@/components/ui/table";
 import type { Municipality } from "@/app/types/user";
 import { MUNICIPALITIES, MUNICIPALITY_LABELS } from "@/app/types/user";
+import { cn } from "@/lib/utils";
 
 const ASSIGNMENT_ROLES = [
   "super_admin",
@@ -46,13 +56,14 @@ type LaooUser = {
   full_name: string | null;
   role: "laoo";
   municipality: Municipality | null;
+  municipalities: Municipality[];
   laoo_level: number | null;
   is_active: boolean;
   updated_at: string | null;
 };
 
 type DraftAssignment = {
-  municipality: Municipality | null;
+  municipalities: Municipality[];
   laoo_level: number | null;
 };
 
@@ -63,12 +74,134 @@ function getDisplayName(user: LaooUser) {
   return user.full_name?.trim() || user.email;
 }
 
-function getLaooLevelLabel(level: number | null) {
-  return level ? `LAOO ${level}` : "Not set";
+function areMunicipalityListsEqual(a: Municipality[], b: Municipality[]) {
+  if (a.length !== b.length) return false;
+  return a.every((municipality) => b.includes(municipality));
 }
 
-function getMunicipalityLabel(municipality: Municipality | null) {
-  return municipality ? MUNICIPALITY_LABELS[municipality] : "Unassigned";
+function sortMunicipalities(municipalities: Municipality[]) {
+  return MUNICIPALITIES.filter((municipality) => municipalities.includes(municipality));
+}
+
+function getMunicipalitySummary(municipalities: Municipality[]) {
+  if (municipalities.length === 0) return "Unassigned";
+  if (municipalities.length <= 2) {
+    return municipalities.map((municipality) => MUNICIPALITY_LABELS[municipality]).join(", ");
+  }
+  return `${municipalities.length} municipalities`;
+}
+
+function toggleMunicipalitySelection(
+  municipalities: Municipality[],
+  municipality: Municipality,
+) {
+  return municipalities.includes(municipality)
+    ? municipalities.filter((item) => item !== municipality)
+    : sortMunicipalities([...municipalities, municipality]);
+}
+
+function MunicipalityAssignmentPicker({
+  value,
+  onChange,
+}: {
+  value: Municipality[];
+  onChange: (municipalities: Municipality[]) => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="w-[300px] space-y-2">
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            type="button"
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            className="h-10 w-full justify-between bg-background"
+          >
+            <span className="truncate">
+              {value.length > 0 ? `${value.length} selected` : "Select municipalities"}
+            </span>
+            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent align="start" className="w-[300px] p-0">
+          <Command>
+            <CommandInput placeholder="Search municipality..." />
+            <div className="flex items-center justify-between border-b px-2 py-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 text-xs"
+                onClick={() => onChange([...MUNICIPALITIES])}
+              >
+                Select all
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 text-xs"
+                onClick={() => onChange([])}
+                disabled={value.length === 0}
+              >
+                Clear
+              </Button>
+            </div>
+            <CommandList>
+              <CommandEmpty>No municipality found.</CommandEmpty>
+              <CommandGroup>
+                {MUNICIPALITIES.map((municipality) => {
+                  const selected = value.includes(municipality);
+                  return (
+                    <CommandItem
+                      key={municipality}
+                      value={MUNICIPALITY_LABELS[municipality]}
+                      onSelect={() => onChange(toggleMunicipalitySelection(value, municipality))}
+                    >
+                      <Check
+                        className={cn(
+                          "mr-2 h-4 w-4",
+                          selected ? "opacity-100" : "opacity-0",
+                        )}
+                      />
+                      {MUNICIPALITY_LABELS[municipality]}
+                    </CommandItem>
+                  );
+                })}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+
+      {value.length > 0 ? (
+        <div className="flex max-w-[300px] flex-wrap gap-1.5">
+          {value.map((municipality) => (
+            <Badge
+              key={municipality}
+              variant="secondary"
+              className="max-w-[140px] gap-1 rounded-md px-2 py-1 font-normal"
+            >
+              <span className="truncate">{MUNICIPALITY_LABELS[municipality]}</span>
+              <button
+                type="button"
+                className="rounded-sm opacity-70 hover:opacity-100"
+                onClick={() => onChange(value.filter((item) => item !== municipality))}
+                aria-label={`Remove ${MUNICIPALITY_LABELS[municipality]}`}
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          ))}
+        </div>
+      ) : (
+        <div className="text-xs text-muted-foreground">No municipalities assigned</div>
+      )}
+    </div>
+  );
 }
 
 function AssignmentRow({
@@ -85,16 +218,16 @@ function AssignmentRow({
   saving: boolean;
 }) {
   const hasChanges =
-    draft.municipality !== (user.municipality ?? null) ||
+    !areMunicipalityListsEqual(draft.municipalities, user.municipalities ?? []) ||
     draft.laoo_level !== (user.laoo_level ?? null);
 
   return (
-    <TableRow>
-      <TableCell>
+    <TableRow className="hover:bg-transparent">
+      <TableCell className="align-top pt-6">
         <div className="font-medium">{getDisplayName(user)}</div>
         <div className="text-xs text-muted-foreground">{user.email}</div>
       </TableCell>
-      <TableCell>
+      <TableCell className="align-top pt-6">
         <select
           className={selectClassName}
           value={draft.laoo_level ?? ""}
@@ -110,38 +243,33 @@ function AssignmentRow({
           <option value="4">LAOO 4</option>
         </select>
       </TableCell>
-      <TableCell>
-        <select
-          className={selectClassName}
-          value={draft.municipality ?? ""}
-          onChange={(event) => {
+      <TableCell className="align-top pt-6">
+        <MunicipalityAssignmentPicker
+          value={draft.municipalities}
+          onChange={(municipalities) => {
             onDraftChange(user.id, {
               ...draft,
-              municipality: (event.target.value as Municipality) || null,
+              municipalities,
             });
           }}
-        >
-          <option value="">Unassigned</option>
-          {MUNICIPALITIES.map((municipality) => (
-            <option key={municipality} value={municipality}>
-              {MUNICIPALITY_LABELS[municipality]}
-            </option>
-          ))}
-        </select>
+        />
       </TableCell>
-      <TableCell>
+      <TableCell className="align-top pt-6">
         <Badge variant={user.is_active ? "secondary" : "outline"}>
           {user.is_active ? "Active" : "Inactive"}
         </Badge>
       </TableCell>
-      <TableCell className="text-right">
+      <TableCell className="text-right align-top pt-6">
         <Button
           size="sm"
+          variant={hasChanges ? "default" : "outline"}
+          className="min-w-24"
           onClick={() => onSave(user)}
           disabled={!hasChanges || saving}
+          title={hasChanges ? "Save LAOO assignment changes" : "No changes to save"}
         >
           {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-          Save
+          {saving ? "Saving" : "Save"}
         </Button>
       </TableCell>
     </TableRow>
@@ -158,7 +286,7 @@ export default function AssignLaooPage() {
   const [savingId, setSavingId] = useState<string | null>(null);
 
   const assignedCount = useMemo(
-    () => users.filter((user) => Boolean(user.municipality)).length,
+    () => users.filter((user) => (user.municipalities ?? []).length > 0).length,
     [users]
   );
 
@@ -179,7 +307,7 @@ export default function AssignLaooPage() {
           nextUsers.map((user) => [
             user.id,
             {
-              municipality: user.municipality ?? null,
+              municipalities: user.municipalities ?? [],
               laoo_level: user.laoo_level ?? null,
             },
           ])
@@ -227,7 +355,7 @@ export default function AssignLaooPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             user_id: user.id,
-            municipality: draft.municipality,
+            municipalities: draft.municipalities,
             laoo_level: draft.laoo_level,
           }),
         });
@@ -245,11 +373,11 @@ export default function AssignLaooPage() {
         setDrafts((current) => ({
           ...current,
           [updatedUser.id]: {
-            municipality: updatedUser.municipality ?? null,
+            municipalities: updatedUser.municipalities ?? [],
             laoo_level: updatedUser.laoo_level ?? null,
           },
         }));
-        toast.success(`${getDisplayName(updatedUser)} assigned to ${getMunicipalityLabel(updatedUser.municipality)}.`);
+        toast.success(`${getDisplayName(updatedUser)} assigned to ${getMunicipalitySummary(updatedUser.municipalities ?? [])}.`);
       } catch (error) {
         toast.error(error instanceof Error ? error.message : "Failed to save assignment.");
       } finally {
@@ -332,7 +460,7 @@ export default function AssignLaooPage() {
               <CardHeader>
                 <CardTitle>LAOO Assignments</CardTitle>
                 <CardDescription>
-                  LAOO users without a municipality will not receive LAOO review queue items.
+                  LAOO users without assigned municipalities will not receive LAOO review queue items.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -349,20 +477,20 @@ export default function AssignLaooPage() {
                   <div className="overflow-x-auto">
                     <Table>
                       <TableHeader>
-                        <TableRow>
+                        <TableRow className="hover:bg-transparent">
                           <TableHead>LAOO</TableHead>
                           <TableHead className="min-w-36">Level</TableHead>
-                          <TableHead className="min-w-52">Assigned Municipality</TableHead>
+                          <TableHead className="min-w-80">Assigned Municipalities</TableHead>
                           <TableHead>Status</TableHead>
                           <TableHead className="text-right">Action</TableHead>
                         </TableRow>
                       </TableHeader>
-                      <TableBody>
+                      <TableBody className="[&_tr:nth-child(even)]:bg-transparent">
                         {users.map((user) => (
                           <AssignmentRow
                             key={user.id}
                             user={user}
-                            draft={drafts[user.id] ?? { municipality: null, laoo_level: null }}
+                            draft={drafts[user.id] ?? { municipalities: [], laoo_level: null }}
                             onDraftChange={handleDraftChange}
                             onSave={handleSave}
                             saving={savingId === user.id}

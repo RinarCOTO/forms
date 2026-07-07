@@ -2,15 +2,13 @@ import { NextResponse } from 'next/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { getCurrentUserContext } from '@/lib/services/user.service'
 import {
-  getBuildingLaooDraftVisibilityFilter,
-  getHiddenDraftStatusList,
+  getBuildingMunicipalVisibilityFilter,
+  getBuildingMunicipalityVisibilityFilter,
   getLandMunicipalVisibilityFilter,
   getLandMunicipalityVisibilityFilter,
   getLandOwnWorkVisibilityFilter,
-  getOwnOrAssignedFilter,
-  isBuildingOwnWorkOnlyRole,
+  isBuildingMunicipalDashboardRole,
   isLandMunicipalDashboardRole,
-  shouldHideBuildingDrafts,
   shouldHideLandDrafts,
   shouldScopeBuildingToMunicipality,
   shouldScopeLandToMunicipality,
@@ -35,20 +33,12 @@ function getAdminClient() {
 function applyBuildingVisibility(query: CountQuery, userCtx: UserContext): CountQuery {
   let scopedQuery = query
 
-  if (isBuildingOwnWorkOnlyRole(userCtx.role)) {
-    return scopedQuery.or(getOwnOrAssignedFilter(userCtx))
+  if (isBuildingMunicipalDashboardRole(userCtx.role)) {
+    return scopedQuery.or(getBuildingMunicipalVisibilityFilter(userCtx))
   }
 
   if (shouldScopeBuildingToMunicipality(userCtx)) {
-    scopedQuery = scopedQuery.eq('municipality', userCtx.municipality)
-  }
-
-  if (shouldHideBuildingDrafts(userCtx.role)) {
-    if (userCtx.role === 'laoo') {
-      return scopedQuery.or(getBuildingLaooDraftVisibilityFilter(userCtx))
-    }
-
-    return scopedQuery.not('status', 'in', getHiddenDraftStatusList())
+    scopedQuery = scopedQuery.or(getBuildingMunicipalityVisibilityFilter(userCtx))
   }
 
   return scopedQuery

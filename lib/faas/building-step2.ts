@@ -106,6 +106,10 @@ export function combineLandTdArpNo(landTdNo: string, landArpNo: string) {
   return [landTdNo, landArpNo].filter(Boolean).join(' / ');
 }
 
+function emptyStringToNull(value: string) {
+  return value.trim() === '' ? null : value;
+}
+
 export function createBuildingStep2Payload({
   typeOfBuilding,
   structureType,
@@ -140,7 +144,7 @@ export function createBuildingStep2Payload({
     land_td_no: landTdNo,
     land_arp_no: landArpNo,
     td_arp_no: combineLandTdArpNo(landTdNo, landArpNo),
-    land_area: landArea,
+    land_area: emptyStringToNull(landArea),
     cost_of_construction: rawCostValue === '0' ? null : rawCostValue,
   };
 }

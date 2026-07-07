@@ -2,6 +2,7 @@
 
 import "@/app/components/forms/RPFAAS/faas_table_forms.css";
 import FaasFooter from "./faas-footer";
+import { DraftWatermark } from "./components/DraftWatermark";
 import { SectionHeader } from "./components/SectionHeader";
 import { formatValueWhenPresent } from "@/utils/form-helpers";
 
@@ -26,6 +27,7 @@ const ADDITIONAL_FLAT_RATE_CHOICES = [
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface LandImprovementFormData {
+  status?: string;
   // Identification
   transaction_code?: string;
   td_no?: string;
@@ -100,6 +102,7 @@ function cap(val: string | undefined | null): string {
 // ─── Main component ───────────────────────────────────────────────────────────
 
 const LandImprovementForm = ({ data }: { data: LandImprovementFormData }) => {
+  const showDraftWatermark = data.status !== "approved";
   const selectedAdjustments = (data.additional_flat_rate_choice ?? "")
     .split(",")
     .map((id) => id.trim())
@@ -136,6 +139,7 @@ const LandImprovementForm = ({ data }: { data: LandImprovementFormData }) => {
 
   return (
     <div className="rpfaas-print" style={{ backgroundColor: "white" }} data-print-ready="true">
+      <DraftWatermark show={showDraftWatermark} />
       {/* ── Form title ── */}
       <h1 className="text-lg font-bold text-center uppercase mb-1">
         Real Property Field Appraisal &amp; Assessment Sheet

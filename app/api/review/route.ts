@@ -7,6 +7,7 @@ import {
   isMunicipalFaasRole,
 } from '@/lib/faas/workflow';
 import { getMunicipalityComparisonValues } from '@/lib/faas/municipality';
+import { getLaooAssignmentsForUser } from '@/lib/laoo-assignments';
 
 function getAdmin() {
   return createAdminClient(
@@ -16,8 +17,10 @@ function getAdmin() {
   );
 }
 
-function getMunicipalityScopeFilter(municipality: string) {
-  const values = [...new Set(getMunicipalityComparisonValues(municipality))];
+function getMunicipalityScopeFilter(municipalities: string[]) {
+  const values = [
+    ...new Set(municipalities.flatMap((municipality) => getMunicipalityComparisonValues(municipality))),
+  ];
   return values
     .flatMap(value => [`location_municipality.eq.${value}`, `municipality.eq.${value}`])
     .join(',');
@@ -56,11 +59,15 @@ export async function GET(request: NextRequest) {
 
     const results: Record<string, unknown>[] = [];
     const isLaoo = profile.role === 'laoo';
-    const isMunicipalScoped = isMunicipalFaasRole(profile.role) && !!profile.municipality;
-    const isLaooScoped = isLaoo && !!profile.municipality;
+    const laooMunicipalities = isLaoo
+      ? await getLaooAssignmentsForUser(admin, authUser.id, profile.municipality)
+      : [];
+    const municipalityScope = isLaoo ? laooMunicipalities : profile.municipality ? [profile.municipality] : [];
+    const isMunicipalScoped = isMunicipalFaasRole(profile.role) && municipalityScope.length > 0;
+    const isLaooScoped = isLaoo && municipalityScope.length > 0;
     const needsMunicipalityScope = isLaoo || isMunicipalFaasRole(profile.role);
 
-    if (needsMunicipalityScope && !profile.municipality) {
+    if (needsMunicipalityScope && municipalityScope.length === 0) {
       return NextResponse.json({ success: true, data: [] });
     }
 
@@ -73,7 +80,7 @@ export async function GET(request: NextRequest) {
         .order('submitted_at', { ascending: false, nullsFirst: false })
         .order('updated_at', { ascending: false });
 
-      if (isLaooScoped || isMunicipalScoped) q = q.or(getMunicipalityScopeFilter(profile.municipality));
+      if (isLaooScoped || isMunicipalScoped) q = q.or(getMunicipalityScopeFilter(municipalityScope));
 
       const { data } = await q;
       if (data) {
@@ -90,7 +97,7 @@ export async function GET(request: NextRequest) {
         .order('submitted_at', { ascending: false, nullsFirst: false })
         .order('updated_at', { ascending: false });
 
-      if (isLaooScoped || isMunicipalScoped) q = q.or(getMunicipalityScopeFilter(profile.municipality));
+      if (isLaooScoped || isMunicipalScoped) q = q.or(getMunicipalityScopeFilter(municipalityScope));
 
       const { data } = await q;
       if (data) {

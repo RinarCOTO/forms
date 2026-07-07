@@ -1,5 +1,5 @@
 // Philippine Standard Geographic Code (PSGC) — Province-level data
-// 10-digit codes matching public.locations table in Supabase.
+// Codes match the local public.locations seed data.
 // Used for owner / admin address province selection (nationwide).
 
 export type PhProvince = { code: string; name: string; region: string };
@@ -20,7 +20,7 @@ export const PH_PROVINCES: PhProvince[] = [
   { code: "1401100000", name: "Benguet",          region: "CAR" },
   { code: "1402700000", name: "Ifugao",           region: "CAR" },
   { code: "1403200000", name: "Kalinga",          region: "CAR" },
-  { code: "1404400000", name: "Mountain Province", region: "CAR" },
+  { code: "144400000", name: "Mountain Province", region: "CAR" },
 
   // ── Region II – Cagayan Valley ────────────────────────────────────────────
   { code: "0200900000", name: "Batanes",       region: "Region II" },
@@ -123,4 +123,4 @@ export const PH_PROVINCES: PhProvince[] = [
   { code: "1907000000", name: "Tawi-Tawi",             region: "BARMM" },
 ];
 
-export const MOUNTAIN_PROVINCE_CODE = "1404400000";
+export const MOUNTAIN_PROVINCE_CODE = "144400000";

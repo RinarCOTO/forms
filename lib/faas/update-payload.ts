@@ -31,7 +31,12 @@ export function sanitizeFaasUpdatePayload(
 
   Object.entries(raw).forEach(([key, value]) => {
     if (protectedFields.has(key)) return;
-    if (value === undefined || value === "undefined" || value === "") return;
+    if (value === undefined || value === "undefined") return;
+    if (value === "" && numericFieldSet.has(key)) {
+      sanitized[key] = null;
+      return;
+    }
+    if (value === "") return;
 
     if (key === "status") {
       if (allowedStatusUpdates.includes(String(value))) sanitized.status = value;
