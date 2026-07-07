@@ -97,7 +97,7 @@ const LandImprovementsFormFillPage4 = () => {
   const [unitCost, setUnitCost] = useState<number>(0);
   const [totalArea, setTotalArea] = useState<number>(0);
   const [baseMarketValueP3, setBaseMarketValueP3] = useState<number>(0);
-  const [arpNo, setArpNo] = useState("");
+  const [titleNo, setTitleNo] = useState("");
 
   // Loaded from step 3 to conditionally show improvement kind
   const [classification, setClassification] = useState("");
@@ -156,10 +156,10 @@ const LandImprovementsFormFillPage4 = () => {
     else if (dbArea) setTotalArea(parseFloat(dbArea));
 
     if (loadedData?.base_market_value) setBaseMarketValueP3(parseFloat(loadedData.base_market_value));
-    const arpNoFromDb = loadedData?.arp_no;
-    const arpNoFromStorage = localStorage.getItem('arp_no_p1');
-    if (arpNoFromDb) setArpNo(arpNoFromDb);
-    else if (arpNoFromStorage) setArpNo(arpNoFromStorage);
+    const titleNoFromDb = loadedData?.oct_tct_cloa_no;
+    const titleNoFromStorage = localStorage.getItem('oct_tct_cloa_no_p1');
+    if (titleNoFromDb) setTitleNo(titleNoFromDb);
+    else if (titleNoFromStorage) setTitleNo(titleNoFromStorage);
 
     if (loadedData?.overall_comments) setComments(loadedData.overall_comments);
     if (loadedData?.classification) setClassification(loadedData.classification);
@@ -411,7 +411,7 @@ const LandImprovementsFormFillPage4 = () => {
                 values={additionalFlatRateSelections}
                 onChange={setAdditionalFlatRateSelections}
                 baseMarketValue={baseMarketValueP3}
-                isTitled={/^\d{2}-\d{4}-\d{5}$/.test(arpNo)}
+                isTitled={Boolean(titleNo)}
                 onMarketValueChange={setAdjustedMarketValue}
               />
 
@@ -420,7 +420,7 @@ const LandImprovementsFormFillPage4 = () => {
                   label="Market Value Summary"
                   unitCost={unitCost}
                   totalArea={totalArea}
-                  isTitled={/^\d{2}-\d{4}-\d{5}$/.test(arpNo)}
+                  isTitled={Boolean(titleNo)}
                   baseMarketValue={baseMarketValueP3}
                   adjustedMarketValue={adjustedMarketValue}
 

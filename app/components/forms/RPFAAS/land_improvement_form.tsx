@@ -114,7 +114,7 @@ const LandImprovementForm = ({ data }: { data: LandImprovementFormData }) => {
     ? parseFloat(String(data.base_market_value)) || 0
     : 0;
 
-  const isTitled = /^\d{2}-\d{4}-\d{5}$/.test(data.arp_no ?? "");
+  const isTitled = Boolean(data.oct_tct_cloa_no);
   const titleBonus = isTitled ? 35 : 0;
 
   // Percentages in ADDITIONAL_FLAT_RATE_CHOICES are negative for deductions, positive for additions.

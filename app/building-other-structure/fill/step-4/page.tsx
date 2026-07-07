@@ -122,9 +122,8 @@ const BuildingStructureFormFillPage4 = () => {
     if (age) setBuildingAge(age);
     if (sType) setStructuralType(sType);
 
-    // Auto-compute depreciation from band schedule using building age from step 2
-    // Buildings 0–1 years old are considered new — no depreciation applied
-    if (age > 1 && sType) {
+    // Auto-compute depreciation from the cumulative schedule using building age from step 2.
+    if (age > 0 && sType) {
       const result = getBuildingDepreciationRate(age, sType);
       setDepreciationResult(result);
     } else {
@@ -491,11 +490,9 @@ if (loadedData?.additional_flat_rate_areas?.length > 0) {
                     <tbody>
                       <tr className="hover:bg-muted/20 transition-colors">
                         <td className="px-4 py-3 font-medium">
-                          {buildingAge <= 1 && buildingAge > 0
-                            ? <span className="text-emerald-600 font-medium">New</span>
-                            : buildingAge > 1
-                              ? `${buildingAge} yr${buildingAge !== 1 ? "s" : ""}`
-                              : "—"}
+                          {buildingAge > 0
+                            ? `${buildingAge} yr${buildingAge !== 1 ? "s" : ""}`
+                            : "—"}
                         </td>
                         <td className="px-4 py-3">{structuralType || "—"}</td>
                         <td className="px-4 py-3">
@@ -508,9 +505,7 @@ if (loadedData?.additional_flat_rate_areas?.length > 0) {
                           )}
                         </td>
                         <td className="px-4 py-3 text-center">
-                          {buildingAge <= 1 && buildingAge > 0
-                            ? <span className="text-emerald-600 font-medium">0% (New)</span>
-                            : depreciationResult !== null
+                          {depreciationResult !== null
                               ? <span className={depreciationResult.capped ? "text-amber-600 font-medium" : ""}>
                                   {depreciationResult.rate.toFixed(2)}%
                                   {depreciationResult.capped && " (capped)"}

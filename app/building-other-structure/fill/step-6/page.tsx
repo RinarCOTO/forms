@@ -68,7 +68,7 @@ function BuildingStructureFormFillPage6() {
   const [currentUser, setCurrentUser] = useState<{ id: string; full_name: string; role: string } | null>(null);
   const [locationMunicipalitySlug, setLocationMunicipalitySlug] = useState<string>("");
   // Fallback values loaded from DB when the formula can't compute (e.g. market value not yet saved)
-  const [dbAssessmentLevel, setDbAssessmentLevel] = useState<string>("");
+  const [manualAssessmentLevel, setManualAssessmentLevel] = useState<string | null>(null);
   const [dbAssessedValue, setDbAssessedValue] = useState<number>(0);
   const [dbAmountInWords, setDbAmountInWords] = useState<string>("");
 
@@ -76,17 +76,16 @@ function BuildingStructureFormFillPage6() {
     () => getAssessmentLevel(typeOfBuildingLabel, actualUse, marketValue) ?? "",
     [typeOfBuildingLabel, actualUse, marketValue]
   );
-  // Use computed value when available; fall back to what was last saved in DB
-  const assessmentLevel = computedAssessmentLevel || dbAssessmentLevel;
+  // Use the assessor's manual entry when set; otherwise fall back to the computed schedule value
+  const assessmentLevel = manualAssessmentLevel ?? computedAssessmentLevel;
 
   // Auto-compute assessed value: Market Value × Assessment Level, rounded to nearest 10
-  const computedAssessedValue = useMemo(() => {
-    if (!marketValue || !computedAssessmentLevel) return 0;
-    const levelPercent = parseFloat(computedAssessmentLevel) / 100;
+  const assessedValue = useMemo(() => {
+    if (!marketValue || !assessmentLevel) return dbAssessedValue;
+    const levelPercent = parseFloat(assessmentLevel) / 100;
     const raw = marketValue * levelPercent;
     return Math.round(raw / 10) * 10;
-  }, [marketValue, computedAssessmentLevel]);
-  const assessedValue = computedAssessedValue > 0 ? computedAssessedValue : dbAssessedValue;
+  }, [marketValue, assessmentLevel, dbAssessedValue]);
 
   // Auto-derive amount in words from assessedValue
   const amountInWords = useMemo(() => {
@@ -213,10 +212,10 @@ function BuildingStructureFormFillPage6() {
           setActualUse(toBuildingCategory(data.type_of_building));
         }
 
-        // DB fallbacks: show previously-saved computed values when live formula can't produce them
+        // Preload the previously-saved assessment level (may be a manual override)
         if (data.assessment_level != null) {
           const raw = String(data.assessment_level);
-          setDbAssessmentLevel(raw.includes('%') ? raw : `${raw}%`);
+          setManualAssessmentLevel(raw.includes('%') ? raw : `${raw}%`);
         }
         if (data.estimated_value != null) setDbAssessedValue(parseFloat(String(data.estimated_value)));
         if (data.amount_in_words) setDbAmountInWords(data.amount_in_words);
@@ -440,10 +439,8 @@ function BuildingStructureFormFillPage6() {
                     id="assessment_level_p5"
                     name="assessment_level_p5"
                     value={assessmentLevel}
-                    readOnly
-                    disabled
-                    aria-disabled="true"
-                    className="rpfaas-fill-input bg-white text-black disabled:opacity-100"
+                    onChange={(e) => setManualAssessmentLevel(e.target.value)}
+                    className="rpfaas-fill-input"
                   />
                 </div>
 

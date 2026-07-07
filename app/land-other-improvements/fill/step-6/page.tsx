@@ -97,10 +97,13 @@ function LandImprovementsFormFillPage6() {
     String(new Date().getFullYear() + 1)
   );
 
-  const assessmentLevel = useMemo(
+  const [manualAssessmentLevel, setManualAssessmentLevel] = useState<string | null>(null);
+  const computedAssessmentLevel = useMemo(
     () => getLandAssessmentLevel(classification),
     [classification]
   );
+  // Use the assessor's manual entry when set; otherwise fall back to the classification's schedule value
+  const assessmentLevel = manualAssessmentLevel ?? computedAssessmentLevel;
 
   const assessedValue = useMemo(() => {
     if (!marketValue || !assessmentLevel) return 0;
@@ -182,6 +185,10 @@ function LandImprovementsFormFillPage6() {
         if (data.memoranda) setMemoranda(data.memoranda);
         if (data.effectivity_of_assessment) setEffectivityYear(dateStringToYear(String(data.effectivity_of_assessment)));
         if (data.tax_status === "taxable" || data.tax_status === "exempt") setTaxStatus(data.tax_status);
+        if (data.assessment_level != null) {
+          const raw = String(data.assessment_level);
+          setManualAssessmentLevel(raw.includes("%") ? raw : `${raw}%`);
+        }
       } catch {
         // ignore
       }
@@ -345,10 +352,8 @@ function LandImprovementsFormFillPage6() {
                   <Input
                     id="assessment_level_p6"
                     value={assessmentLevel}
-                    readOnly
-                    disabled
-                    aria-disabled="true"
-                    className="rpfaas-fill-input bg-white text-black disabled:opacity-100"
+                    onChange={(e) => setManualAssessmentLevel(e.target.value)}
+                    className="rpfaas-fill-input"
                   />
                 </div>
 

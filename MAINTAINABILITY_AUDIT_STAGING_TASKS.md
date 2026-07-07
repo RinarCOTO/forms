@@ -160,8 +160,8 @@ Likely files:
 - `app/api/faas/machinery/[id]/route.ts`
 
 Tasks:
-- Split `FaasDashboard.tsx` into data/action hooks plus a presentational table when the dashboard is next changed.
-- Split `useRPFAASData.ts` into data hydration, pure calculations, and a thin composing hook.
+- Completed: split `FaasDashboard.tsx` into a render-focused dashboard component plus a `useFaasDashboard()` data/action hook for fetch, realtime, permissions, filters, delete, export, and pagination behavior.
+- Completed: split `useRPFAASData.ts` into a thin hook plus shared default-state, server hydration, localStorage hydration, address, JSON parsing, roof material, addition, deduction, and assessment helpers.
 - Completed: extracted the building step-2 currency/input formatting behavior into named pure helpers.
 - Completed: extracted building step-2 payload, year, building-type, floor-area, and loaded-data mapping helpers.
 - Completed: extracted shared step-1 owner/admin/location/title/previous-TD collection into a form-type-configured helper.

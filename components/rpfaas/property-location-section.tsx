@@ -27,12 +27,15 @@ export function PropertyLocationSection({
         <Label className="rpfaas-fill-label">No/Street/Sitio</Label>
         <Input value={propertyStreet} onChange={(e) => onPropertyStreetChange(e.target.value)} className="rpfaas-fill-input" />
       </div>
-      <div className="space-y-1">
-        <Label className="rpfaas-fill-label-sub">Province</Label>
-        <div className="rpfaas-fill-input bg-muted/50 text-muted-foreground cursor-not-allowed select-none">
-          Mountain Province
-        </div>
-      </div>
+      <LocationSelect
+        label="Barangay"
+        value={propLoc.barangayCode}
+        onChange={propLoc.setBarangayCode}
+        options={propLoc.barangays}
+        disabled={!propLoc.municipalityCode}
+        placeholder="Select Barangay"
+        loading={propLoc.isLoadingBar}
+      />
       {userMunicipality ? (
         <div className="space-y-1">
           <Label className="rpfaas-fill-label-sub">Municipality</Label>
@@ -50,15 +53,12 @@ export function PropertyLocationSection({
           loading={propLoc.isLoadingMun}
         />
       )}
-      <LocationSelect
-        label="Barangay"
-        value={propLoc.barangayCode}
-        onChange={propLoc.setBarangayCode}
-        options={propLoc.barangays}
-        disabled={!propLoc.municipalityCode}
-        placeholder="Select Barangay"
-        loading={propLoc.isLoadingBar}
-      />
+      <div className="space-y-1">
+        <Label className="rpfaas-fill-label-sub">Province</Label>
+        <div className="rpfaas-fill-input bg-muted/50 text-muted-foreground cursor-not-allowed select-none">
+          Mountain Province
+        </div>
+      </div>
     </div>
   );
 }

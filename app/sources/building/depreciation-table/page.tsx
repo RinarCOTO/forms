@@ -6,14 +6,13 @@ import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/s
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
 import {
-  BUILDING_DEPRECIATION_TYPES,
+  BUILDING_DEPRECIATION_SCHEDULE,
   STRUCTURAL_TYPE_DEPRECIATION_EQUIVALENTS,
   STRUCTURAL_TYPE_KEYS,
 } from "@/config/depreciation-table"
 
-const BANDS = ["Yrs 1–5", "Yrs 6–10", "Yrs 11–15", "Yrs 16–20", "Yrs 21+"]
+const MAX_YEARS = Math.max(...Object.values(BUILDING_DEPRECIATION_SCHEDULE).map((row) => row.length))
 
 export default function DepreciationTablePage() {
   return (
@@ -40,43 +39,41 @@ export default function DepreciationTablePage() {
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">Building Depreciation Schedule</h1>
             <p className="text-sm text-muted-foreground mt-1">
-              Annual depreciation rates per structural type, applied by 5-year band. Stops at the residual floor.
+              Cumulative depreciation percentage by number of years and structural type.
             </p>
           </div>
 
           <Card>
             <CardHeader>
-              <CardTitle>Physical Depreciation Rates</CardTitle>
+              <CardTitle>Physical Depreciation Schedule</CardTitle>
               <CardDescription>
-                Rate (%) applied annually for each age band. Max depreciation = 100% − Residual.
+                The listed percentage is the total depreciation to apply for that building age. Blank years use the last listed percentage for that type.
               </CardDescription>
             </CardHeader>
             <CardContent className="p-0">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="pl-6">Structural Type</TableHead>
-                    {BANDS.map((b) => (
-                      <TableHead key={b} className="text-center">{b}</TableHead>
+                    <TableHead className="pl-6">No. of Years</TableHead>
+                    {STRUCTURAL_TYPE_KEYS.map((key) => (
+                      <TableHead key={key} className="text-center">{key}</TableHead>
                     ))}
-                    <TableHead className="text-center pr-6">Residual</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {STRUCTURAL_TYPE_KEYS.map((key) => {
-                    const { rates, residual } = BUILDING_DEPRECIATION_TYPES[key]
-                    return (
-                      <TableRow key={key}>
-                        <TableCell className="pl-6 font-medium">{key}</TableCell>
-                        {rates.map((r, i) => (
-                          <TableCell key={i} className="text-center tabular-nums">{r.toFixed(1)}%</TableCell>
-                        ))}
-                        <TableCell className="text-center pr-6">
-                          <Badge variant="secondary">{residual}%</Badge>
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })}
+                  {Array.from({ length: MAX_YEARS }, (_, index) => index + 1).map((year) => (
+                    <TableRow key={year}>
+                      <TableCell className="pl-6 font-medium tabular-nums">{year}</TableCell>
+                      {STRUCTURAL_TYPE_KEYS.map((key) => {
+                        const value = BUILDING_DEPRECIATION_SCHEDULE[key][year - 1]
+                        return (
+                          <TableCell key={key} className="text-center tabular-nums">
+                            {value == null ? "—" : `${value.toFixed(2)}%`}
+                          </TableCell>
+                        )
+                      })}
+                    </TableRow>
+                  ))}
                 </TableBody>
               </Table>
             </CardContent>

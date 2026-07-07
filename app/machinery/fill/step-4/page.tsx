@@ -96,10 +96,13 @@ function MachineryStep4Content() {
   const actualUseLabel = ACTUAL_USE_OPTIONS.find(u => u.code === actualUse)?.label ?? "";
 
   // Derived values
-  const assessmentLevel = useMemo(
+  const [manualAssessmentLevel, setManualAssessmentLevel] = useState<string | null>(null);
+  const computedAssessmentLevel = useMemo(
     () => getMachineryAssessmentLevel(actualUse),
     [actualUse]
   );
+  // Use the assessor's manual entry when set; otherwise fall back to the computed schedule value
+  const assessmentLevel = manualAssessmentLevel ?? computedAssessmentLevel;
 
   const assessedValue = useMemo(() => {
     if (!marketValue || !assessmentLevel) return 0;
@@ -166,6 +169,10 @@ function MachineryStep4Content() {
 
         // actual_use is a form-level field set in step-1
         if (data.actual_use) setActualUse(data.actual_use);
+        if (data.assessment_level != null) {
+          const raw = String(data.assessment_level);
+          setManualAssessmentLevel(raw.includes("%") ? raw : `${raw}%`);
+        }
 
         // Market value = sum of items' depreciated values
         if (Array.isArray(data.appraisal_items) && data.appraisal_items.length > 0) {
@@ -311,14 +318,14 @@ function MachineryStep4Content() {
               </div>
             </div>
 
-            {/* Assessment Level (computed) */}
+            {/* Assessment Level — prefilled from the RA 7160 schedule, editable for overrides */}
             <div className="space-y-1" data-comment-field="assessment_level">
               <Label className="rpfaas-fill-label">Assessment Level</Label>
               <Input
-                value={assessmentLevel || "—"}
-                readOnly
-                disabled
-                className="rpfaas-fill-input bg-muted/40 disabled:opacity-100"
+                value={assessmentLevel}
+                onChange={(e) => setManualAssessmentLevel(e.target.value)}
+                placeholder="e.g. 40%"
+                className="rpfaas-fill-input"
               />
             </div>
 

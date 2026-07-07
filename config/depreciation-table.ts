@@ -1,68 +1,82 @@
 /**
  * Physical Depreciation Schedule for Buildings
- * Source: Schedule of Depreciation per building type manual
+ * Source: Building depreciation schedule by number of years and structural type.
  *
- * Buildings aged 0-1 year are treated as new. Annual percentages start after
- * the first year of use and are applied per 5-year depreciation band:
- *   Band 1: depreciable years  1-5
- *   Band 2: depreciable years  6-10
- *   Band 3: depreciable years 11-15
- *   Band 4: depreciable years 16-20
- *   Band 5: depreciable years 21+  (applied until residual floor is hit)
- *
- * Depreciation is capped at (100% - residual%) for each type.
+ * Values are cumulative depreciation percentages. When the building age exceeds
+ * the last listed year for a type, the last listed percentage is used as the cap.
  */
 
-export interface TypeConfig {
-  /** Annual depreciation rates for each band [band1, band2, band3, band4, after20] */
-  rates: [number, number, number, number, number];
-  /** Minimum residual value % — depreciation cannot reduce value below this */
-  residual: number;
-}
+export const BUILDING_DEPRECIATION_SCHEDULE = {
+  "Type V": [
+    2.75, 5.5, 8.25, 11, 13.75, 16.5, 19.25, 22, 24.75, 27.5,
+    30, 32.5, 35, 37.5, 40, 42, 44, 46, 48, 50,
+    51, 52, 53, 54, 55, 56, 57, 58, 59, 60,
+    61, 62, 63, 64, 65, 66, 67, 68, 69, 70,
+    71, 72, 73, 74, 75, 76, 77, 78, 79, 80,
+  ],
+  "Type V-B": [
+    2.75, 5.5, 8.25, 11, 13.75, 16.5, 19.25, 22, 24.75, 27.5,
+    30, 32.5, 35, 37.5, 40, 42, 44, 46, 48, 50,
+    51.5, 53, 54.5, 56, 57.5, 59, 60.5, 62, 63.5, 65,
+    66.5, 68, 69.5, 71, 72.5, 74, 75.5, 77, 78.5, 80,
+  ],
+  "Type IV-A": [
+    3, 6, 9, 12, 15, 18, 21, 24, 27, 30,
+    33, 36, 39, 42, 45, 47.5, 50, 52.5, 55, 57.5,
+    59, 60.5, 62, 63.5, 65, 66.5, 68, 69.5, 71, 72.5,
+    74, 75.5, 77, 78.5, 80,
+  ],
+  "Type IV-B": [
+    3.5, 7, 10.5, 14, 17.5, 21, 24.5, 28, 31.5, 35,
+    38.5, 42, 45.5, 49, 52.5, 55.5, 58.5, 61.5, 64.5, 67.5,
+    69, 70.5, 72, 73.5, 75, 76.5, 78, 79.5,
+  ],
+  "Type IV-C": [
+    4, 8, 12, 16, 20, 23.5, 27, 30.5, 34, 37.5,
+    41, 44.5, 48, 51.5, 55, 58, 61, 64, 67, 70,
+    71.5, 73, 74.5, 76, 77.5, 79, 80.5,
+  ],
+  "Type III-A to III-C": [
+    4.5, 9, 13.5, 18, 22.5, 26.5, 30.5, 34.5, 38.5, 42.5,
+    46, 49.5, 53, 56.5, 60, 63, 66, 69, 72, 75,
+    77, 79, 81, 83, 85,
+  ],
+  "Type II-A & B": [
+    5, 10, 15, 20, 25, 29.5, 34, 38.5, 43, 47.5,
+    51.5, 55.5, 59.5, 63.5, 67.5, 71, 74.5, 78, 81.5, 85,
+  ],
+  "Type I": [
+    6, 12, 18, 24, 30, 35, 40, 45, 50, 55,
+    59, 63, 67, 71, 75, 78.5, 82, 85.5,
+  ],
+} as const;
 
-export const BUILDING_DEPRECIATION_TYPES: Record<string, TypeConfig> = {
-  "Type I":       { rates: [5.2, 4.6, 4.0, 3.4, 3.2], residual: 10 },
-  "Type II-A":    { rates: [5.0, 4.2, 3.6, 3.2, 3.2], residual: 12 },
-  "Type II-B":    { rates: [5.0, 4.0, 3.4, 3.0, 3.0], residual: 15 },
-  "Type III-AB":  { rates: [4.0, 3.6, 3.2, 3.0, 2.5], residual: 20 },
-  "Type III-CD":  { rates: [4.0, 3.5, 3.0, 2.5, 2.0], residual: 28 },
-  "Type III-E":   { rates: [3.0, 2.5, 2.5, 2.0, 2.0], residual: 30 },
-  "Type IV-A":    { rates: [2.6, 2.3, 2.2, 2.0, 1.6], residual: 33 },
-  "Type IV-B":    { rates: [2.4, 2.2, 2.0, 1.7, 1.4], residual: 35 },
-  "Type V-A":     { rates: [2.2, 2.0, 1.7, 1.3, 1.1], residual: 37 },
-  "Type V-B":     { rates: [2.0, 1.8, 1.5, 1.2, 1.0], residual: 40 },
-  "Type V-C":     { rates: [1.8, 1.4, 1.2, 1.0, 1.0], residual: 40 },
-};
+export type BuildingDepreciationType = keyof typeof BUILDING_DEPRECIATION_SCHEDULE;
 
 export const STRUCTURAL_TYPE_DEPRECIATION_EQUIVALENTS: Array<{
   structuralType: string;
-  depreciationType: string | null;
+  depreciationType: BuildingDepreciationType | null;
 }> = [
-  { structuralType: "V-A", depreciationType: "Type V-A" },
+  { structuralType: "V-A", depreciationType: "Type V" },
   { structuralType: "V-B", depreciationType: "Type V-B" },
+  { structuralType: "V-C", depreciationType: null },
   { structuralType: "IV-A", depreciationType: "Type IV-A" },
   { structuralType: "IV-B", depreciationType: "Type IV-B" },
-  { structuralType: "IV-C", depreciationType: null },
-  { structuralType: "III-A", depreciationType: "Type III-AB" },
-  { structuralType: "III-B", depreciationType: "Type III-AB" },
-  { structuralType: "III-C", depreciationType: "Type III-CD" },
-  { structuralType: "II-A", depreciationType: "Type II-A" },
-  { structuralType: "II-B", depreciationType: "Type II-B" },
+  { structuralType: "IV-C", depreciationType: "Type IV-C" },
+  { structuralType: "III-A", depreciationType: "Type III-A to III-C" },
+  { structuralType: "III-B", depreciationType: "Type III-A to III-C" },
+  { structuralType: "III-C", depreciationType: "Type III-A to III-C" },
+  { structuralType: "II-A", depreciationType: "Type II-A & B" },
+  { structuralType: "II-B", depreciationType: "Type II-A & B" },
   { structuralType: "I", depreciationType: "Type I" },
 ];
 
 const STRUCTURAL_TYPE_DEPRECIATION_MAP = STRUCTURAL_TYPE_DEPRECIATION_EQUIVALENTS.reduce<
-  Record<string, string>
+  Record<string, BuildingDepreciationType>
 >((acc, { structuralType, depreciationType }) => {
   if (depreciationType) acc[structuralType] = depreciationType;
   return acc;
-}, {
-  "III-D": "Type III-CD",
-  "III-CD": "Type III-CD",
-  "III-AB": "Type III-AB",
-  "III-E": "Type III-E",
-  "V-C": "Type V-C",
-});
+}, {});
 
 const normalizeStructuralType = (structuralType: string): string =>
   structuralType
@@ -72,12 +86,12 @@ const normalizeStructuralType = (structuralType: string): string =>
     .replace(/\s*-\s*/g, "-")
     .replace(/\s+/g, "");
 
-export function getBuildingDepreciationTypeKey(structuralType: string): string | null {
+export function getBuildingDepreciationTypeKey(structuralType: string): BuildingDepreciationType | null {
   const normalizedType = normalizeStructuralType(structuralType);
   if (!normalizedType) return null;
 
-  const directType = `Type ${normalizedType}`;
-  if (BUILDING_DEPRECIATION_TYPES[directType]) return directType;
+  const directType = `Type ${normalizedType}` as BuildingDepreciationType;
+  if (directType in BUILDING_DEPRECIATION_SCHEDULE) return directType;
 
   return STRUCTURAL_TYPE_DEPRECIATION_MAP[normalizedType] ?? null;
 }
@@ -85,20 +99,22 @@ export function getBuildingDepreciationTypeKey(structuralType: string): string |
 export interface DepreciationResult {
   /** Total accumulated depreciation percentage */
   rate: number;
-  /** Maximum allowed depreciation % (100 - residual) */
+  /** Maximum allowed depreciation % for this schedule */
   maxRate: number;
-  /** True if the rate was capped at the residual floor */
+  /** True if the building age exceeded the last listed year */
   capped: boolean;
-  /** Residual value % for this building type */
+  /** Residual value % after maximum depreciation */
   residual: number;
   /** Depreciation schedule row used for the calculation */
   scheduleType: string;
+  /** Schedule year used for lookup */
+  scheduleYear: number;
 }
 
 /**
- * Compute the accumulated physical depreciation rate for a building.
+ * Get the cumulative physical depreciation rate for a building.
  *
- * @param yearsUsed      - Year of Appraisal minus Year Constructed (integer >= 0)
+ * @param yearsUsed      - Year of appraisal minus year constructed
  * @param structuralType - Building structural type string from the form
  * @returns DepreciationResult, or null if the structural type is unrecognised
  */
@@ -109,43 +125,35 @@ export function getBuildingDepreciationRate(
   const scheduleType = getBuildingDepreciationTypeKey(structuralType);
   if (!scheduleType) return null;
 
-  const config = BUILDING_DEPRECIATION_TYPES[scheduleType];
-  if (!config) return null;
+  const schedule = BUILDING_DEPRECIATION_SCHEDULE[scheduleType];
+  if (!schedule) return null;
 
-  const years = Math.max(0, Math.floor(yearsUsed) - 1);
-  const { rates, residual } = config;
-  const maxRate = 100 - residual;
+  const age = Math.max(0, Math.floor(yearsUsed));
+  const maxRate = schedule[schedule.length - 1];
 
-  const bands = [
-    rates[0],
-    rates[1],
-    rates[2],
-    rates[3],
-  ];
-
-  let accumulated = 0;
-  let remaining = years;
-
-  for (const bandRate of bands) {
-    if (remaining <= 0) break;
-    const yearsInBand = Math.min(remaining, 5);
-    accumulated += yearsInBand * bandRate;
-    remaining -= yearsInBand;
+  if (age <= 0) {
+    return {
+      rate: 0,
+      maxRate,
+      capped: false,
+      residual: parseFloat((100 - maxRate).toFixed(2)),
+      scheduleType,
+      scheduleYear: 0,
+    };
   }
 
-  // After 20 years — apply the post-20 annual rate
-  if (remaining > 0) {
-    accumulated += remaining * rates[4];
-  }
+  const scheduleIndex = Math.min(age, schedule.length) - 1;
+  const capped = age > schedule.length;
+  const rate = schedule[scheduleIndex];
 
-  const capped = accumulated > maxRate;
   return {
-    rate: parseFloat(Math.min(accumulated, maxRate).toFixed(4)),
+    rate,
     maxRate,
     capped,
-    residual,
+    residual: parseFloat((100 - maxRate).toFixed(2)),
     scheduleType,
+    scheduleYear: scheduleIndex + 1,
   };
 }
 
-export const STRUCTURAL_TYPE_KEYS = Object.keys(BUILDING_DEPRECIATION_TYPES);
+export const STRUCTURAL_TYPE_KEYS = Object.keys(BUILDING_DEPRECIATION_SCHEDULE) as BuildingDepreciationType[];
