@@ -17,6 +17,7 @@ import { Loader2, Info, Lock } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { FormFillLayout } from "@/components/ui/form-fill-layout";
 import { useFormLock } from "@/hooks/useFormLock";
+import { formatCurrencyAmount } from "@/utils/form-helpers";
 
 const LAND_CLASSIFICATION_DESCRIPTIONS: Record<string, string> = {
   residential: "R – Residential: Land principally devoted to habitation or housing.",
@@ -103,12 +104,15 @@ const LandOtherImprovementFormFillPage3 = () => {
     })();
 
     //base market value computation
+    // Kept as the exact area x unit value product (only rounded to the nearest centavo) —
+    // matching the official form, which only rounds to the nearest ₱10 once, at the
+    // final Adjusted Market Value / Assessed Value stage, not here.
 const baseMarketValue = (() => {
     if (!unitValue || !landArea) return "";
     const parsedUnitValue = parseFloat(unitValue.replace(/[₱,\s]/g, ""));
     const raw = parseFloat(landArea) * parsedUnitValue;
     if (isNaN(raw)) return "";
-    return Math.round(raw / 10) * 10;
+    return Math.round(raw * 100) / 100;
 })();
 
     useEffect(() => {
@@ -281,7 +285,7 @@ const baseMarketValue = (() => {
 
                                 <div className="rpfaas-fill-field space-y-1">
                                     <Label className="rpfaas-fill-label">Unit Value</Label>
-                                    <Input type="text" value={unitValue} readOnly className="rpfaas-fill-input bg-muted cursor-not-allowed" />
+                                    <Input type="text" value={unitValue} readOnly disabled aria-disabled="true" className="rpfaas-fill-input bg-white text-black disabled:opacity-100" />
                                 </div>
 
                                 <div className="rpfaas-fill-field space-y-1">
@@ -291,7 +295,7 @@ const baseMarketValue = (() => {
 
                                 <div className="rpfaas-fill-field space-y-1">
                                     <Label className="rpfaas-fill-label">Base Market Value</Label>
-                                    <Input type="text" value={baseMarketValue} readOnly className="rpfaas-fill-input bg-muted cursor-not-allowed" />
+                                    <Input type="text" value={formatCurrencyAmount(baseMarketValue)} readOnly disabled aria-disabled="true" className="rpfaas-fill-input bg-white text-black disabled:opacity-100" />
                                 </div>
                             </section>
 

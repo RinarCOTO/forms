@@ -87,6 +87,10 @@ function LandImprovementsFormFillPage6() {
   const [taxStatus, setTaxStatus] = useState<"taxable" | "exempt">("taxable");
   const [classification, setClassification] = useState("");
   const [marketValue, setMarketValue] = useState<number>(0);
+  // Pinetree Land only — set when Step 4 split out an improvement value + its own rate
+  const [landMarketValue, setLandMarketValue] = useState<number>(0);
+  const [improvementMarketValue, setImprovementMarketValue] = useState<number>(0);
+  const [improvementAssessmentLevel, setImprovementAssessmentLevel] = useState<string | null>(null);
   const [appraisedBy, setAppraisedBy] = useState<string>("");
   const [memoranda, setMemoranda] = useState<string>("");
   const [propertyMunicipality, setPropertyMunicipality] = useState<string>("");
@@ -108,9 +112,19 @@ function LandImprovementsFormFillPage6() {
   const assessedValue = useMemo(() => {
     if (!marketValue || !assessmentLevel) return 0;
     const levelPercent = parseFloat(assessmentLevel) / 100;
+
+    // Opt-in only: an assessor must have explicitly typed an improvement rate at
+    // Step 4 (Pinetree Land). Every other draft/classification uses the unchanged
+    // single-rate formula below.
+    if (improvementAssessmentLevel != null) {
+      const improvementLevelPercent = parseFloat(improvementAssessmentLevel) / 100;
+      const raw = landMarketValue * levelPercent + improvementMarketValue * improvementLevelPercent;
+      return Math.round(raw / 10) * 10;
+    }
+
     const raw = marketValue * levelPercent;
     return Math.round(raw / 10) * 10;
-  }, [marketValue, assessmentLevel]);
+  }, [marketValue, assessmentLevel, landMarketValue, improvementMarketValue, improvementAssessmentLevel]);
 
   const amountInWords = useMemo(
     () => (assessedValue > 0 ? numberToWords(assessedValue) : ""),
@@ -126,7 +140,7 @@ function LandImprovementsFormFillPage6() {
       if (authData.user) {
         setCurrentUser({
           id: authData.user.id,
-          full_name: authData.user.user_metadata?.full_name || authData.user.email?.split('@')[0] || '',
+          full_name: authData.user.full_name || authData.user.email?.split('@')[0] || '',
           role: permsData.role || '',
         });
       }
@@ -181,6 +195,9 @@ function LandImprovementsFormFillPage6() {
         if (data.actual_use) setClassification(data.actual_use);
         if (data.location_municipality) setPropertyMunicipality(data.location_municipality);
         if (data.market_value) setMarketValue(parseFloat(data.market_value));
+        if (data.land_market_value != null) setLandMarketValue(parseFloat(data.land_market_value));
+        if (data.improvement_market_value != null) setImprovementMarketValue(parseFloat(data.improvement_market_value));
+        if (data.improvement_assessment_level != null) setImprovementAssessmentLevel(String(data.improvement_assessment_level));
         if (data.appraised_by) setAppraisedBy(String(data.appraised_by));
         if (data.memoranda) setMemoranda(data.memoranda);
         if (data.effectivity_of_assessment) setEffectivityYear(dateStringToYear(String(data.effectivity_of_assessment)));
@@ -278,7 +295,7 @@ function LandImprovementsFormFillPage6() {
     <FormFillLayout
       breadcrumbParent={{ label: "Land & Other Improvements", href: "/land-other-improvements/dashboard" }}
       pageTitle="Property Assessment"
-      sidePanel={<ErrorBoundary><ReviewCommentsFloat draftId={draftId} /></ErrorBoundary>}
+      sidePanel={<ErrorBoundary><ReviewCommentsFloat draftId={draftId} formType="land" /></ErrorBoundary>}
     >
             <header className="rpfaas-fill-header flex items-center justify-between gap-4 mb-6">
               <div>
@@ -398,7 +415,7 @@ function LandImprovementsFormFillPage6() {
 
               <FormSection>
                 <div className="rpfaas-fill-field space-y-1" data-comment-field="appraised_by">
-                  <Label className="rpfaas-fill-label" htmlFor="appraised_by_p6">Assessed/Appraised by:</Label>
+                  <Label className="rpfaas-fill-label" htmlFor="appraised_by_p6">Assessed and Appraised by:</Label>
                   <Select
                     value={appraisedBy}
                     onValueChange={setAppraisedBy}

@@ -20,7 +20,6 @@ import { FormLockBanner } from "@/components/ui/form-lock-banner";
 import { FormSection } from "@/components/ui/form-section";
 import { useFormLock } from "@/hooks/useFormLock";
 import {
-  formatBuildingActualUse,
   formatCurrencyAmount as formatCurrency,
   formatNumberWithCommas,
   generateEffectivityYears,
@@ -101,7 +100,7 @@ function BuildingStructureFormFillPage6() {
       if (authData.user) {
         setCurrentUser({
           id: authData.user.id,
-          full_name: authData.user.user_metadata?.full_name || authData.user.email?.split('@')[0] || '',
+          full_name: authData.user.full_name || authData.user.email?.split('@')[0] || '',
           role: permsData.role || '',
         });
       }
@@ -122,15 +121,6 @@ function BuildingStructureFormFillPage6() {
   };
   const DISPLAY_TO_SLUG: Record<string, string> = { paracelis: "paracellis" };
 
-  // Extracts the category label for actual_use: "Commercial - Apt" → "Commercial", "Residential" → "Residential"
-  function toBuildingCategory(typeOfBuilding: string): string {
-    if (!typeOfBuilding) return "Residential";
-    const normalized = formatBuildingActualUse(typeOfBuilding);
-    if (normalized !== typeOfBuilding) return normalized;
-    const dashIdx = typeOfBuilding.indexOf(" - ");
-    return dashIdx !== -1 ? typeOfBuilding.slice(0, dashIdx) : typeOfBuilding;
-  }
-
   function toSlug(name: string, code: string): string {
     if (code && PSGC_TO_SLUG[code]) return PSGC_TO_SLUG[code];
     if (name) return DISPLAY_TO_SLUG[name.toLowerCase()] ?? name.toLowerCase();
@@ -143,7 +133,7 @@ function BuildingStructureFormFillPage6() {
       const typeOfBuilding = localStorage.getItem("type_of_building_p2") || "";
       if (typeOfBuilding) {
         setTypeOfBuildingLabel(typeOfBuilding);
-        setActualUse(toBuildingCategory(typeOfBuilding) || "Residential");
+        setActualUse(typeOfBuilding || "Residential");
       }
 
       const savedMarketValue = parseFloat(localStorage.getItem("market_value_p4") || "0");
@@ -198,7 +188,7 @@ function BuildingStructureFormFillPage6() {
         const data = result.data;
 
         // Fields owned by this step
-        if (data.actual_use) setActualUse(formatBuildingActualUse(data.actual_use));
+        if (data.actual_use) setActualUse(String(data.actual_use));
         if (data.effectivity_of_assessment != null) setEffectivityYear(String(data.effectivity_of_assessment));
         if (data.appraised_by) setAppraisedBy(data.appraised_by);
         if (data.memoranda) setMemoranda(data.memoranda);
@@ -208,8 +198,7 @@ function BuildingStructureFormFillPage6() {
         if (data.market_value != null) setMarketValue(parseFloat(String(data.market_value)));
         if (data.type_of_building) {
           setTypeOfBuildingLabel(data.type_of_building);
-          // Always derive actual_use from the category prefix, not the full label
-          setActualUse(toBuildingCategory(data.type_of_building));
+          setActualUse(data.type_of_building);
         }
 
         // Preload the previously-saved assessment level (may be a manual override)
@@ -486,7 +475,7 @@ function BuildingStructureFormFillPage6() {
               </FormSection>
               <FormSection>
                 <div className="rpfaas-fill-field space-y-1" data-comment-field="appraised_by">
-                  <Label className="rpfaas-fill-label" htmlFor="appraised_by_p5">Assessed/Appraised by:</Label>
+                  <Label className="rpfaas-fill-label" htmlFor="appraised_by_p5">Assessed and Appraised by:</Label>
                   {currentUser && currentUser.role !== 'municipal_tax_mapper' ? (
                     <Input
                       id="appraised_by_p5"

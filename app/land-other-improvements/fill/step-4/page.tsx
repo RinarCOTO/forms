@@ -10,6 +10,7 @@ import "@/app/styles/forms-fill.css";
 import { FormFillLayout } from "@/components/ui/form-fill-layout";
 import { SaveDraftButton } from "@/components/SaveDraftButton";
 import { FormLockBanner } from "@/components/ui/form-lock-banner";
+import { Label } from "@/components/ui/label";
 
 import { DeductionsTable, AdjustmentTable, SelectOption } from "./improvementsTable";
 import TotalImprovements from "./improvementsTable";
@@ -21,6 +22,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useFormData } from "@/hooks/useFormData";
 import { municipalityData } from "@/app/smv/land-other-improvements/data";
+import { PINE_TREE_IMPROVEMENT_OPTIONS } from "@/app/smv/land-other-improvements/pine-tree-schedule";
 import { getStoredFaasDraftId, setStoredFaasDraftId } from "@/utils/form-draft-storage";
 
 // ─── Empty choice arrays — data to be added later ────────────────────────────
@@ -84,13 +86,18 @@ const LandImprovementsFormFillPage4 = () => {
   // Improvement kinds (e.g. Avocado, Banana under Fruit Land)
   const [selectedKinds, setSelectedKinds] = useState<(string | number | null)[]>([null]);
 
+  // Pinetree Land only — optional, no default. Most municipalities don't assess
+  // improvements at a separate rate, so this stays blank unless an assessor types one in.
+  const [improvementAssessmentLevel, setImprovementAssessmentLevel] = useState("");
+
   // Additional Percent (Additions)
   const [additionalPercentSelections, setAdditionalPercentSelections] = useState<(string | number | null)[]>(() => [null]);
   const [additionalPercentAreas, setAdditionalPercentAreas] = useState<number[]>([0]);
 
   // Additional Flat Rate (Additions)
   const [additionalFlatRateSelections, setAdditionalFlatRateSelections] = useState<(string | number | null)[]>(() => [null]);
-  const [adjustedMarketValue, setAdjustedMarketValue] = useState(0);
+  // Value from AdjustmentTable: base land value x (100% + titled bonus + adjustment factors)
+  const [baseAdjustedMarketValue, setBaseAdjustedMarketValue] = useState(0);
   const [additionalFlatRateAreas, setAdditionalFlatRateAreas] = useState<number[]>([0]);
 
   const [comments, setComments] = useState<string>("");
@@ -109,22 +116,40 @@ const LandImprovementsFormFillPage4 = () => {
   // Show improvement kind options only when classification is agricultural + Fruit Land
   // The options come from the municipality's agriculturalImprovementRow (e.g. Avocado, Banana, etc.)
   const munKey = municipality.toLowerCase();
-  const improvementKindOptions =
-    classification === "agricultural" && subClassification === "Fruit Land"
-      ? (municipalityData[munKey]?.agriculturalImprovementRow ?? [])
-      : [];
+  const isFruitLand = classification === "agricultural" && subClassification === "Fruit Land";
+  // Pine Tree schedule is a single province-wide table (not per-municipality)
+  const isPinetreeLand = classification === "agricultural" && subClassification === "Pinetree Land";
+  const improvementKindOptions = isFruitLand
+    ? (municipalityData[munKey]?.agriculturalImprovementRow ?? [])
+    : [];
+  const hasImprovementKindOptions = isPinetreeLand || improvementKindOptions.length > 0;
 
   // When improvement kind options exist, use them as the deduction choices in the table.
   // Otherwise fall back to the default (empty) DEDUCTION_CHOICES.
   // Use the price column matching the selected land class (e.g. landClass="second" → row.second).
   // Falls back to "first" if landClass is unset.
-  const effectiveDeductionChoices: SelectOption[] = improvementKindOptions.length > 0
-    ? improvementKindOptions.map((row) => ({
-        id: row.type,
-        name: row.type,
-        pricePerSqm: parseFloat(((landClass in row ? row[landClass as "first" | "second" | "third"] : row.first) ?? row.first).replace(/[₱,\s]/g, "")) || 0,
-      }))
-    : DEDUCTION_CHOICES;
+  const effectiveDeductionChoices: SelectOption[] = isPinetreeLand
+    ? PINE_TREE_IMPROVEMENT_OPTIONS
+    : improvementKindOptions.length > 0
+      ? improvementKindOptions.map((row) => ({
+          id: row.type,
+          name: row.type,
+          pricePerSqm: parseFloat(((landClass in row ? row[landClass as "first" | "second" | "third"] : row.first) ?? row.first).replace(/[₱,\s]/g, "")) || 0,
+        }))
+      : DEDUCTION_CHOICES;
+
+  // Sum of (quantity x unit price) across picked improvement kinds (e.g. pine trees, fruit trees).
+  // This is a flat peso addition, separate from the percentage-based adjustment factors below.
+  const improvementKindTotal = hasImprovementKindOptions
+    ? selectedKinds.reduce<number>((sum, id, i) => {
+        if (!id) return sum;
+        const opt = effectiveDeductionChoices.find((o) => String(o.id) === String(id));
+        return opt?.pricePerSqm ? sum + opt.pricePerSqm * (quantities[i] || 0) : sum;
+      }, 0)
+    : 0;
+
+  // Final market value = (base land value x adjustment factors from AdjustmentTable) + improvement kinds total
+  const adjustedMarketValue = baseAdjustedMarketValue + improvementKindTotal;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: loadedData } = useFormData<any>("faas/land-improvements", draftId || "");
@@ -156,16 +181,23 @@ const LandImprovementsFormFillPage4 = () => {
     else if (dbArea) setTotalArea(parseFloat(dbArea));
 
     if (loadedData?.base_market_value) setBaseMarketValueP3(parseFloat(loadedData.base_market_value));
-    const titleNoFromDb = loadedData?.oct_tct_cloa_no;
-    const titleNoFromStorage = localStorage.getItem('oct_tct_cloa_no_p1');
-    if (titleNoFromDb) setTitleNo(titleNoFromDb);
-    else if (titleNoFromStorage) setTitleNo(titleNoFromStorage);
+    if (loadedData) {
+      // Existing draft — trust the DB's value, including an explicit "no title," over
+      // any stale localStorage value left over from a different draft/session.
+      setTitleNo(loadedData.oct_tct_cloa_no || "");
+    } else {
+      const titleNoFromStorage = localStorage.getItem('oct_tct_cloa_no_p1');
+      if (titleNoFromStorage) setTitleNo(titleNoFromStorage);
+    }
 
     if (loadedData?.overall_comments) setComments(loadedData.overall_comments);
     if (loadedData?.classification) setClassification(loadedData.classification);
     if (loadedData?.sub_classification) setSubClassification(loadedData.sub_classification);
     if (loadedData?.location_municipality) setMunicipality(loadedData.location_municipality);
     if (loadedData?.land_class) setLandClass(loadedData.land_class);
+    if (loadedData?.improvement_assessment_level != null) {
+      setImprovementAssessmentLevel(String(loadedData.improvement_assessment_level));
+    }
     const dbDeductions = loadedData?.selected_deductions || loadedData?.deductions;
     let savedDeductions: string[] = [];
     if (dbDeductions) {
@@ -301,6 +333,9 @@ const LandImprovementsFormFillPage4 = () => {
         additional_flat_rate_value: additionalFlatRateAreas.reduce((a, b) => a + b, 0),
         additional_flat_rate_areas: additionalFlatRateAreas,
         market_value: adjustedMarketValue,
+        land_market_value: baseAdjustedMarketValue,
+        improvement_market_value: improvementKindTotal,
+        improvement_assessment_level: improvementAssessmentLevel ? parseFloat(improvementAssessmentLevel) || 0 : null,
       };
 
       const currentDraftId = draftId || getStoredFaasDraftId(localStorage, "land");
@@ -327,7 +362,7 @@ const LandImprovementsFormFillPage4 = () => {
     } finally {
       setIsSaving(false);
     }
-  }, [adjustedMarketValue, financialSummary, selections, selectedKinds, quantities, comments, additionalPercentSelections, additionalPercentAreas, additionalFlatRateSelections, additionalFlatRateAreas, draftId, router]);
+  }, [adjustedMarketValue, baseAdjustedMarketValue, improvementKindTotal, improvementAssessmentLevel, financialSummary, selections, selectedKinds, quantities, comments, additionalPercentSelections, additionalPercentAreas, additionalFlatRateSelections, additionalFlatRateAreas, draftId, router]);
 
   // ── Handle Save Draft ───────────────────────────────────────────────────────
   const handleSaveDraft = useCallback(async () => {
@@ -346,6 +381,9 @@ const LandImprovementsFormFillPage4 = () => {
         additional_flat_rate_value: additionalFlatRateAreas.reduce((a: number, b: number) => a + b, 0),
         additional_flat_rate_areas: additionalFlatRateAreas,
         market_value: adjustedMarketValue,
+        land_market_value: baseAdjustedMarketValue,
+        improvement_market_value: improvementKindTotal,
+        improvement_assessment_level: improvementAssessmentLevel ? parseFloat(improvementAssessmentLevel) || 0 : null,
       };
 
       const currentDraftId = draftId || getStoredFaasDraftId(localStorage, "land");
@@ -372,13 +410,13 @@ const LandImprovementsFormFillPage4 = () => {
     } finally {
       setIsSavingDraft(false);
     }
-  }, [adjustedMarketValue, financialSummary, selections, selectedKinds, quantities, comments, additionalPercentSelections, additionalPercentAreas, additionalFlatRateSelections, additionalFlatRateAreas, draftId]);
+  }, [adjustedMarketValue, baseAdjustedMarketValue, improvementKindTotal, improvementAssessmentLevel, financialSummary, selections, selectedKinds, quantities, comments, additionalPercentSelections, additionalPercentAreas, additionalFlatRateSelections, additionalFlatRateAreas, draftId]);
 
   return (
     <FormFillLayout
       breadcrumbParent={{ label: "Land & Other Improvements", href: "/land-other-improvements/dashboard" }}
       pageTitle="Other Improvements"
-      sidePanel={<ErrorBoundary><ReviewCommentsFloat draftId={draftId} /></ErrorBoundary>}
+      sidePanel={<ErrorBoundary><ReviewCommentsFloat draftId={draftId} formType="land" /></ErrorBoundary>}
     >
             <header className="rpfaas-fill-header flex items-center justify-between gap-4 mb-6">
               <div>
@@ -397,8 +435,8 @@ const LandImprovementsFormFillPage4 = () => {
 
               <div data-comment-field="selected_deductions">
                 <DeductionsTable
-                  selections={improvementKindOptions.length > 0 ? selectedKinds : selections}
-                  onSelectionChange={improvementKindOptions.length > 0 ? setSelectedKinds : handleSelectionChange}
+                  selections={hasImprovementKindOptions ? selectedKinds : selections}
+                  onSelectionChange={hasImprovementKindOptions ? setSelectedKinds : handleSelectionChange}
                   quantities={quantities}
                   onQuantitiesChange={setQuantities}
                   deductionChoices={effectiveDeductionChoices}
@@ -406,13 +444,32 @@ const LandImprovementsFormFillPage4 = () => {
                 />
               </div>
 
+              {isPinetreeLand && (
+                <section className="bg-card rounded-lg border p-6 shadow-sm" data-comment-field="improvement_assessment_level">
+                  <Label className="rpfaas-fill-label mb-2 block">Assessment Level (Other Improvements)</Label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={parseFloat(improvementAssessmentLevel) === 40}
+                      onChange={(e) => setImprovementAssessmentLevel(e.target.checked ? "40%" : "")}
+                      className="w-4 h-4"
+                    />
+                    <span className="text-sm">Assess Other Improvements at 40%</span>
+                  </label>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Applies to the whole Other Improvements total above, not per entry. Leave unchecked
+                    to assess the combined market value at the land&apos;s rate, as usual (most municipalities).
+                  </p>
+                </section>
+              )}
+
               <AdjustmentTable
                 options={ADDITIONAL_FLAT_RATE_CHOICES}
                 values={additionalFlatRateSelections}
                 onChange={setAdditionalFlatRateSelections}
                 baseMarketValue={baseMarketValueP3}
                 isTitled={Boolean(titleNo)}
-                onMarketValueChange={setAdjustedMarketValue}
+                onMarketValueChange={setBaseAdjustedMarketValue}
               />
 
               <div data-comment-field="market_value">

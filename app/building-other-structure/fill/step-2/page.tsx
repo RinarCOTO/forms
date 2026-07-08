@@ -7,7 +7,7 @@ import { BUILDING_STEPS } from "@/app/building-other-structure/fill/constants";
 import { ReviewCommentsFloat } from "@/components/review-comments-float";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { generateYears, calculateAge, calculateTotalFloorArea } from "@/utils/form-helpers";
-import { BUILDING_TYPES, STRUCTURAL_TYPES } from "@/config/form-options";
+import { BUILDING_TYPES, STRUCTURAL_TYPES, RESIDENTIAL_SUBTYPES } from "@/config/form-options";
 import { getUnitConstructionCost } from "@/config/unit-construction-cost";
 import { useFormPersistence } from "@/hooks/useFormPersistence";
 import { useFormData } from "@/hooks/useFormData";
@@ -370,8 +370,33 @@ const handleNext = useCallback(async () => {
                         <option value="Residential">Residential</option>
                         <option value="Commercial">Commercial</option>
                       </select>
+                      <svg className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M6 9l6 6 6-6" />
+                      </svg>
                     </div>
                   </div>
+
+                  {/* RESIDENTIAL SUBCATEGORY */}
+                  {buildingCategory === "Residential" && (
+                    <div className="space-y-1 mt-3" data-comment-field="type_of_building">
+                      <Label className="rpfaas-fill-label">Residential Subcategory</Label>
+                      <div className="relative group">
+                        <select
+                          value={buildingSubType}
+                          onChange={(e) => setBuildingSubType(e.target.value)}
+                          className="rpfaas-fill-input appearance-none"
+                        >
+                          <option value="">None</option>
+                          {RESIDENTIAL_SUBTYPES.map(opt => (
+                            <option key={opt} value={opt}>{opt}</option>
+                          ))}
+                        </select>
+                        <svg className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M6 9l6 6 6-6" />
+                        </svg>
+                      </div>
+                    </div>
+                  )}
 
                   {/* COMMERCIAL SUBCATEGORY */}
                   {buildingCategory === "Commercial" && (
@@ -388,6 +413,9 @@ const handleNext = useCallback(async () => {
                             <option key={opt.id} value={opt.label}>{opt.label}</option>
                           ))}
                         </select>
+                        <svg className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M6 9l6 6 6-6" />
+                        </svg>
                       </div>
                     </div>
                   )}
@@ -408,6 +436,9 @@ const handleNext = useCallback(async () => {
                           <option key={opt} value={opt}>{opt}</option>
                         ))}
                       </select>
+                      <svg className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M6 9l6 6 6-6" />
+                      </svg>
                     </div>
                   </div>
                 </div>
@@ -451,6 +482,9 @@ const handleNext = useCallback(async () => {
                             <option key={year} value={year}>{year}</option>
                           ))}
                         </select>
+                        <svg className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M6 9l6 6 6-6" />
+                        </svg>
                       </div>
                     </div>
                     <div className="rpfaas-fill-field" data-comment-field="date_constructed">
@@ -466,6 +500,9 @@ const handleNext = useCallback(async () => {
                             <option key={year} value={year}>{year}</option>
                           ))}
                         </select>
+                        <svg className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M6 9l6 6 6-6" />
+                        </svg>
                       </div>
                     </div>
 
@@ -482,6 +519,9 @@ const handleNext = useCallback(async () => {
                             <option key={year} value={year}>{year}</option>
                           ))}
                         </select>
+                        <svg className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M6 9l6 6 6-6" />
+                        </svg>
                       </div>
                     </div>
                     <div className="rpfaas-fill-field space-y-1" data-comment-field="building_age">

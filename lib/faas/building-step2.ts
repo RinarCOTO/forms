@@ -51,8 +51,8 @@ export function normalizeStructuralType(value: string) {
 }
 
 export function getBuildingType(category: string, subType: string) {
-  if (category === 'Residential') return 'Residential';
-  return subType ? `Commercial - ${subType}` : '';
+  if (!category) return '';
+  return subType ? `${category} (${subType})` : category;
 }
 
 export function getBuildingTypeForCost(category: string, subType: string) {
@@ -63,10 +63,20 @@ export function getBuildingTypeSelection(savedType: string): {
   buildingCategory: BuildingCategory;
   buildingSubType: string;
 } {
-  if (savedType === 'Residential' || savedType === 'Residential Houses') {
+  if (savedType === 'Residential Houses') {
     return { buildingCategory: 'Residential', buildingSubType: '' };
   }
 
+  const parenMatch = savedType.match(/^(Residential|Commercial) \((.+)\)$/);
+  if (parenMatch) {
+    return { buildingCategory: parenMatch[1] as BuildingCategory, buildingSubType: parenMatch[2] };
+  }
+
+  if (savedType === 'Residential') {
+    return { buildingCategory: 'Residential', buildingSubType: '' };
+  }
+
+  // Legacy format saved before the parentheses change
   if (savedType.startsWith('Commercial - ')) {
     return { buildingCategory: 'Commercial', buildingSubType: savedType.replace('Commercial - ', '') };
   }

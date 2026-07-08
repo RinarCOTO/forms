@@ -72,6 +72,9 @@ const LandImprovementUpdateSchema = z.object({
   additional_flat_rate_value: numericField,
   additional_flat_rate_areas: z.array(z.union([z.number(), z.string()])).optional(),
   market_value: numericField,
+  land_market_value: numericField,
+  improvement_market_value: numericField,
+  improvement_assessment_level: numericField,
 
   // step 5 — assessment
   actual_use: z.string().optional(),
@@ -203,7 +206,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     const updateData = parsed.data
     
     // Clean the data: remove undefined and empty string values; allow explicit null to clear fields
-    const numericFields = ['area', 'market_value', 'assessment_level', 'assessed_value', 'land_area', 'unit_value', 'base_market_value', 'additional_percentage_value', 'additional_flat_rate_value', 'previous_av', 'previous_mv', 'previous_area']
+    const numericFields = ['area', 'market_value', 'land_market_value', 'improvement_market_value', 'improvement_assessment_level', 'assessment_level', 'assessed_value', 'land_area', 'unit_value', 'base_market_value', 'additional_percentage_value', 'additional_flat_rate_value', 'previous_av', 'previous_mv', 'previous_area']
     const cleanedData = sanitizeFaasUpdatePayload(updateData, {
       numericFields,
     })

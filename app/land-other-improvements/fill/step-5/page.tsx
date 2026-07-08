@@ -448,7 +448,7 @@ function LandImprovementsFormFillPage5() {
       breadcrumbParent={{ label: "Land & Other Improvements", href: "/land-other-improvements/dashboard" }}
       pageTitle="Supporting Documents"
       sidePanel={<>
-        <ErrorBoundary><ReviewCommentsFloat draftId={draftId} /></ErrorBoundary>
+        <ErrorBoundary><ReviewCommentsFloat draftId={draftId} formType="land" /></ErrorBoundary>
         <Dialog open={removeDialogOpen} onOpenChange={setRemoveDialogOpen}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>

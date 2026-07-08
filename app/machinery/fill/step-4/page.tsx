@@ -124,7 +124,7 @@ function MachineryStep4Content() {
       if (authData.user) {
         setCurrentUser({
           id: authData.user.id,
-          full_name: authData.user.user_metadata?.full_name || authData.user.email?.split("@")[0] || "",
+          full_name: authData.user.full_name || authData.user.email?.split("@")[0] || "",
           role: permsData.role || "",
         });
       }
@@ -367,7 +367,7 @@ function MachineryStep4Content() {
             </div>
           </FormSection>
 
-          <FormSection title="Assessed / Appraised By">
+          <FormSection title="Assessed and Appraised By">
             <div className="space-y-1" data-comment-field="appraised_by">
               {currentUser && currentUser.role !== "municipal_tax_mapper" ? (
                 <Input

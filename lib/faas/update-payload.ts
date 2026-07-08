@@ -49,7 +49,9 @@ export function sanitizeFaasUpdatePayload(
     }
 
     if (numericFieldSet.has(key)) {
-      const numberValue = typeof value === "string" ? parseFloat(value) : value;
+      // Strip currency symbols/commas/whitespace first — parseFloat stops at the
+      // first invalid character, so "19,800.00" would otherwise silently become 19.
+      const numberValue = typeof value === "string" ? parseFloat(value.replace(/[₱,\s]/g, "")) : value;
       if (typeof numberValue === "number" && !Number.isNaN(numberValue)) {
         sanitized[key] = numberValue;
       }

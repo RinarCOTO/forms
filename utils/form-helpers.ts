@@ -102,7 +102,9 @@ export function formatBuildingActualUse(value: FormattableValue): string {
   const text = formatDisplayValue(value).trim();
   if (!text) return "";
   if (text === "Residential Houses") return "Residential";
-  if (text.startsWith("Commercial - ")) return "Commercial";
+  if (text.startsWith("Commercial - ")) return "Commercial"; // legacy format
+  const parenMatch = text.match(/^(Residential|Commercial) \(/);
+  if (parenMatch) return parenMatch[1];
   return text;
 }
 

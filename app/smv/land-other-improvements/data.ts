@@ -353,7 +353,7 @@ export const municipalityData: Record<string, MunicipalityData> = {
       { landType: "Rootcrop Land", first: "54,990.00", second: "41,250.00", third: "27,470.00", fourth: "-" },
       { landType: "Vegetable Land", first: "45,350.00", second: "34,050.00", third: "22,680.00", fourth: "-" },
       { landType: "Fruit Land", first: "66,400.00", second: "42,360.00", third: "18,590.00", fourth: "-" },
-      { landType: "Pinetree Land", first: "14,080.00", second: "-", third: "-", fourth: "-" },
+      { landType: "Pinetree Land", first: "54,990.00", second: "-", third: "-", fourth: "-" },
       { landType: "Pasture Land", first: "10,880.00", second: "-", third: "-", fourth: "-" },
       { landType: "Cogon Land", first: "8,030.00", second: "-", third: "-", fourth: "-" }
     ],

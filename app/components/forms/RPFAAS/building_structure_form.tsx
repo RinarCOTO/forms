@@ -107,7 +107,9 @@ const BuildingStructureForm = ({
             : typeOfBuilding
             ? typeOfBuilding.split(" - ")[0]
             : "";
-    const actualUseDisplay = formatBuildingActualUse(actualUse);
+    // Show the full type with subcategory (e.g. "Residential (Government)") when available,
+    // falling back to the plain collapsed category for older drafts saved without type_of_building.
+    const actualUseDisplay = typeOfBuildingDisplay || formatBuildingActualUse(actualUse);
     const showDraftWatermark = serverData?.status !== "approved";
 
     // Get the deductions with their percentages and calculated values

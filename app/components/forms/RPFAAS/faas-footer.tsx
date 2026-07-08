@@ -273,7 +273,7 @@ const FaasFooter = ({
       </div>
 
       <div className="grid grid-cols-3 mt-6 print:mt-1">
-        <div>Assessed/Appraised by:</div>
+        <div>Assessed and Appraised by:</div>
         <div>Recommending Approval:</div>
         <div>Approved by:</div>
       </div>

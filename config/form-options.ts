@@ -69,6 +69,8 @@ export const BUILDING_TYPES = [
   { id: "building_type_10", label: "Open Gym" },
 ];
 
+export const RESIDENTIAL_SUBTYPES = ["Government", "Educational", "Religious", "Charitable"];
+
 export const STRUCTURAL_TYPES = [
   "V-A",
   "V-B",
