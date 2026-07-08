@@ -28,6 +28,7 @@ interface DeductionsTableProps {
   onQuantitiesChange: (newQuantities: number[]) => void;
   deductionChoices: SelectOption[];
   error?: string;
+  belowTitle?: React.ReactNode;
 }
 
 interface TotalImprovementsProps {
@@ -218,6 +219,7 @@ export const DeductionsTable = ({
   onQuantitiesChange,
   deductionChoices,
   error,
+  belowTitle,
 }: DeductionsTableProps) => {
   const [pendingRemoveIndex, setPendingRemoveIndex] = useState<number | null>(null);
 
@@ -254,6 +256,8 @@ export const DeductionsTable = ({
       <div className="flex justify-between items-center mb-4">
         <Label className="text-base font-semibold block">Other Improvements</Label>
       </div>
+
+      {belowTitle}
 
       {error && <p className="text-destructive text-sm mb-2">{error}</p>}
 

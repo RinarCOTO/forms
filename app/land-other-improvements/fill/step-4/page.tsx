@@ -10,7 +10,6 @@ import "@/app/styles/forms-fill.css";
 import { FormFillLayout } from "@/components/ui/form-fill-layout";
 import { SaveDraftButton } from "@/components/SaveDraftButton";
 import { FormLockBanner } from "@/components/ui/form-lock-banner";
-import { Label } from "@/components/ui/label";
 
 import { DeductionsTable, AdjustmentTable, SelectOption } from "./improvementsTable";
 import TotalImprovements from "./improvementsTable";
@@ -441,27 +440,21 @@ const LandImprovementsFormFillPage4 = () => {
                   onQuantitiesChange={setQuantities}
                   deductionChoices={effectiveDeductionChoices}
                   error={form.formState.errors.deductions?.message as string}
+                  belowTitle={isPinetreeLand && (
+                    <div className="mb-4" data-comment-field="improvement_assessment_level">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={parseFloat(improvementAssessmentLevel) === 40}
+                          onChange={(e) => setImprovementAssessmentLevel(e.target.checked ? "40%" : "")}
+                          className="w-4 h-4"
+                        />
+                        <span className="text-sm">Assess Improvements at 40%</span>
+                      </label>
+                    </div>
+                  )}
                 />
               </div>
-
-              {isPinetreeLand && (
-                <section className="bg-card rounded-lg border p-6 shadow-sm" data-comment-field="improvement_assessment_level">
-                  <Label className="rpfaas-fill-label mb-2 block">Assessment Level (Other Improvements)</Label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={parseFloat(improvementAssessmentLevel) === 40}
-                      onChange={(e) => setImprovementAssessmentLevel(e.target.checked ? "40%" : "")}
-                      className="w-4 h-4"
-                    />
-                    <span className="text-sm">Assess Other Improvements at 40%</span>
-                  </label>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Applies to the whole Other Improvements total above, not per entry. Leave unchecked
-                    to assess the combined market value at the land&apos;s rate, as usual (most municipalities).
-                  </p>
-                </section>
-              )}
 
               <AdjustmentTable
                 options={ADDITIONAL_FLAT_RATE_CHOICES}
